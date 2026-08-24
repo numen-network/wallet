@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createRepository } from './index'
-import { DEFAULT_NETWORK, NETWORKS, type Network } from './config'
+import { defaultNetwork, NETWORKS, type Network } from './config'
 import { addEndpoint, allNetworks, removeEndpoint } from './custom'
 import type { ChainRepository } from './types'
 
@@ -18,9 +18,9 @@ const NETWORK_KEY = 'numen-wallet-network'
 function storedNetwork(networks: Network[]): string {
   try {
     const id = localStorage.getItem(NETWORK_KEY)
-    return networks.some((network) => network.id === id) ? id! : DEFAULT_NETWORK
+    return networks.some((network) => network.id === id) ? id! : defaultNetwork()
   } catch {
-    return DEFAULT_NETWORK
+    return defaultNetwork()
   }
 }
 
@@ -39,7 +39,7 @@ const ChainContext = createContext<ChainContextValue | null>(null)
 export function ChainProvider({ children }: { children: ReactNode }) {
   const [networks, setNetworks] = useState(allNetworks)
   const [networkId, setNetworkId] = useState(() => storedNetwork(allNetworks()))
-  const network = networks.find((entry) => entry.id === networkId) ?? NETWORKS[DEFAULT_NETWORK]
+  const network = networks.find((entry) => entry.id === networkId) ?? NETWORKS[defaultNetwork()]
 
   const repository = useMemo(() => createRepository(network), [network])
 
@@ -81,7 +81,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
       forgetNetwork: (id: string) => {
         removeEndpoint(id)
         setNetworks(allNetworks())
-        if (id === networkId) select(DEFAULT_NETWORK)
+        if (id === networkId) select(defaultNetwork())
       },
     }
   }, [network, networks, networkId, repository])

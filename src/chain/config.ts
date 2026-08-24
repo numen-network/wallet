@@ -51,11 +51,23 @@ export const NETWORKS: Record<NetworkId, Network> = {
     name: 'Numen Local',
     rpc: 'ws://127.0.0.1:9944',
     explorer: 'http://127.0.0.1:3000',
-    identitySite: 'http://testnet.id.numen-network.org',
+    identitySite: 'https://testnet.id.numen-network.org',
   },
 }
 
-export const DEFAULT_NETWORK: NetworkId = 'local'
+/**
+ * Each deployment host serves one chain, so the address the wallet was loaded
+ * from picks the network it opens on. Matching is exact. Anything else is
+ * somebody running the wallet themselves, and their node is on their machine.
+ */
+const HOSTS: Record<string, NetworkId> = {
+  'wallet.numen-network.org': 'mainnet',
+  'testnet.wallet.numen-network.org': 'testnet',
+}
+
+export function defaultNetwork(): NetworkId {
+  return HOSTS[location.hostname] ?? 'local'
+}
 
 /** The page the explorer serves for one account, history and all. */
 export function explorerAccount(network: Network, address: string): string {
