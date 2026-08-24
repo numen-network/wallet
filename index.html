@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Numen Wallet</title>
+
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+
+    <!--
+      Keys never leave the browser, so nothing here may fetch or execute remote code.
+      wasm-unsafe-eval covers smoldot once the light client lands.
+
+      connect-src takes any wss because a wallet whose endpoints are fixed is no
+      use to anybody running their own node. That is a real widening, and what
+      keeps it honest is that nothing here loads remote code to abuse it. Plain
+      ws stays pinned to this machine, so nothing travels a network in the clear.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' 'wasm-unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data:;
+        font-src 'self';
+        connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:*;
+        object-src 'none';
+        base-uri 'none';
+        frame-ancestors 'none';
+        form-action 'none'
+      "
+    />
+    <meta name="referrer" content="no-referrer" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

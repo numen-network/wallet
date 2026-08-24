@@ -1,0 +1,4 @@
+# Only these packages may run install scripts. Everything else is inert, which
+# is the cheapest defence against a compromised transitive dependency.
+allowBuilds:
+  esbuild: true

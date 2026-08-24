@@ -1,0 +1,135 @@
+@import 'tailwindcss';
+
+/*
+  One palette and one typeface, both taken from the explorer so the two read as
+  one product. There is no dark variant on purpose, a wallet that repaints
+  itself with the operating system is a wallet whose screenshots never match
+  what the user reports.
+*/
+
+/* Latin only, the same subset the explorer ships. Self hosted because the CSP
+   allows no remote font. */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light;
+
+  --sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  --ground: #f4f5f8;
+  --panel: #ffffff;
+  --recess: #f9fafb;
+  --hover: #f4f5f8;
+  --ink: #1a1c22;
+  /*
+    Both of these were under the 4.5 contrast that text this size wants. Measured
+    against the panel, lead was 3.86 and dim was 2.18. They now clear it on the
+    recessed input background too, which is the darker of the two grounds.
+  */
+  --lead: #5b6270;
+  --dim: #6b7280;
+  /*
+    Placeholders alone stay light. They are not text somebody has to read, they
+    are the absence of it, and darkening them made an empty field look filled.
+  */
+  --hint: #aab0bb;
+  /* The small uppercase captions that head a group of fields. */
+  --faint: #9a9a9a;
+  --line: #e8eaef;
+  --line-strong: #d7dbe3;
+  --accent: #0891b2;
+  --accent-hover: #077e9b;
+  --accent-ink: #ffffff;
+  --accent-soft: #eaf6f9;
+  --bad: #f44336;
+  --bad-ink: #ffffff;
+  /* The explorer's own verdict colours, so one judgement reads the same in both */
+  --good: #4caf50;
+  --warn: #ef930b;
+  /*
+    Warn carried down to where it can be read. It is made to fill a shape behind
+    a white mark, and as text against the panel it measured 2.37. This clears 5.
+  */
+  --warn-deep: #a35c00;
+  --overlay: rgba(20, 24, 33, 0.45);
+  --shadow-card: 0 1px 2px rgb(20 24 33 / 0.04);
+  --shadow-hover: 0 3px 10px rgb(20 24 33 / 0.08);
+  --shadow-lift: 0 18px 42px rgb(20 24 33 / 0.22);
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-panel: var(--panel);
+  --color-recess: var(--recess);
+  --color-hover: var(--hover);
+  --color-ink: var(--ink);
+  --color-lead: var(--lead);
+  --color-dim: var(--dim);
+  --color-hint: var(--hint);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-bad: var(--bad);
+  --color-bad-ink: var(--bad-ink);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-warn-deep: var(--warn-deep);
+  --color-overlay: var(--overlay);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-hover: var(--shadow-hover);
+  --shadow-lift: var(--shadow-lift);
+
+  --font-sans: var(--sans);
+  /* Addresses and balances stay marked as machine text, but they render in the
+     same face as everything else. Point this at a real mono to change that. */
+  --font-mono: var(--sans);
+}
+
+/* A column so the footer sits at the bottom of a page with little on it */
+#root {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  /* Digits line up in columns without a monospace face */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dragging a card must not turn into a text selection or a page scroll */
+.dragging,
+.dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

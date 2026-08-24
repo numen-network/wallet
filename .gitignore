@@ -1,0 +1,18 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+
+# PAPI generated descriptors, rebuilt with pnpm papi:gen
+.papi/
+
+*.local
+.env
+.DS_Store
+
+# AI files
+.agents
+.claude
+AGENTS.md
+CLAUDE.md
