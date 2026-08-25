@@ -37,7 +37,7 @@ export function JudgementModal({
   const pending = pendingWith(registration ?? null)
   // The automated one only takes the transfer riding the identity dialog, a
   // manual request to it would sit unjudged forever, so this list leaves it out
-  const bot = botRegistrar(registrars ?? [])
+  const bot = botRegistrar(registrars ?? [], network.registrar)
   const askable = registrars?.filter((entry) => entry.index !== bot?.index)
   const registrar = askable?.find((entry) => entry.index === chosen) ?? askable?.[0] ?? null
   const claimed = CHANNELS.filter((channel) => registration?.info[channel])

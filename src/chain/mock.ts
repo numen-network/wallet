@@ -154,9 +154,9 @@ const decodeCall = (hex: string): Operation => {
 const callHashOf = (operation: Operation) => receipt(callText(operation))
 
 /**
- * Two registrars, the automated one and a human one. The first declares
- * Telegram and Discord, the two a robot can log into, which is how the wallet
- * knows it as the bot. The second takes manual requests and declares X.
+ * Two registrars, the automated one and a human one. The first sits on the
+ * account the local network names as its bot. The second takes manual requests
+ * and declares X.
  */
 const REGISTRARS: Registrar[] = [
   {

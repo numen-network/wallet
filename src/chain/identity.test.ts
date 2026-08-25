@@ -41,27 +41,21 @@ const checked = registration({
 })
 
 describe('finding the automated registrar', () => {
-  const declares = (index: number, fields: bigint): Registrar => ({
+  const sits = (index: number, account: string): Registrar => ({
     index,
-    account: 'nuRegistrar',
+    account,
     fee: UNIT,
-    fields,
-  })
-  const TELEGRAM = 1n << 6n
-  const DISCORD = 1n << 7n
-
-  it('is the one declaring both channels, wherever it sits', () => {
-    const found = botRegistrar([
-      declares(0, 0n),
-      declares(1, TELEGRAM),
-      declares(2, TELEGRAM | DISCORD),
-    ])
-    expect(found?.index).toBe(2)
+    fields: 0n,
   })
 
-  it('is nobody on a chain where nobody declares both', () => {
-    expect(botRegistrar([declares(0, TELEGRAM), declares(1, DISCORD)])).toBeUndefined()
-    expect(botRegistrar([])).toBeUndefined()
+  it('is the account the network names, wherever it sits', () => {
+    const found = botRegistrar([sits(0, 'nuRegistrar'), sits(1, 'nuBot')], 'nuBot')
+    expect(found?.index).toBe(1)
+  })
+
+  it('is nobody on a chain whose list does not hold it', () => {
+    expect(botRegistrar([sits(0, 'nuRegistrar')], 'nuBot')).toBeUndefined()
+    expect(botRegistrar([], 'nuBot')).toBeUndefined()
   })
 })
 
@@ -100,13 +94,13 @@ describe('what the bot already stands behind', () => {
     expect(carriedBy(held, undefined)).toEqual({})
   })
 
-  it('carries only what the declaration covers', () => {
-    const narrow: Registrar = { ...bot, fields: 1n << 6n }
+  it('carries both whatever the chain says it declares', () => {
+    const silent: Registrar = { ...bot, fields: 0n }
     const held = registration({
       info,
       judgements: [{ registrar: 2, judgement: 'Reasonable' }],
     })
-    expect(carriedBy(held, narrow)).toEqual({ telegram: 'alice' })
+    expect(carriedBy(held, silent)).toEqual({ telegram: 'alice', discord: 'alice_dc' })
   })
 })
 

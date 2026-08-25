@@ -29,6 +29,8 @@ export interface Network {
   explorer: string
   /** Where a registrar proves the social channels an identity claims. */
   identitySite: string
+  /** The automated registrar's account on this chain. */
+  registrar: string
 }
 
 export const NETWORKS: Record<NetworkId, Network> = {
@@ -38,6 +40,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     rpc: 'wss://rpc.numen-network.org',
     explorer: 'https://explorer.numen-network.org',
     identitySite: 'https://id.numen-network.org',
+    registrar: 'nu7iBot1ZuaFNt6wh4CQ8B8yh82Q6PsgJF7N7gfCGnoLLxZwv',
   },
   testnet: {
     id: 'testnet',
@@ -45,6 +48,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     rpc: 'wss://testnet.rpc.numen-network.org',
     explorer: 'https://testnet.explorer.numen-network.org',
     identitySite: 'https://testnet.id.numen-network.org',
+    registrar: 'nu7iBot1ZuaFNt6wh4CQ8B8yh82Q6PsgJF7N7gfCGnoLLxZwv',
   },
   local: {
     id: 'local',
@@ -52,6 +56,7 @@ export const NETWORKS: Record<NetworkId, Network> = {
     rpc: 'ws://127.0.0.1:9944',
     explorer: 'http://127.0.0.1:3000',
     identitySite: 'https://testnet.id.numen-network.org',
+    registrar: 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb',
   },
 }
 

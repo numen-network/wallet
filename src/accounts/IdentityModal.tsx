@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useChain } from '@/chain/provider'
 import { useFacts, useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import {
   botRegistrar,
@@ -107,6 +108,7 @@ export interface IdentityFormProps {
  * said it will check. That is all the split means.
  */
 function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: IdentityFormProps) {
+  const { network } = useChain()
   const symbol = useSymbol()
   const { data: standing } = useStanding(account.address)
   const registration = standing?.own ?? null
@@ -125,7 +127,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
 
   // The automated one only takes the transfer riding the other tab, a manual
   // request to it would sit unjudged forever, so this list leaves it out
-  const bot = botRegistrar(registrars ?? [])
+  const bot = botRegistrar(registrars ?? [], network.registrar)
   const askable = registrars?.filter((entry) => entry.index !== bot?.index)
 
   // The first is where the list starts, not a decision anybody made

@@ -1,5 +1,5 @@
 import type { Network } from './config'
-import type { Proven } from './identity'
+import { BOT_CHANNELS, type Proven } from './identity'
 import { usingMock } from './index'
 
 /**
@@ -14,9 +14,9 @@ import { usingMock } from './index'
  * record before signing once.
  */
 
-export type Provider = 'telegram' | 'discord'
+export type Provider = (typeof BOT_CHANNELS)[number]
 
-export const PROVIDERS: Provider[] = ['telegram', 'discord']
+export const PROVIDERS = BOT_CHANNELS
 
 export const PROVIDER_NAMES: Record<Provider, string> = {
   telegram: 'Telegram',

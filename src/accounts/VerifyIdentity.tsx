@@ -4,7 +4,6 @@ import {
   botRegistrar,
   byteLength,
   carriedBy,
-  checkedBy,
   depositFor,
   dropped,
   FIELD_MAX_BYTES,
@@ -96,15 +95,12 @@ export function VerifyIdentity({
   const stuck =
     (needsPassword && password === '') || byteLength(display) > FIELD_MAX_BYTES || !named
 
-  // Which registrar is the robot is read off the chain, it is the one declaring
-  // the channels it checks, and the declaration also picks the buttons here
-  const registrar = botRegistrar(registrars ?? [])
-  const providers = PROVIDERS.filter((provider) => checkedBy(registrar).includes(provider))
+  const registrar = botRegistrar(registrars ?? [], network.registrar)
 
   // A handle the bot already stands behind opens proved and rides for free,
   // only a sign in past what the chain holds is on the bill
   const carried = carriedBy(registration, registrar)
-  const fresh = providers.filter((provider) => {
+  const fresh = PROVIDERS.filter((provider) => {
     const check = checks[provider]
     return check !== undefined && check.handle !== carried[provider]
   })
@@ -254,54 +250,52 @@ export function VerifyIdentity({
       {/* One channel a row, and the two states beside the button answer
           different questions. What the chain stands behind outlives this
           dialog, while a sign in held here is good for an hour */}
-      {providers.length > 0 && (
-        <ul className="mt-4 grid gap-2.5">
-          {providers.map((provider) => {
-            const name = PROVIDER_NAMES[provider]
-            const held = checks[provider]
-            const stood = carried[provider]
-            const riding = worn[provider] !== ''
-            const trouble = failed[provider]
-            const state = held
-              ? `Signed in as ${held.handle}, ${minutesLeft(held.expiresAt, now)} min left`
-              : draft.checks[provider]
-                ? 'The sign in expired'
-                : stood && removed[provider]
-                  ? 'Comes off the record when you sign'
-                  : 'Not signed in'
-            return (
-              <li key={provider} className="flex items-center gap-3.5">
-                {/* Half the row apiece, so the states line up in a column */}
-                <Button
+      <ul className="mt-4 grid gap-2.5">
+        {PROVIDERS.map((provider) => {
+          const name = PROVIDER_NAMES[provider]
+          const held = checks[provider]
+          const stood = carried[provider]
+          const riding = worn[provider] !== ''
+          const trouble = failed[provider]
+          const state = held
+            ? `Signed in as ${held.handle}, ${minutesLeft(held.expiresAt, now)} min left`
+            : draft.checks[provider]
+              ? 'The sign in expired'
+              : stood && removed[provider]
+                ? 'Comes off the record when you sign'
+                : 'Not signed in'
+          return (
+            <li key={provider} className="flex items-center gap-3.5">
+              {/* Half the row apiece, so the states line up in a column */}
+              <Button
+                type="button"
+                variant={riding ? 'secondary' : 'primary'}
+                className="w-1/2 shrink-0"
+                disabled={busy !== null}
+                onClick={() => void run(provider)}
+              >
+                {busy === provider ? `Waiting for ${name}…` : `Verify with ${name}`}
+              </Button>
+              <div className="min-w-0 flex-1 text-[12.5px] leading-[1.5]">
+                <p className={`truncate ${stood && riding ? 'text-good' : 'text-dim'}`}>
+                  {stood ? `Checked on chain as ${stood}` : 'Never checked'}
+                </p>
+                <p className={trouble ? 'text-bad' : 'truncate text-dim'}>{trouble ?? state}</p>
+              </div>
+              {riding && (
+                <IconButton
                   type="button"
-                  variant={riding ? 'secondary' : 'primary'}
-                  className="w-1/2 shrink-0"
+                  aria-label={`Remove ${name}`}
                   disabled={busy !== null}
-                  onClick={() => void run(provider)}
+                  onClick={() => remove(provider)}
                 >
-                  {busy === provider ? `Waiting for ${name}…` : `Verify with ${name}`}
-                </Button>
-                <div className="min-w-0 flex-1 text-[12.5px] leading-[1.5]">
-                  <p className={`truncate ${stood && riding ? 'text-good' : 'text-dim'}`}>
-                    {stood ? `Checked on chain as ${stood}` : 'Never checked'}
-                  </p>
-                  <p className={trouble ? 'text-bad' : 'truncate text-dim'}>{trouble ?? state}</p>
-                </div>
-                {riding && (
-                  <IconButton
-                    type="button"
-                    aria-label={`Remove ${name}`}
-                    disabled={busy !== null}
-                    onClick={() => remove(provider)}
-                  >
-                    <TrashIcon />
-                  </IconButton>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                  <TrashIcon />
+                </IconButton>
+              )}
+            </li>
+          )
+        })}
+      </ul>
 
       {registrar === undefined ? (
         <p className="mt-3 text-[12.5px] text-dim">

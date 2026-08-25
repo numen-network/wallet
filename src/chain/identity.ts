@@ -42,12 +42,15 @@ export const CHANNELS = ['x', 'telegram', 'discord'] as const satisfies readonly
  */
 export const PROVABLE = ['display', 'telegram', 'discord'] as const
 
+/** The channels the automated registrar checks, fixed by what a bot can sign into. */
+export const BOT_CHANNELS = ['telegram', 'discord'] as const satisfies readonly IdentityField[]
+
 /**
  * What the identity site says it proved, which is all it is allowed to say. The
  * name is not in here. A bot can prove a handle belongs to whoever signed in,
  * it has no way to prove what they are called.
  */
-export type Proven = Pick<IdentityInfo, 'telegram' | 'discord'>
+export type Proven = Pick<IdentityInfo, (typeof BOT_CHANNELS)[number]>
 
 const provable = new Set<string>(PROVABLE)
 
@@ -171,15 +174,11 @@ export function checkedBy(registrar: Registrar | undefined): IdentityField[] {
 }
 
 /**
- * The automated registrar, found by what it declares on chain rather than told
- * by anyone. It is the one claiming to check both channels a robot can sign
- * into, and a chain where nobody claims that has no automatic checking yet.
+ * The automated registrar, named by the network the wallet is on. A chain whose
+ * list holds no such account has no automatic checking.
  */
-export function botRegistrar(registrars: Registrar[]): Registrar | undefined {
-  return registrars.find((entry) => {
-    const declared = checkedBy(entry)
-    return declared.includes('telegram') && declared.includes('discord')
-  })
+export function botRegistrar(registrars: Registrar[], account: string): Registrar | undefined {
+  return registrars.find((entry) => entry.account === account)
 }
 
 /**
@@ -198,10 +197,8 @@ export function carriedBy(
   if (!judged) return {}
 
   const held: Partial<Proven> = {}
-  for (const field of checkedBy(bot)) {
-    if ((field === 'telegram' || field === 'discord') && registration.info[field] !== '') {
-      held[field] = registration.info[field]
-    }
+  for (const field of BOT_CHANNELS) {
+    if (registration.info[field] !== '') held[field] = registration.info[field]
   }
   return held
 }
