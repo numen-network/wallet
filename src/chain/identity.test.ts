@@ -11,6 +11,7 @@ import {
   dropped,
   EMPTY_IDENTITY,
   encodedSize,
+  feePaidTo,
   identityFrom,
   isQualified,
   labelOf,
@@ -19,6 +20,7 @@ import {
   shortfall,
   type Registrar,
   type Registration,
+  type Ruling,
   type Standing,
 } from './identity'
 
@@ -87,7 +89,7 @@ describe('what the bot already stands behind', () => {
   it('carries nothing without a checked judgement', () => {
     const held = registration({
       info,
-      judgements: [{ registrar: 2, judgement: 'FeePaid' }],
+      judgements: [{ registrar: 2, judgement: 'FeePaid', fee: UNIT }],
     })
     expect(carriedBy(held, bot)).toEqual({})
     expect(carriedBy(null, bot)).toEqual({})
@@ -142,14 +144,18 @@ describe('the qualified identity standard', () => {
 
   it('takes KnownGood too, and nothing else', () => {
     const info = { ...EMPTY_IDENTITY, x: '@alice' }
-    const withVerdict = (judgement: Registration['judgements'][number]['judgement']) =>
+    const withVerdict = (judgement: Ruling) =>
       isQualified(standing({ info, judgements: [{ registrar: 0, judgement }] }))
 
     expect(withVerdict('KnownGood')).toBe(true)
     expect(withVerdict('OutOfDate')).toBe(false)
     expect(withVerdict('LowQuality')).toBe(false)
     expect(withVerdict('Erroneous')).toBe(false)
-    expect(withVerdict('FeePaid')).toBe(false)
+    expect(
+      isQualified(
+        standing({ info, judgements: [{ registrar: 0, judgement: 'FeePaid', fee: UNIT }] }),
+      ),
+    ).toBe(false)
   })
 
   it('ignores contact details that gate nothing', () => {
@@ -216,7 +222,7 @@ describe('what to tell somebody who falls short', () => {
       shortfall(
         standing({
           info: { ...EMPTY_IDENTITY, x: '@alice' },
-          judgements: [{ registrar: 1, judgement: 'FeePaid' }],
+          judgements: [{ registrar: 1, judgement: 'FeePaid', fee: UNIT }],
         }),
       ),
     ).toMatch(/is checking it/)
@@ -233,8 +239,33 @@ describe('what to tell somebody who falls short', () => {
   it('knows which registrar has already been paid', () => {
     expect(pendingWith(registration())).toBeNull()
     expect(
-      pendingWith(registration({ judgements: [{ registrar: 3, judgement: 'FeePaid' }] })),
+      pendingWith(registration({ judgements: [{ registrar: 3, judgement: 'FeePaid', fee: UNIT }] })),
     ).toBe(3)
+  })
+
+  it('reads back what one registrar stands to collect', () => {
+    const held = registration({
+      judgements: [
+        { registrar: 1, judgement: 'FeePaid', fee: UNIT / 2n },
+        { registrar: 3, judgement: 'Reasonable' },
+      ],
+    })
+
+    expect(feePaidTo(held, 1)).toBe(UNIT / 2n)
+    expect(feePaidTo(held, 3)).toBeNull()
+    expect(feePaidTo(held, 7)).toBeNull()
+    expect(feePaidTo(null, 1)).toBeNull()
+  })
+
+  it('picks its own request out of several', () => {
+    const held = registration({
+      judgements: [
+        { registrar: 0, judgement: 'FeePaid', fee: UNIT },
+        { registrar: 1, judgement: 'FeePaid', fee: UNIT / 2n },
+      ],
+    })
+
+    expect(feePaidTo(held, 1)).toBe(UNIT / 2n)
   })
 })
 

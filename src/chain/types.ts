@@ -9,7 +9,7 @@ import type {
   Track,
 } from './governance'
 import type { Bounty, ChildBounty } from './bounties'
-import type { IdentityInfo, Judgement, Registrar, Standing, Subs } from './identity'
+import type { IdentityInfo, Registrar, Ruling, Standing, Subs } from './identity'
 import type { VestingSchedule } from './vesting'
 
 /**
@@ -218,7 +218,7 @@ export type Operation =
       kind: 'provideJudgement'
       registrar: number
       target: string
-      judgement: Judgement
+      judgement: Ruling
       info: IdentityInfo
     }
   | { kind: 'cancelJudgement'; registrar: number }

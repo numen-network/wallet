@@ -83,11 +83,14 @@ export type Judgement =
   | 'Erroneous'
 
 /**
- * What a registrar may hand down, and what each one claims. FeePaid is not one
- * of them, it is the chain's own note that a request has been paid for, and
- * provide_judgement turns it down.
+ * What a registrar may hand down. FeePaid stays out of it, since that one is
+ * the chain's own note that a request has been paid for and provide_judgement
+ * refuses it.
  */
-export const VERDICTS: { value: Judgement; says: string }[] = [
+export type Ruling = Exclude<Judgement, 'FeePaid'>
+
+/** Each ruling and what it claims. */
+export const VERDICTS: { value: Ruling; says: string }[] = [
   { value: 'Reasonable', says: 'The data looks right. Nobody was met and no formal KYC was run' },
   { value: 'KnownGood', says: 'The registrar knows this account directly and vouches for all of it' },
   { value: 'OutOfDate', says: 'It was right once. Nothing malicious, and editing the identity lifts it' },
@@ -96,11 +99,14 @@ export const VERDICTS: { value: Judgement; says: string }[] = [
   { value: 'Unknown', says: 'No opinion, which is where every identity starts' },
 ]
 
-/** One registrar's verdict on the identity as it stood when they gave it. */
-export interface Verdict {
-  registrar: number
-  judgement: Judgement
-}
+/**
+ * One registrar's verdict on the identity as it stood when they gave it.
+ * FeePaid locks in the price at the time of the request, so a registrar that
+ * reprices later still collects what was reserved.
+ */
+export type Verdict =
+  | { registrar: number; judgement: Ruling }
+  | { registrar: number; judgement: 'FeePaid'; fee: bigint }
 
 export interface Registration {
   info: IdentityInfo
@@ -282,6 +288,15 @@ export function shortfall(standing: Standing | null): string | null {
 export function pendingWith(registration: Registration | null): number | null {
   const paid = registration?.judgements.find((verdict) => verdict.judgement === 'FeePaid')
   return paid ? paid.registrar : null
+}
+
+/**
+ * What one registrar collects for judging this, which is nothing unless the
+ * account asked them by name. Anyone may judge an identity that never asked.
+ */
+export function feePaidTo(registration: Registration | null, index: number): bigint | null {
+  const mine = registration?.judgements.find((verdict) => verdict.registrar === index)
+  return mine?.judgement === 'FeePaid' ? mine.fee : null
 }
 
 /**

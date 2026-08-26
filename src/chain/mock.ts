@@ -604,9 +604,8 @@ export function createMockRepository(): ChainRepository {
        */
       case 'registerIdentity': {
         const { registrar, pay } = operation
-        if (registrar && !REGISTRARS.some((entry) => entry.index === registrar.index)) {
-          throw new Error('Identity: EmptyIndex')
-        }
+        const seat = registrar ? REGISTRARS.find((entry) => entry.index === registrar.index) : null
+        if (registrar && !seat) throw new Error('Identity: EmptyIndex')
         const held = identities.get(account.address)
         const sticky = (held?.judgements ?? []).filter(
           (verdict) => verdict.judgement === 'FeePaid' || verdict.judgement === 'Erroneous',
@@ -618,10 +617,10 @@ export function createMockRepository(): ChainRepository {
               ...sticky.filter((verdict) => verdict.registrar !== 0),
               { registrar: 0, judgement: 'Reasonable' as const },
             ]
-          : registrar
+          : seat
             ? [
-                ...sticky.filter((verdict) => verdict.registrar !== registrar.index),
-                { registrar: registrar.index, judgement: 'FeePaid' as const },
+                ...sticky.filter((verdict) => verdict.registrar !== seat.index),
+                { registrar: seat.index, judgement: 'FeePaid' as const, fee: seat.fee },
               ]
             : sticky
         identities.set(account.address, {
@@ -643,7 +642,7 @@ export function createMockRepository(): ChainRepository {
         if (registrar.fee > operation.maxFee) throw new Error('Identity: FeeChanged')
         identities.set(account.address, {
           ...held,
-          judgements: [{ registrar: operation.registrar, judgement: 'FeePaid' }],
+          judgements: [{ registrar: operation.registrar, judgement: 'FeePaid', fee: registrar.fee }],
         })
         return
       }

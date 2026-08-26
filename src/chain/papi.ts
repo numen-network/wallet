@@ -118,8 +118,13 @@ type ProxiesEntry = [{ delegate: string; proxy_type: { type: string }; delay: nu
 /** pallet_identity's Data, one variant per byte length plus the hashed forms. */
 type IdentityData = { type: string; value?: string | number }
 
+/** pallet_identity's Judgement, where only FeePaid carries an amount. */
+type JudgementEntry =
+  | { type: Exclude<Judgement, 'FeePaid'> }
+  | { type: 'FeePaid'; value: bigint }
+
 interface RegistrationEntry {
-  judgements: [number, { type: string }][]
+  judgements: [number, JudgementEntry][]
   deposit: bigint
   info: Record<string, IdentityData>
 }
@@ -798,10 +803,11 @@ export function createPapiRepository(network: Network): ChainRepository {
 
     return {
       info: toIdentityInfo(entry.info),
-      judgements: entry.judgements.map(([registrar, judgement]) => ({
-        registrar,
-        judgement: judgement.type as Judgement,
-      })),
+      judgements: entry.judgements.map(([registrar, judgement]) =>
+        judgement.type === 'FeePaid'
+          ? { registrar, judgement: judgement.type, fee: judgement.value }
+          : { registrar, judgement: judgement.type },
+      ),
       deposit: entry.deposit,
     }
   }

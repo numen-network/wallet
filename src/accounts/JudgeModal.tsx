@@ -1,18 +1,19 @@
 import { useState } from 'react'
 import { useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import {
+  feePaidTo,
   IDENTITY_FIELDS,
   LABELS,
-  pendingWith,
   VERDICTS,
-  type Judgement,
+  type Ruling,
 } from '@/chain/identity'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
-import { Field, FieldError, INSIDE, Input, Modal } from '@/ui/Modal'
+import { BOX, Field, FieldError, INSIDE, Input, Modal } from '@/ui/Modal'
+import { CROSS, MarkDisc, TICK } from '@/ui/JudgementBadge'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
@@ -41,9 +42,10 @@ export function JudgeModal({
   signers: Account[]
   onClose: () => void
 }) {
+  const symbol = useSymbol()
   const { data: registrars } = useRegistrars()
   const [to, setTo] = useState('')
-  const [verdict, setVerdict] = useState<Judgement>('Reasonable')
+  const [verdict, setVerdict] = useState<Ruling>('Reasonable')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -54,8 +56,7 @@ export function JudgeModal({
   const { data: standing } = useStanding(target ?? '')
   const registration = target ? (standing?.own ?? null) : null
   const claimed = IDENTITY_FIELDS.filter((field) => registration?.info[field])
-  // Paying is what a request is, and the fee is collected by judging it
-  const paid = pendingWith(registration) === seat?.index && seat !== undefined
+  const owed = seat ? feePaidTo(registration, seat.index) : null
 
   const operation: Operation | null =
     seat && target && registration
@@ -135,17 +136,31 @@ export function JudgeModal({
         </div>
       )}
 
-      {paid && (
-        <p className="mt-1.5 text-[12.5px] text-dim">
-          This account has paid for a check by registrar {seat?.index}. The fee comes across when
-          this lands.
-        </p>
+      {/* What the judgement is worth. An identity that never asked can still be
+          judged, and that work goes unpaid */}
+      {seat && registration && (
+        <div className={`mt-2.5 px-3 py-2 ${BOX}`}>
+          <span className="text-[11.5px] text-dim">Your fee</span>
+          <p className="flex items-center gap-2 text-[15px] text-lead">
+            <MarkDisc
+              className="size-4"
+              fill={owed === null ? 'var(--color-bad)' : 'var(--color-good)'}
+              mark={owed === null ? CROSS : TICK}
+            />
+            {owed === null ? 'Not paid' : 'Paid'}
+            {owed !== null && (
+              <span className="ml-auto font-mono">
+                {formatAmount(owed, { precision: 4 })} {symbol}
+              </span>
+            )}
+          </p>
+        </div>
       )}
 
       <Field label="Judgement">
         <Select
           value={verdict}
-          onValueChange={(value) => setVerdict(value as Judgement)}
+          onValueChange={(value) => setVerdict(value as Ruling)}
           options={OPTIONS}
           label="Judgement"
           className={INSIDE}

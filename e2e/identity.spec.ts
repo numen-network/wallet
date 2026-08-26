@@ -829,6 +829,10 @@ test('a registrar judges the identity it was shown', async ({ page }) => {
   await expect(dialog.getByText('Numen Explorer Team')).toBeVisible()
   await expect(dialog.getByText('@numen_explorer')).toBeVisible()
 
+  // Nobody asked this registrar to look at it, so the verdict earns nothing
+  await expect(dialog.getByText('Your fee')).toBeVisible()
+  await expect(dialog.getByText('Not paid', { exact: true })).toBeVisible()
+
   await dialog.getByRole('combobox', { name: 'Judgement' }).click()
   await page.getByRole('option', { name: 'KnownGood' }).click()
   await expect(dialog.getByText(/knows this account directly/)).toBeVisible()
