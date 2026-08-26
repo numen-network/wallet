@@ -1,9 +1,16 @@
 import { hexToU8a } from '@polkadot/util'
 import { blake2AsHex } from '@polkadot/util-crypto'
-import { createClient, Enum, type PolkadotClient, type PolkadotSigner } from 'polkadot-api'
+import {
+  createClient,
+  Enum,
+  InvalidTxError,
+  type PolkadotClient,
+  type PolkadotSigner,
+} from 'polkadot-api'
 import { getWsProvider } from 'polkadot-api/ws'
 import type { WalletAccount } from '@/signing/types'
 import { DECIMALS, SS58_PREFIX, type Network } from './config'
+import { ChainError, refusalMessage, type Validity } from './refusal'
 import {
   hasRefund,
   metadataDump,
@@ -683,6 +690,17 @@ function dispatchMessage(result: TxResult): string {
   const inner = error.value
   if (!inner?.type) return error.type
   return inner.value?.type ? `${inner.type}: ${inner.value.type}` : `${error.type}: ${inner.type}`
+}
+
+/**
+ * A refusal from the node itself, which never reaches a block and so never
+ * carries a dispatch error. Only the raw JSON papi prints comes with it.
+ */
+function refused(problem: unknown): Error {
+  if (problem instanceof InvalidTxError) {
+    return new ChainError(refusalMessage(problem.error as Validity), problem.message)
+  }
+  return problem instanceof Error ? problem : new Error('The chain refused it')
 }
 
 export function createPapiRepository(network: Network): ChainRepository {
@@ -1634,7 +1652,7 @@ export function createPapiRepository(network: Network): ChainRepository {
                   resolve(event.txHash)
                 }
               },
-              error: reject,
+              error: (problem: unknown) => reject(refused(problem)),
               complete: () => undefined,
             }),
           )

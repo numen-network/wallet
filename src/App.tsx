@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { usingMock } from '@/chain'
 import { EndpointModal } from '@/chain/EndpointModal'
+import { RefusalModal } from '@/chain/RefusalModal'
 import { useChain } from '@/chain/provider'
 import { useBalances, useFacts, useHead, useReach } from '@/chain/queries'
 import { quality, type Quality } from '@/chain/reach'
@@ -584,6 +585,7 @@ export function App() {
         </ConfirmModal>
       )}
 
+      <RefusalModal />
       <ToastHost />
     </>
   )

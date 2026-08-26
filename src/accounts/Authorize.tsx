@@ -16,6 +16,8 @@ import {
   useRefreshSpends,
   useSymbol,
 } from '@/chain/queries'
+import { useRefusalStore } from '@/chain/RefusalModal'
+import { ChainError, ShownError } from '@/chain/refusal'
 import type { Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import type { WalletAccount } from '@/signing/types'
@@ -242,6 +244,7 @@ export function useSubmit(account: Account) {
   const remember = useCallsStore((state) => state.remember)
   const advance = useSessionStore((state) => state.advance)
   const fail = useSessionStore((state) => state.fail)
+  const raise = useRefusalStore((state) => state.raise)
   const refresh: Record<Cache, () => void> = {
     proxies: useRefreshProxies(),
     identity: useRefreshIdentity(),
@@ -307,7 +310,13 @@ export function useSubmit(account: Account) {
           const message = problem instanceof Error ? problem.message : 'The chain refused it'
           toastSettled(id)
           fail(id, message)
-          // Before it was out the dialog is still up and owns the message
+          // A toast is gone before a refusal like this can be read, let alone acted on
+          if (problem instanceof ChainError) {
+            raise({ message, detail: problem.detail })
+            if (!out) reject(new ShownError())
+            return
+          }
+
           if (out) toastProblem(message)
           else reject(problem instanceof Error ? problem : new Error(message))
         })
