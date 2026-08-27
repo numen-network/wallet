@@ -324,6 +324,28 @@ describe('balances', () => {
       transferableOf(held.free, held.reserved, held.frozen, existentialDeposit),
     )
   })
+
+  // Two sends where the second leaves before the first is in a block. The
+  // second one's nonce has to count the pending first or it goes out stale.
+  it('lands two transfers fired back to back', { timeout: 200_000 }, async () => {
+    const bob = toNumenAddress(new Keyring({ type: 'sr25519' }).addFromUri('//Bob').address)
+
+    const inBlock = (operation: Operation, onBroadcast?: () => void) =>
+      new Promise<void>((resolve, reject) => {
+        repository.submit(alice, operation, (progress) => {
+          if (progress.stage === 'broadcast') onBroadcast?.()
+          if (progress.stage === 'inBlock') resolve()
+        }).catch(reject)
+        setTimeout(() => reject(new Error(`${operation.kind} never made it into a block`)), 90_000)
+      })
+
+    let out!: () => void
+    const firstIsOut = new Promise<void>((resolve) => (out = resolve))
+    const first = inBlock({ kind: 'transfer', to: bob, amount: UNIT }, out)
+    await firstIsOut
+    const second = inBlock({ kind: 'transfer', to: bob, amount: 2n * UNIT })
+    await Promise.all([first, second])
+  })
 })
 
 describe('governance', () => {

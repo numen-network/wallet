@@ -104,7 +104,7 @@ interface Tx {
   getEncodedData(): Promise<Uint8Array>
   /** The call itself, which is what a batch carries rather than encoded bytes. */
   decodedCall: DecodedCall
-  signSubmitAndWatch(signer: PolkadotSigner): {
+  signSubmitAndWatch(signer: PolkadotSigner, options: { nonce: number }): {
     subscribe(observer: {
       next: (event: TxEvent) => void
       error: (problem: unknown) => void
@@ -706,6 +706,9 @@ function refused(problem: unknown): Error {
 export function createPapiRepository(network: Network): ChainRepository {
   const client: PolkadotClient = createClient(getWsProvider(network.rpc))
   const api = client.getUnsafeApi() as unknown as UnsafeApi
+
+  /** The last nonce each address went out with, for sends fired back to back. */
+  const sentNonces = new Map<string, number>()
 
   /**
    * What one argument of a call says. The runtime's own metadata has already
@@ -1634,29 +1637,43 @@ export function createPapiRepository(network: Network): ChainRepository {
       onProgress?: (progress: TxProgress) => void,
     ): Promise<string> {
       return new Promise((resolve, reject) => {
-        build(operation)
-          .then((tx) =>
-            tx.signSubmitAndWatch(account.signer).subscribe({
+        // Left to itself PAPI reads the nonce out of block state, which cannot
+        // see the pool, so a second send while one is pending would go out
+        // stale. The node counts its pool, the map covers a send still on its
+        // way there, and a refusal drops the memory so a nonce that never
+        // landed cannot wedge the ones after it.
+        const fail = (problem: unknown) => {
+          sentNonces.delete(account.address)
+          reject(problem)
+        }
+        Promise.all([
+          build(operation),
+          client._request<number, [string]>('system_accountNextIndex', [account.address]),
+        ])
+          .then(([tx, fromNode]) => {
+            const nonce = Math.max(fromNode, (sentNonces.get(account.address) ?? -1) + 1)
+            sentNonces.set(account.address, nonce)
+            return tx.signSubmitAndWatch(account.signer, { nonce }).subscribe({
               next(event) {
                 if (event.type === 'signed') onProgress?.({ stage: 'signed', hash: event.txHash })
                 if (event.type === 'broadcasted') {
                   onProgress?.({ stage: 'broadcast', hash: event.txHash })
                 }
                 if (event.type === 'txBestBlocksState' && event.found) {
-                  if (!event.ok) return reject(new Error(dispatchMessage(event)))
+                  if (!event.ok) return fail(new Error(dispatchMessage(event)))
                   onProgress?.({ stage: 'inBlock', hash: event.txHash })
                 }
                 if (event.type === 'finalized') {
-                  if (!event.ok) return reject(new Error(dispatchMessage(event)))
+                  if (!event.ok) return fail(new Error(dispatchMessage(event)))
                   onProgress?.({ stage: 'finalized', hash: event.txHash })
                   resolve(event.txHash)
                 }
               },
-              error: (problem: unknown) => reject(refused(problem)),
+              error: (problem: unknown) => fail(refused(problem)),
               complete: () => undefined,
-            }),
-          )
-          .catch(reject)
+            })
+          })
+          .catch(fail)
       })
     },
 
