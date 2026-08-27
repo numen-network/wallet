@@ -527,8 +527,12 @@ test('one signature pays several accounts at once', async ({ page }) => {
   await fillAddress(page, dialog, 'Address 1', DESTINATION)
   await dialog.getByLabel('Amount 1').fill('1')
 
-  // The row a form opens with is the only one, so it cannot be taken away
-  await expect(dialog.getByRole('button', { name: 'Remove row 1' })).toBeDisabled()
+  // The trash on the only row clears it rather than taking it away
+  await dialog.getByRole('button', { name: 'Remove row 1' }).click()
+  await expect(dialog.getByLabel('Amount 1')).toHaveValue('')
+  await expect(dialog.getByRole('button', { name: 'Address 1' })).toContainText('nu… or 0x…')
+  await fillAddress(page, dialog, 'Address 1', DESTINATION)
+  await dialog.getByLabel('Amount 1').fill('1')
 
   await dialog.getByRole('button', { name: 'Add', exact: true }).click()
   await fillAddress(page, dialog, 'Address 2', SECOND)

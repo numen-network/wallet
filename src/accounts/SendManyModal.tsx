@@ -183,8 +183,12 @@ export function SendMany({
             <IconButton
               type="button"
               aria-label={`Remove row ${index + 1}`}
-              disabled={rows.length === 1}
-              onClick={() => patch({ rows: rows.filter((_, at) => at !== index) })}
+              onClick={() => {
+                // Removing the only row leaves a blank one, so the form never
+                // goes empty and a filled row can always be cleared
+                const rest = rows.filter((_, at) => at !== index)
+                patch({ rows: rest.length > 0 ? rest : [BLANK] })
+              }}
             >
               <TrashIcon />
             </IconButton>
