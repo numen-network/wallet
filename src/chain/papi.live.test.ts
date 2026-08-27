@@ -167,7 +167,7 @@ describe('identity', () => {
     })
 
     expect((await repository.standingOf(alice.address)).own?.judgements).toEqual([
-      { registrar: 0, judgement: 'FeePaid' },
+      { registrar: 0, judgement: 'FeePaid', fee: 0n },
     ])
     await send({ kind: 'cancelJudgement', registrar: 0 })
   })
@@ -199,7 +199,7 @@ describe('identity', () => {
 
     await send({ kind: 'requestJudgement', registrar: 0, maxFee: UNIT })
     expect((await repository.standingOf(alice.address)).own?.judgements).toEqual([
-      { registrar: 0, judgement: 'FeePaid' },
+      { registrar: 0, judgement: 'FeePaid', fee: 0n },
     ])
 
     await send({ kind: 'cancelJudgement', registrar: 0 })
@@ -214,7 +214,7 @@ describe('identity', () => {
       registrar: { index: 0, maxFee: UNIT },
     })
     expect((await repository.standingOf(alice.address)).own?.judgements).toEqual([
-      { registrar: 0, judgement: 'FeePaid' },
+      { registrar: 0, judgement: 'FeePaid', fee: 0n },
     ])
 
     // Nobody asked again, and the request is still there
@@ -225,7 +225,7 @@ describe('identity', () => {
     })
     const after = (await repository.standingOf(alice.address)).own
     expect(after?.info.display).toBe('Alicia')
-    expect(after?.judgements).toEqual([{ registrar: 0, judgement: 'FeePaid' }])
+    expect(after?.judgements).toEqual([{ registrar: 0, judgement: 'FeePaid', fee: 0n }])
 
     await send({ kind: 'cancelJudgement', registrar: 0 })
   })
