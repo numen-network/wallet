@@ -71,7 +71,7 @@ type Modal =
   | { kind: 'vesting'; address: string }
   | { kind: 'judge'; address: string }
   | { kind: 'setFee'; address: string }
-  | { kind: 'sign' }
+  | { kind: 'sign'; signer?: string }
   | { kind: 'bringIn'; address: string }
   | { kind: 'endpoint' }
   | { kind: 'forget'; address: string }
@@ -256,6 +256,7 @@ export function App() {
     onPending: (account: Account) => setModal({ kind: 'pending', address: account.address }),
     onSubs: (account: Account) => setModal({ kind: 'subs', address: account.address }),
     onVesting: (account: Account) => setModal({ kind: 'vesting', address: account.address }),
+    onSign: (account: Account) => setModal({ kind: 'sign', signer: account.address }),
     onJudge: (account: Account) => setModal({ kind: 'judge', address: account.address }),
     onSetFee: (account: Account) => setModal({ kind: 'setFee', address: account.address }),
     onBringIn: (account: Account) => setModal({ kind: 'bringIn', address: account.address }),
@@ -419,7 +420,9 @@ export function App() {
         <QuitSubModal account={selected} signers={signersFor(selected, accounts)} onClose={close} />
       )}
 
-      {modal?.kind === 'sign' && <SignModal accounts={accounts} onClose={close} />}
+      {modal?.kind === 'sign' && (
+        <SignModal accounts={accounts} initial={modal.signer} onClose={close} />
+      )}
 
       {modal?.kind === 'vesting' && selected && (
         <VestingModal

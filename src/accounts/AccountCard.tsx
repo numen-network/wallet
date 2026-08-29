@@ -32,12 +32,13 @@ import {
   PuzzleIcon,
   SaveIcon,
   SealIcon,
+  SignatureIcon,
   TrashIcon,
   UnlockIcon,
 } from '@/ui/icons'
 import { Identicon } from '@/ui/Identicon'
 import { Menu, type MenuSection } from '@/ui/Menu'
-import { canSend, type Account } from './types'
+import { canSend, signsAlone, type Account } from './types'
 
 export interface CardActions {
   onSend: (account: Account) => void
@@ -61,6 +62,7 @@ export interface CardActions {
   onPending: (account: Account) => void
   onSubs: (account: Account) => void
   onVesting: (account: Account) => void
+  onSign: (account: Account) => void
   onBringIn: (account: Account) => void
 }
 
@@ -203,6 +205,7 @@ function CardBody({
   onPending,
   onSubs,
   onVesting,
+  onSign,
   onBringIn,
 }: CardProps) {
   const { network } = useChain()
@@ -290,8 +293,38 @@ function CardBody({
   const menu: MenuSection[] = [
     {
       label: 'Account',
+      // What gets done over and over sits above the set-once key admin
       items: [
         { label: 'Rename this account', icon: <PencilIcon />, onSelect: () => onRename(account) },
+        ...(account.multisig
+          ? [
+              {
+                label: 'Multisig approvals',
+                icon: <MultisigIcon className="size-3.5" />,
+                onSelect: () => onPending(account),
+              },
+            ]
+          : []),
+        ...(canSend(account)
+          ? [
+              {
+                label: 'Vesting',
+                icon: <PiggyIcon />,
+                onSelect: () => onVesting(account),
+              },
+            ]
+          : []),
+        // A message signature comes from one key, so an account signing through
+        // its signatories or its proxy has nothing to offer here
+        ...(signsAlone(account)
+          ? [
+              {
+                label: 'Sign a message',
+                icon: <SignatureIcon />,
+                onSelect: () => onSign(account),
+              },
+            ]
+          : []),
         ...(local
           ? [
               {
@@ -304,32 +337,10 @@ function CardBody({
                 icon: <SaveIcon />,
                 onSelect: () => onBackup(account),
               },
-            ]
-          : []),
-        ...(account.multisig
-          ? [
-              {
-                label: 'Multisig approvals',
-                icon: <MultisigIcon className="size-3.5" />,
-                onSelect: () => onPending(account),
-              },
-            ]
-          : []),
-        ...(local
-          ? [
               {
                 label: 'Derive an account',
                 icon: <BranchIcon />,
                 onSelect: () => onDerive(account),
-              },
-            ]
-          : []),
-        ...(canSend(account)
-          ? [
-              {
-                label: 'Vesting',
-                icon: <PiggyIcon />,
-                onSelect: () => onVesting(account),
               },
             ]
           : []),

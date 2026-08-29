@@ -25,14 +25,23 @@ const MODES: TabOption<Mode>[] = [
  * never touches a balance, which is what the wrapping in signing/message.ts is
  * for.
  */
-export function SignModal({ accounts, onClose }: { accounts: Account[]; onClose: () => void }) {
-  const [draft, patch] = useDraft('sign', { mode: 'sign' as Mode })
+export function SignModal({
+  accounts,
+  initial,
+  onClose,
+}: {
+  accounts: Account[]
+  /** Address to start on, when the dialog is opened from that account's card. */
+  initial?: string | undefined
+  onClose: () => void
+}) {
+  const [draft, patch] = useDraft(initial ? `sign:${initial}` : 'sign', { mode: 'sign' as Mode })
   const tabs = (
     <Tabs value={draft.mode} options={MODES} onChange={(mode) => patch({ mode })} className="w-fit" />
   )
 
   return draft.mode === 'sign' ? (
-    <Sign accounts={accounts} tabs={tabs} onClose={onClose} />
+    <Sign accounts={accounts} initial={initial} tabs={tabs} onClose={onClose} />
   ) : (
     <Verify accounts={accounts} tabs={tabs} onClose={onClose} />
   )
@@ -40,16 +49,18 @@ export function SignModal({ accounts, onClose }: { accounts: Account[]; onClose:
 
 function Sign({
   accounts,
+  initial,
   tabs,
   onClose,
 }: {
   accounts: Account[]
+  initial?: string | undefined
   tabs: ReactNode
   onClose: () => void
 }) {
   // Only an account holding its own key can put it to anything
   const own = accounts.filter(signsAlone)
-  const [signing, setSigning] = useState(own[0]?.address ?? '')
+  const [signing, setSigning] = useState(initial ?? own[0]?.address ?? '')
   const [message, setMessage] = useState('')
   const [password, setPassword] = useState('')
   const [signature, setSignature] = useState('')
