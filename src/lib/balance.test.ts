@@ -93,6 +93,27 @@ describe('formatAmount', () => {
   it('uses a real minus sign for outgoing amounts', () => {
     expect(formatAmount(-UNIT)).toBe('−1.0000')
   })
+
+  it('scales thousands and millions to K and M when compact', () => {
+    expect(formatAmount(600_000_000n * UNIT, { precision: 2, compact: true })).toBe('600.00M')
+    expect(formatAmount(12_345n * UNIT, { precision: 2, compact: true })).toBe('12.34K')
+    expect(formatAmount(999n * UNIT, { precision: 2, compact: true })).toBe('999.00')
+  })
+
+  it('picks the unit right at the K and M boundaries', () => {
+    expect(formatAmount(1_000n * UNIT, { precision: 2, compact: true })).toBe('1.00K')
+    expect(formatAmount(999_999n * UNIT, { precision: 2, compact: true })).toBe('999.99K')
+    expect(formatAmount(1_000_000n * UNIT, { precision: 2, compact: true })).toBe('1.00M')
+  })
+
+  it('keeps truncation and the ≈ mark on the scaled unit', () => {
+    expect(formatAmount(999_999_999n * UNIT, { precision: 2, compact: true, approx: true }))
+      .toBe('≈999.99M')
+    expect(formatAmount(12_345n * UNIT, { precision: 2, compact: true, approx: true }))
+      .toBe('≈12.34K')
+    expect(formatAmount(1_000_000n * UNIT, { precision: 2, compact: true, approx: true }))
+      .toBe('1.00M')
+  })
 })
 
 describe('round trip', () => {

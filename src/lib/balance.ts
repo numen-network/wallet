@@ -48,25 +48,31 @@ export interface FormatOptions {
   pad?: boolean
   /** Mark the number with ≈ when digits had to be dropped to fit the precision. */
   approx?: boolean
+  /** Scale thousands to K and millions to M. */
+  compact?: boolean
 }
 
 export function formatAmount(planck: bigint, options: FormatOptions = {}): string {
-  const { precision = 4, grouped = true, pad = true, approx = false } = options
+  const { precision = 4, grouped = true, pad = true, approx = false, compact = false } = options
 
   const negative = planck < 0n
   const abs = negative ? -planck : planck
 
-  const whole = abs / BASE
+  const shift = !compact ? 0 : abs >= 1_000_000n * BASE ? 6 : abs >= 1_000n * BASE ? 3 : 0
+  const unit = BASE * 10n ** BigInt(shift)
+  const suffix = shift === 6 ? 'M' : shift === 3 ? 'K' : ''
+
+  const whole = abs / unit
   // Taking the digits off the front truncates, and asking for none of them
   // leaves nothing rather than a zero the caller did not ask for
-  let frac = (abs % BASE).toString().padStart(DECIMALS, '0').slice(0, precision)
+  let frac = (abs % unit).toString().padStart(DECIMALS + shift, '0').slice(0, precision)
   if (!pad) frac = frac.replace(/0+$/, '')
 
   const head = grouped ? whole.toLocaleString('en-US') : whole.toString()
   const sign = negative ? '−' : ''
   // What one shown digit is worth, so anything under it is what got dropped
-  const step = precision >= DECIMALS ? 1n : BASE / 10n ** BigInt(precision)
+  const step = precision >= DECIMALS + shift ? 1n : unit / 10n ** BigInt(precision)
   const about = approx && abs % step !== 0n ? '≈' : ''
 
-  return frac ? `${about}${sign}${head}.${frac}` : `${about}${sign}${head}`
+  return frac ? `${about}${sign}${head}.${frac}${suffix}` : `${about}${sign}${head}${suffix}`
 }
