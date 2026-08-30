@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { AccountPassword, FeeLine } from '@/accounts/Authorize'
+import { CallModal } from '@/accounts/Authorize'
 import { refundsSubmission, type NotedPreimage, type Settled, type Spend } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { FieldError, Modal } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 
@@ -64,11 +63,17 @@ function Sweep({
   }
 
   return (
-    <Modal
+    <CallModal
       title={title}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy || calls.length === 0}
       footNote={`${formatAmount(worth, { precision: 0 })} ${symbol} over ${count(calls.length, 'call')}`}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={() => {
         setError('')
@@ -79,18 +84,7 @@ function Sweep({
       <p className="text-[13.5px] text-lead">{says}</p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={voter.signer.address} operation={voter.wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }
 

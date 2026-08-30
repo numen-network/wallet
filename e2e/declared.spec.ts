@@ -204,7 +204,7 @@ test('a proxied account spends through the key it named', async ({ page }) => {
   // and the fee comes off the one that signed
   await card(page, 'Cold').getByRole('button', { name: 'Send' }).click()
   const send = page.getByRole('dialog')
-  await expect(send.getByText('Signed by the proxy, spent from this account')).toBeVisible()
+  await expect(send.getByText('registered the one above as a proxy')).toBeVisible()
   await fillAddress(page, send, 'Address', B)
   await send.getByLabel('Amount').fill('10')
   await send.getByLabel('Account password').fill(PASSWORD)

@@ -28,9 +28,9 @@ import { VaultError } from '@/signing/vault'
 import { Button, IconButton } from '@/ui/Button'
 import { Facts, type Fact } from '@/ui/Facts'
 import { TrashIcon } from '@/ui/icons'
-import { FieldError, Modal } from '@/ui/Modal'
+import { FieldError } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import type { IdentityFormProps } from './IdentityModal'
 import { IdentityLine } from './IdentityLine'
 
@@ -232,12 +232,18 @@ export function VerifyIdentity({
   }
 
   return (
-    <Modal
+    <CallModal
       title="On chain identity"
       submitLabel={signable ? (busy === 'signing' ? 'Signing…' : 'Sign and send') : null}
       cancelLabel="Close"
       disabled={stuck || busy !== null}
       aside={tabs}
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={operation ? wrap(operation) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -328,17 +334,6 @@ export function VerifyIdentity({
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-
-      <FieldError>{error}</FieldError>
-      {operation && <FeeLine from={signer.address} operation={wrap(operation)} />}
-    </Modal>
+    </CallModal>
   )
 }

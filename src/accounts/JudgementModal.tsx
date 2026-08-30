@@ -4,9 +4,8 @@ import { useRegistrars, useStanding } from '@/chain/queries'
 import { botRegistrar, CHANNELS, isChecked, LABELS, pendingWith } from '@/chain/identity'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { FieldError, Modal } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import { RegistrarField } from './RegistrarField'
 import type { Account } from './types'
 
@@ -79,11 +78,17 @@ export function JudgementModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title={pending === null ? 'Ask a registrar' : 'Withdraw the request'}
       submitLabel={busy ? 'Signing…' : pending === null ? 'Sign and send' : 'Withdraw it'}
       danger={pending !== null}
       disabled={busy}
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -127,17 +132,6 @@ export function JudgementModal({
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={signer.address} operation={wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }

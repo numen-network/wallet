@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { AccountPassword, FeeLine } from '@/accounts/Authorize'
+import { CallModal } from '@/accounts/Authorize'
 import type { Bounty, ChildBounty } from '@/chain/bounties'
 import { useSymbol } from '@/chain/queries'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Field, Input } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { AddressField } from '@/accounts/AddressField'
@@ -209,11 +209,17 @@ export function BountyModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title={ask.title}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       footNote={`${child ? `Bounty ${bounty}.${child.index}` : `Bounty ${bounty}`}, ${formatAmount(target.value, { precision: 0 })} ${symbol}`}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(probe)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -271,18 +277,7 @@ export function BountyModal({
           </Field>
         </>
       )}
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={voter.signer.address} operation={voter.wrap(probe)} />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -347,10 +342,16 @@ export function ProposeBountyModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Propose a bounty"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -379,17 +380,6 @@ export function ProposeBountyModal({
           onChange={(event) => setAmount(amountInput(event.target.value))}
         />
       </Field>
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={voter.signer.address} operation={voter.wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }

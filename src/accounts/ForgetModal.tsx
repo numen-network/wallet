@@ -44,15 +44,23 @@ export function ForgetModal({ account, onClose }: { account: Account; onClose: (
   }
 
   return (
-    <Modal title="Forget this account" submitLabel="Forget" danger onClose={onClose} onSubmit={submit}>
+    <Modal
+      title="Forget this account"
+      submitLabel="Forget"
+      danger
+      footer={
+        <>
+          <AccountPassword value={password} onChange={setPassword} />
+          <FieldError>{error}</FieldError>
+        </>
+      }
+      onClose={onClose}
+      onSubmit={submit}
+    >
       <p className="text-[13.5px] text-lead">
         This browser holds the only copy of {account.name}. Without the seed or a
         backup file, the funds go with it.
       </p>
-
-      <AccountPassword value={password} onChange={setPassword} />
-
-      <FieldError>{error}</FieldError>
     </Modal>
   )
 }

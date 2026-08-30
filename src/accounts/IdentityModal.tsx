@@ -23,10 +23,9 @@ import type { Checks } from '@/chain/verify'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { useDraft } from '@/ui/draft'
-import { FieldError, Modal } from '@/ui/Modal'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { toast } from '@/ui/Toast'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import { IdentityLine } from './IdentityLine'
 import { RegistrarField } from './RegistrarField'
 import type { Account } from './types'
@@ -200,7 +199,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
   )
 
   return (
-    <Modal
+    <CallModal
       title="On chain identity"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
@@ -210,6 +209,12 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
         facts &&
         `${formatAmount(depositFor(current, facts.identityBasicDeposit, facts.identityByteDeposit), { precision: 2 })} ${symbol} deposit, returned when the identity is cleared`
       }
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -279,17 +284,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-      <FeeLine from={signer.address} operation={wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -332,11 +327,17 @@ export function ClearIdentityModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Clear on chain identity"
       submitLabel={busy ? 'Signing…' : 'Clear it'}
       danger
       disabled={busy}
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={wrap({ kind: 'clearIdentity' })}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -347,17 +348,6 @@ export function ClearIdentityModal({
       </p>
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={signer.address} operation={wrap({ kind: 'clearIdentity' })} />
-    </Modal>
+    </CallModal>
   )
 }

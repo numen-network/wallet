@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Field, FieldError, Input, Modal, PasswordFields } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { GroupField } from './GroupField'
 import { UNGROUPED_ID } from './layout'
@@ -79,32 +79,34 @@ export function DeriveModal({ account, onClose }: { account: Account; onClose: (
         />
       </Field>
 
-      <Field label={`Password for ${account.name}`}>
-        <Input
-          type="password"
-          value={parentPassword}
-          autoComplete="current-password"
-          onChange={(event) => setParentPassword(event.target.value)}
-        />
-      </Field>
+      <PasswordFields>
+        <Field label={`Password for ${account.name}`}>
+          <Input
+            type="password"
+            value={parentPassword}
+            autoComplete="current-password"
+            onChange={(event) => setParentPassword(event.target.value)}
+          />
+        </Field>
 
-      <Field label="New account password">
-        <Input
-          type="password"
-          value={password}
-          autoComplete="new-password"
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </Field>
+        <Field label="New account password">
+          <Input
+            type="password"
+            value={password}
+            autoComplete="new-password"
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </Field>
 
-      <Field label="Repeat">
-        <Input
-          type="password"
-          value={repeat}
-          autoComplete="new-password"
-          onChange={(event) => setRepeat(event.target.value)}
-        />
-      </Field>
+        <Field label="Repeat">
+          <Input
+            type="password"
+            value={repeat}
+            autoComplete="new-password"
+            onChange={(event) => setRepeat(event.target.value)}
+          />
+        </Field>
+      </PasswordFields>
 
       <GroupField value={groupId} onChange={setGroupId} />
       <FieldError>{error}</FieldError>

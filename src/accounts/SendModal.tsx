@@ -5,13 +5,13 @@ import { totalOf, type AccountBalance, type Operation } from '@/chain/types'
 import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Field, FieldError, Input } from '@/ui/Modal'
 import { Identicon } from '@/ui/Identicon'
 import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'
-import { AccountPassword, FeeLine, through, useSubmit } from './Authorize'
+import { CallModal, through, useSubmit } from './Authorize'
 import { BLANK, type Row } from './payments'
 import { SendMany } from './SendManyModal'
 import { needsPassword, type Account } from './types'
@@ -180,21 +180,23 @@ function SendOne({
   }
 
   return (
-    <Modal
+    <CallModal
       title={`Send ${symbol}`}
       width={580}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       aside={tabs}
       footNote={
-        account.multisig
-          ? `Needs any ${account.multisig.threshold} of ${account.multisig.signatories.length} signatures`
-          : account.proxied
-            ? 'Signed by the proxy, spent from this account'
-            : local
-              ? 'This account locks itself again once this is signed'
-              : 'Your extension confirms before anything is broadcast'
+        account.multisig &&
+        `Needs any ${account.multisig.threshold} of ${account.multisig.signatories.length} signatures`
       }
+      from={account.address}
+      needsPassword={local}
+      operation={probe}
+      password={password}
+      onPassword={setPassword}
+      error={passwordError}
+      note="Unlocks this account for one transfer"
       onClose={onClose}
       onSubmit={form}
     >
@@ -271,19 +273,6 @@ function SendOne({
         />
         Send the full balance, closing this account
       </label>
-
-      {local && (
-        <>
-          <AccountPassword
-            value={password}
-            note="Unlocks this account for one transfer"
-            onChange={setPassword}
-          />
-          <FieldError>{passwordError}</FieldError>
-        </>
-      )}
-
-      <FeeLine from={account.address} operation={probe} />
-    </Modal>
+    </CallModal>
   )
 }

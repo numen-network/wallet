@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import type { FormEvent, ReactNode } from 'react'
 import { Button } from './Button'
 
-interface ModalProps {
+export interface ModalProps {
   title: string
   onClose: () => void
   /** Return false to keep the modal open, which is how validation reports back. */
@@ -16,6 +16,9 @@ interface ModalProps {
   width?: number
   /** Sits on the right of the title row, for a switch the whole dialog answers to. */
   aside?: ReactNode
+  /** The password and what a refused submit has to say, kept with the buttons. */
+  footer?: ReactNode
+  fee?: ReactNode
   footNote?: ReactNode
   children: ReactNode
 }
@@ -30,6 +33,8 @@ export function Modal({
   disabled = false,
   width = 580,
   aside,
+  footer,
+  fee,
   footNote,
   children,
 }: ModalProps) {
@@ -46,33 +51,28 @@ export function Modal({
           <Dialog.Content
             // The overlay row grows with its content, so the cap is the viewport
             // itself, less the padding the overlay keeps around the dialog
-            // The bottom padding belongs to the scrolling part rather than to
-            // the dialog. Outside it, it is a strip below the scroll box that
-            // the last row can never reach, and the buttons end up against the
-            // edge with a hair of themselves cut off
-            className="flex max-h-[calc(100dvh-40px)] w-full flex-col rounded-[6px] border border-line bg-panel px-[22px] pt-5 shadow-lift"
+            className="flex max-h-[calc(100dvh-40px)] w-full flex-col rounded-[6px] border border-line bg-panel px-[22px] py-5 shadow-lift"
             style={{ maxWidth: width }}
             aria-describedby={undefined}
           >
-            {/* One scrolling column under the title. The password, the fee and
-                the button are as much a part of the form as the fields are, and
-                splitting them off left half the reasons a submit did nothing
-                somewhere the person pressing it could not see */}
             <form onSubmit={submit} className="flex min-h-0 flex-col">
               <div className="flex shrink-0 items-center gap-4">
                 <Dialog.Title className="text-[17px] font-bold tracking-tight">{title}</Dialog.Title>
                 {aside && <span className="ml-auto">{aside}</span>}
               </div>
 
-              <div className="mt-3.5 min-h-0 overflow-y-auto pb-5">
-                {children}
+              <div className="mt-3.5 min-h-0 overflow-y-auto pb-5">{children}</div>
 
-                <div className="mt-[18px] flex items-center gap-2.5">
-                  {footNote ? (
-                    <span className="flex-1 text-[11.5px] text-dim">{footNote}</span>
-                  ) : (
-                    <span className="flex-1" />
-                  )}
+              {/* The form scrolls, the foot holds still, so a refusal lands
+                  beside the button that was pressed */}
+              <div className="shrink-0 border-t border-line">
+                <div className="mt-3.5 empty:hidden">{footer}</div>
+
+                <div className="mt-3.5 flex items-center gap-2.5">
+                  <div className="flex-1 text-[11.5px] text-dim">
+                    {fee}
+                    {footNote && <p>{footNote}</p>}
+                  </div>
                   {cancelLabel && (
                     <Dialog.Close asChild>
                       <Button type="button">{cancelLabel}</Button>
@@ -127,6 +127,11 @@ export function Field({
       {children}
     </label>
   )
+}
+
+/** Sets a password apart from the form it locks. */
+export function PasswordFields({ children }: { children: ReactNode }) {
+  return <div className="mt-5">{children}</div>
 }
 
 const INPUT = 'w-full bg-transparent text-[15px] placeholder:text-hint focus:outline-none'

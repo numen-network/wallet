@@ -6,9 +6,9 @@ import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Button, IconButton } from '@/ui/Button'
 import { PlusIcon, TrashIcon } from '@/ui/icons'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Field, Input } from '@/ui/Modal'
 import { toast, toastProblem } from '@/ui/Toast'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
 import { AddressField } from './AddressField'
 
@@ -107,7 +107,7 @@ export function SubsModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Sub accounts"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
@@ -115,6 +115,12 @@ export function SubsModal({
         holding !== null &&
         `${formatAmount(holding, { precision: 2 })} ${symbol} held while the list stands`
       }
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -171,18 +177,7 @@ export function SubsModal({
       </Button>
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={signer.address} operation={wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -234,11 +229,17 @@ export function QuitSubModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Reject the parent identity"
       submitLabel={busy ? 'Signing…' : 'Reject it'}
       danger
       disabled={busy}
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={operation}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -249,17 +250,6 @@ export function QuitSubModal({
       </p>
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={signer.address} operation={operation} />
-    </Modal>
+    </CallModal>
   )
 }

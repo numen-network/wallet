@@ -101,7 +101,18 @@ function Sign({
       cancelLabel="Close"
       disabled={busy}
       aside={tabs}
-      footNote="A signed message proves the account, it moves nothing"
+      footer={
+        <>
+          {account && needsPassword(account) && (
+            <AccountPassword
+              value={password}
+              note="Unlocks this account for one signature"
+              onChange={setPassword}
+            />
+          )}
+          <FieldError>{error}</FieldError>
+        </>
+      }
       onClose={onClose}
       onSubmit={sign}
     >
@@ -127,15 +138,6 @@ function Sign({
           }}
         />
       </Field>
-
-      {account && needsPassword(account) && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
 
       {signature && (
         <>
@@ -187,7 +189,6 @@ function Verify({
       submitLabel="Check it"
       cancelLabel="Close"
       aside={tabs}
-      footNote="Nothing here is sent anywhere, the check happens in this browser"
       onClose={onClose}
       onSubmit={check}
     >

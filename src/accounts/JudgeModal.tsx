@@ -12,12 +12,12 @@ import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
-import { BOX, Field, FieldError, INSIDE, Input, Modal } from '@/ui/Modal'
+import { BOX, Field, Input, INSIDE } from '@/ui/Modal'
 import { CROSS, MarkDisc, TICK } from '@/ui/JudgementBadge'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
 
 const OPTIONS = VERDICTS.map((verdict) => ({ value: verdict.value, label: verdict.value }))
@@ -101,13 +101,19 @@ export function JudgeModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Judge an identity"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       footNote={
         seat ? `Signing as registrar ${seat.index}` : 'This account is not a registrar'
       }
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={operation ? wrap(operation) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -171,18 +177,7 @@ export function JudgeModal({
       </p>
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      {operation && <FeeLine from={signer.address} operation={wrap(operation)} />}
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -252,11 +247,17 @@ export function SetFeeModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Set the judgement fee"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       footNote={seat ? `Signing as registrar ${seat.index}` : 'This account is not a registrar'}
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={probe ? wrap(probe) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -286,17 +287,6 @@ export function SetFeeModal({
       </p>
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      {probe && <FeeLine from={signer.address} operation={wrap(probe)} />}
-    </Modal>
+    </CallModal>
   )
 }

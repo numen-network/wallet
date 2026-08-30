@@ -5,9 +5,8 @@ import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
-import { FieldError, Modal } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
 
 const plural = (many: number, noun: string) => `${many} ${noun}${many === 1 ? '' : 's'}`
@@ -96,10 +95,16 @@ export function UnlockModal({
   const takes = calls.filter((call) => call.kind === 'removeVote').length
 
   return (
-    <Modal
+    <CallModal
       title="Release vote locks"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={calls.length > 0 ? wrap(operation) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -140,17 +145,6 @@ export function UnlockModal({
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      {calls.length > 0 && <FeeLine from={signer.address} operation={wrap(operation)} />}
-    </Modal>
+    </CallModal>
   )
 }

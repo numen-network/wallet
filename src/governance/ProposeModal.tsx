@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AccountPassword, FeeLine, SignerField } from '@/accounts/Authorize'
+import { CallModal, SignerField } from '@/accounts/Authorize'
 import {
   shutsTooSoon,
   trackFor,
@@ -20,7 +20,7 @@ import { daySpan, waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
 import { Button, IconButton } from '@/ui/Button'
 import { useDraft } from '@/ui/draft'
-import { BOX, Field, FieldError, Input, Modal, Textarea } from '@/ui/Modal'
+import { BOX, Field, Input, Textarea } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { PlusIcon, TrashIcon } from '@/ui/icons'
@@ -205,7 +205,7 @@ export function ProposeModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Open a referendum"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy || !qualified || !head || !facts}
@@ -213,6 +213,12 @@ export function ProposeModal({
       footNote={
         track === null ? undefined : `${trackLabel(tracks, track)}, decision deposit ${formatAmount(deposit, { precision: 0 })} ${symbol}`
       }
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={track !== null ? voter.wrap({ kind: 'propose', track, payouts: booked, title, description, }) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -324,17 +330,7 @@ export function ProposeModal({
           <PlusIcon />
           Add
         </Button>
-
-        {voter.needsPassword && (
-          <AccountPassword
-            value={password}
-            note="Unlocks this account for one signature"
-            onChange={setPassword}
-          />
-        )}
       </div>
-
-      <FieldError>{error}</FieldError>
 
       <p className="mt-2.5 text-[12.5px] text-dim">
         Opening it holds a submission deposit, and putting the text on chain holds a smaller one
@@ -350,20 +346,7 @@ export function ProposeModal({
           claims stays in the treasury.
         </p>
       )}
-
-      {track !== null && (
-        <FeeLine
-          from={voter.signer.address}
-          operation={voter.wrap({
-            kind: 'propose',
-            track,
-            payouts: booked,
-            title,
-            description,
-          })}
-        />
-      )}
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -412,11 +395,17 @@ export function PreimageModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Clear the preimage"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       footNote={`${formatAmount(preimage.amount, { precision: 2 })} ${symbol} back to ${shorten(preimage.who)}`}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -438,18 +427,7 @@ export function PreimageModal({
         bench={voter.bench}
         onChange={voter.choose}
       />
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={voter.signer.address} operation={voter.wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -503,11 +481,17 @@ export function RefundModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title={`Return the ${what} deposit`}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       footNote={`${formatAmount(held.amount, { precision: 0 })} ${symbol} to ${shorten(held.who)}`}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -517,18 +501,7 @@ export function RefundModal({
       </p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={voter.signer.address} operation={voter.wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -576,11 +549,17 @@ export function PayoutModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title={`Pay out spend ${spend.index}`}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       footNote={`${formatAmount(spend.amount, { precision: 2 })} ${symbol} to ${shorten(spend.beneficiary)}`}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -590,18 +569,7 @@ export function PayoutModal({
       </p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={voter.signer.address} operation={voter.wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -652,7 +620,7 @@ export function DepositModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title={`Start referendum ${referendum.index} deciding`}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
@@ -661,6 +629,12 @@ export function DepositModal({
           ? undefined
           : `${trackLabel(tracks, referendum.track)}, decision deposit ${formatAmount(deposit, { precision: 0 })} ${symbol}`
       }
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -671,17 +645,6 @@ export function DepositModal({
       </p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={voter.signer.address} operation={voter.wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }

@@ -8,11 +8,11 @@ import { VaultError } from '@/signing/vault'
 import { Button } from '@/ui/Button'
 import { CopyButton } from '@/ui/CopyButton'
 import { Facts } from '@/ui/Facts'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Field, Input } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { describe } from './activity'
-import { AccountPassword, useSubmit } from './Authorize'
+import { CallModal, useSubmit } from './Authorize'
 import { readAgainst, useCallsStore } from './calls'
 import { otherSignatories } from './multisig'
 import { needsPassword, type Account } from './types'
@@ -70,7 +70,18 @@ export function PendingModal({
   }
 
   return (
-    <Modal title="Multisig approvals" submitLabel={null} cancelLabel="Close" onClose={onClose}>
+    <CallModal
+      title="Multisig approvals"
+      submitLabel={null}
+      cancelLabel="Close"
+      from={signer.address}
+      needsPassword={waiting.length > 0 && needsPassword(signer)}
+      operation={null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
+      onClose={onClose}
+    >
       {isPending ? (
         <p className="text-[13.5px] text-lead">Reading the chain…</p>
       ) : waiting.length === 0 ? (
@@ -135,16 +146,7 @@ export function PendingModal({
           readOnly
         />
       )}
-
-      {waiting.length > 0 && needsPassword(signer) && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-    </Modal>
+    </CallModal>
   )
 }
 

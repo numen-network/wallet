@@ -4,7 +4,7 @@ import { addressOf, newMnemonic, seedOf } from '@/signing/vault'
 import { Button } from '@/ui/Button'
 import { SyncIcon } from '@/ui/icons'
 import { Identicon } from '@/ui/Identicon'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Field, FieldError, Input, Modal, PasswordFields } from '@/ui/Modal'
 import { toast, toastProblem } from '@/ui/Toast'
 import { GroupField } from './GroupField'
 import { UNGROUPED_ID } from './layout'
@@ -222,7 +222,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
   )
 
   const passwordFields = (
-    <>
+    <PasswordFields>
       <Field label="Password">
         <Input
           type="password"
@@ -239,7 +239,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
           onChange={(event) => setRepeat(event.target.value)}
         />
       </Field>
-    </>
+    </PasswordFields>
   )
 
   return (

@@ -120,7 +120,6 @@ export function BringInModal({
       title="Bring in from MetaMask"
       submitLabel={busy ? 'Waiting…' : 'Ask MetaMask'}
       disabled={busy || !from || itself || !facts}
-      footNote="MetaMask signs this, the wallet never sees the key"
       onClose={onClose}
       onSubmit={send}
     >

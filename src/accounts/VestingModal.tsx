@@ -15,12 +15,12 @@ import { amountInput, formatAmount, parseAmount } from '@/lib/balance'
 import { waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Field, Input } from '@/ui/Modal'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
 import { AddressField } from './AddressField'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
 
 interface VestingModalProps {
@@ -111,18 +111,18 @@ function Release({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Vesting"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy || free === 0n}
       aside={tabs}
-      footNote={
-        held.length === 0
-          ? undefined
-          : free === 0n
-            ? 'Nothing has thawed since this was last asked for'
-            : 'The freeze comes off what has thawed, nothing else'
-      }
+      footNote={held.length > 0 && free === 0n && 'Nothing has thawed since this was last asked for'}
+      from={signer.address}
+      needsPassword={needsPassword && free > 0n}
+      operation={free > 0n ? wrap(operation) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -164,18 +164,7 @@ function Release({
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && free > 0n && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      {free > 0n && <FeeLine from={signer.address} operation={wrap(operation)} />}
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -282,12 +271,17 @@ function Grant({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Grant a vesting schedule"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       aside={tabs}
-      footNote="Nothing takes a schedule back once it is on the chain"
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={operation ? wrap(operation) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -353,17 +347,6 @@ function Grant({
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      {operation && <FeeLine from={signer.address} operation={wrap(operation)} />}
-    </Modal>
+    </CallModal>
   )
 }

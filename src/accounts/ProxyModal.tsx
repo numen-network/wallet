@@ -5,10 +5,10 @@ import { PROXY_TYPES, type Proxy, type ProxyType } from '@/chain/types'
 import { resolveAddress, shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Field, FieldError, Input, Modal, INSIDE } from '@/ui/Modal'
+import { Field, INSIDE } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
 
 
@@ -83,7 +83,7 @@ export function AddProxyModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Add proxy"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
@@ -91,6 +91,12 @@ export function AddProxyModal({
         deposit !== null &&
         `${formatAmount(deposit, { precision: 2 })} ${symbol} held on deposit`
       }
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={wrap({ kind: 'addProxy', proxy: { delegate: account.address, type } })}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -113,24 +119,11 @@ export function AddProxyModal({
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
 
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
       <p className="mt-3 text-[12.5px] text-dim">
         {deposit !== null && formatAmount(deposit, { precision: 2 })} {symbol} is reserved while this proxy
         stands, and returns when it is removed.
       </p>
-      <FeeLine
-        from={signer.address}
-        operation={wrap({ kind: 'addProxy', proxy: { delegate: account.address, type } })}
-      />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -177,10 +170,16 @@ export function RemoveProxyModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Remove proxy"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy || !selected}
+      from={signer.address}
+      needsPassword={proxies.length > 0 && needsPassword}
+      operation={selected ? wrap({ kind: 'removeProxy', proxy: selected }) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -205,23 +204,8 @@ export function RemoveProxyModal({
 
           <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
 
-          {needsPassword && (
-            <AccountPassword
-              value={password}
-              note="Unlocks this account for one signature"
-              onChange={setPassword}
-            />
-          )}
-          <FieldError>{error}</FieldError>
-
-          {selected && (
-            <FeeLine
-              from={signer.address}
-              operation={wrap({ kind: 'removeProxy', proxy: selected })}
-            />
-          )}
         </>
       )}
-    </Modal>
+    </CallModal>
   )
 }

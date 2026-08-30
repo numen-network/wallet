@@ -7,10 +7,10 @@ import { VaultError } from '@/signing/vault'
 import { Button, IconButton } from '@/ui/Button'
 import { Identicon } from '@/ui/Identicon'
 import { PlusIcon, TrashIcon } from '@/ui/icons'
-import { BOX, Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { BOX, FieldError, Input } from '@/ui/Modal'
 import { AddressField } from './AddressField'
 import { toast } from '@/ui/Toast'
-import { AccountPassword, FeeLine, through, useSubmit } from './Authorize'
+import { CallModal, through, useSubmit } from './Authorize'
 import { BLANK, owed, payments, rowProblem, type Row } from './payments'
 import { needsPassword } from './types'
 import type { SendManyProps } from './SendModal'
@@ -107,17 +107,22 @@ export function SendMany({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Batch send"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       width={650}
       aside={tabs}
       footNote={
-        account.multisig
-          ? `Needs any ${account.multisig.threshold} of ${account.multisig.signatories.length} signatures`
-          : 'One signature over the lot, and the chain runs all of it or none of it'
+        account.multisig &&
+        `Needs any ${account.multisig.threshold} of ${account.multisig.signatories.length} signatures`
       }
+      from={signer.address}
+      needsPassword={local}
+      operation={through(account, signer, probe)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -208,18 +213,6 @@ export function SendMany({
           </b>
         </span>
       </div>
-
-      {local && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={signer.address} operation={through(account, signer, probe)} />
-    </Modal>
+    </CallModal>
   )
 }

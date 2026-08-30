@@ -28,6 +28,12 @@ export function BackupModal({ account, onClose }: { account: Account; onClose: (
     <Modal
       title="Create a backup file"
       submitLabel="Save file"
+      footer={
+        <>
+          <AccountPassword value={password} onChange={setPassword} />
+          <FieldError>{error}</FieldError>
+        </>
+      }
       onClose={onClose}
       onSubmit={submit}
     >
@@ -35,10 +41,6 @@ export function BackupModal({ account, onClose }: { account: Account; onClose: (
         The file carries this account under the same password, so it restores {account.name} into any
         wallet that reads the polkadot-js format.
       </p>
-
-      <AccountPassword value={password} onChange={setPassword} />
-
-      <FieldError>{error}</FieldError>
     </Modal>
   )
 }

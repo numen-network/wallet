@@ -7,10 +7,10 @@ import { batched, CONVICTIONS, totalOf, type AccountBalance, type Conviction } f
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Field, FieldError, Input, Modal, INSIDE } from '@/ui/Modal'
+import { Field, Input, INSIDE } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
-import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
 
 interface DelegateProps {
@@ -156,11 +156,17 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
   }
 
   return (
-    <Modal
+    <CallModal
       title="Delegate votes"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={wrap(delegating(account.address, held))}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -194,18 +200,7 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
       </Field>
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={signer.address} operation={wrap(delegating(account.address, held))} />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -254,10 +249,16 @@ export function UndelegateModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Take a delegation back"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
+      from={signer.address}
+      needsPassword={needsPassword}
+      operation={wrap(ending)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -269,17 +270,6 @@ export function UndelegateModal({
       <TrackField chosen={chosen} onChange={setChosen} />
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-
-      {needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={signer.address} operation={wrap(ending)} />
-    </Modal>
+    </CallModal>
   )
 }

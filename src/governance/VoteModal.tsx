@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AccountPassword, FeeLine } from '@/accounts/Authorize'
+import { CallModal } from '@/accounts/Authorize'
 import { waitFor } from '@/lib/blocks'
 import { useFacts, useSymbol, useTracks } from '@/chain/queries'
 import type { ChainFacts } from '@/chain/types'
@@ -14,7 +14,7 @@ import {
 } from '@/chain/types'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Field, FieldError, Input, Modal, INSIDE } from '@/ui/Modal'
+import { Field, Input, INSIDE } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
@@ -112,11 +112,17 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
   }
 
   return (
-    <Modal
+    <CallModal
       title={`Vote on referendum ${referendum.index}`}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap({ kind: 'vote', poll: referendum.index, ballot: ballotFor(held) })}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -170,21 +176,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
           onChange={(event) => setAmount(amountInput(event.target.value))}
         />
       </Field>
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine
-        from={voter.signer.address}
-        operation={voter.wrap({ kind: 'vote', poll: referendum.index, ballot: ballotFor(held) })}
-      />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -232,10 +224,16 @@ export function RemoveVoteModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title={`Take back the vote on ${referendum.index}`}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -245,18 +243,7 @@ export function RemoveVoteModal({
       </p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      <FeeLine from={voter.signer.address} operation={voter.wrap(operation)} />
-    </Modal>
+    </CallModal>
   )
 }
 
@@ -352,12 +339,18 @@ export function VoteManyModal({
   }
 
   return (
-    <Modal
+    <CallModal
       title="Batch vote"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       width={640}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held, and the same amount rides every one of these`}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={chosen.length > 0 ? voter.wrap(batched(callsFor(held))) : null}
+      password={password}
+      onPassword={setPassword}
+      error={error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -416,19 +409,6 @@ export function VoteManyModal({
           />
         </Field>
       </div>
-
-      {voter.needsPassword && (
-        <AccountPassword
-          value={password}
-          note="Unlocks this account for one signature"
-          onChange={setPassword}
-        />
-      )}
-      <FieldError>{error}</FieldError>
-
-      {chosen.length > 0 && (
-        <FeeLine from={voter.signer.address} operation={voter.wrap(batched(callsFor(held)))} />
-      )}
-    </Modal>
+    </CallModal>
   )
 }

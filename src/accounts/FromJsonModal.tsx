@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Field, FieldError, Input, Modal, PasswordFields } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { GroupField } from './GroupField'
 import { UNGROUPED_ID } from './layout'
@@ -61,14 +61,16 @@ export function FromJsonModal({ onClose }: { onClose: () => void }) {
         />
       </Field>
 
-      <Field label="File password">
-        <Input
-          type="password"
-          value={password}
-          autoComplete="current-password"
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </Field>
+      <PasswordFields>
+        <Field label="File password">
+          <Input
+            type="password"
+            value={password}
+            autoComplete="current-password"
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </Field>
+      </PasswordFields>
 
       <GroupField value={groupId} onChange={setGroupId} />
       <FieldError>{error}</FieldError>

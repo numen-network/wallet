@@ -22,7 +22,7 @@ import type { Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import type { WalletAccount } from '@/signing/types'
 import { unlockKey } from '@/signing/vault'
-import { Field, Input } from '@/ui/Modal'
+import { Field, FieldError, Input, Modal, type ModalProps } from '@/ui/Modal'
 import { toast, toastProblem, toastSettled, toastWorking } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { describe, SETTLED, WORKING } from './activity'
@@ -60,13 +60,56 @@ export function AccountPassword({
   )
 }
 
+/**
+ * A dialog that ends in a signature. Only the form differs between them, so the
+ * password, the refusal and the fee live here rather than at the foot of every
+ * one.
+ */
+export function CallModal({
+  from,
+  needsPassword,
+  operation,
+  password,
+  onPassword,
+  note = 'Unlocks this account for one signature',
+  error,
+  children,
+  ...modal
+}: {
+  /** Whoever puts their name to it, which is who pays the fee. */
+  from: string
+  needsPassword: boolean
+  /** Null while the form has nothing worth quoting a fee on. */
+  operation: Operation | null
+  password: string
+  onPassword: (password: string) => void
+  /** What this particular password is about to unlock. */
+  note?: string
+  error: string
+} & Omit<ModalProps, 'footer' | 'fee'>) {
+  return (
+    <Modal
+      {...modal}
+      footer={
+        <>
+          {needsPassword && <AccountPassword value={password} note={note} onChange={onPassword} />}
+          <FieldError>{error}</FieldError>
+        </>
+      }
+      fee={operation && <FeeLine from={from} operation={operation} />}
+    >
+      {children}
+    </Modal>
+  )
+}
+
 /** What the chain would charge for this call, as the form has it so far. */
-export function FeeLine({ from, operation }: { from: string; operation: Operation }) {
+function FeeLine({ from, operation }: { from: string; operation: Operation }) {
   const symbol = useSymbol()
   const { data: fee } = useFeeEstimate(from, operation)
 
   return (
-    <p className="mt-3 text-[12.5px] text-lead">
+    <p className="text-[11.5px] text-lead">
       {fee === undefined
         ? 'Estimating fee…'
         : `Estimated fee ${formatAmount(fee, { precision: 6 })} ${symbol}`}
