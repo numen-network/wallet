@@ -577,7 +577,7 @@ test('one ballot covers several referenda at once', async ({ page }) => {
   await createKey(page)
   await governance(page)
 
-  await page.getByRole('button', { name: 'Vote on several' }).click()
+  await page.getByRole('button', { name: 'Batch vote' }).click()
   const dialog = page.getByRole('dialog')
 
   // Nothing is voted on until somebody says how it should go

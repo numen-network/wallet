@@ -353,7 +353,7 @@ export function VoteManyModal({
 
   return (
     <Modal
-      title="Vote on several"
+      title="Batch vote"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       width={640}

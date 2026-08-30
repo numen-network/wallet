@@ -108,7 +108,7 @@ export function SendMany({
 
   return (
     <Modal
-      title="Send to many"
+      title="Batch send"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       width={650}

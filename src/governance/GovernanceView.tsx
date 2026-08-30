@@ -167,7 +167,7 @@ export function GovernanceView({
             </a>
             {running.length > 1 && (
               <Button type="button" onClick={() => setModal({ kind: 'voteAll' })} disabled={!canSign}>
-                Vote on several
+                Batch vote
               </Button>
             )}
           </>

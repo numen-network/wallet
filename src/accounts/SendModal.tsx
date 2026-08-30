@@ -29,8 +29,8 @@ interface SendModalProps {
 type Mode = 'one' | 'many'
 
 const MODES: TabOption<Mode>[] = [
-  { id: 'one', label: 'One account' },
-  { id: 'many', label: 'Several accounts' },
+  { id: 'one', label: 'Single' },
+  { id: 'many', label: 'Batch' },
 ]
 
 /** Which rows the second tab has, and which tab the dialog was left on. */

@@ -523,7 +523,7 @@ test('one signature pays several accounts at once', async ({ page }) => {
 
   await card(page).getByRole('button', { name: 'Send' }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Several accounts' }).click()
+  await dialog.getByRole('button', { name: 'Batch' }).click()
   await fillAddress(page, dialog, 'Address 1', DESTINATION)
   await dialog.getByLabel('Amount 1').fill('1')
 
