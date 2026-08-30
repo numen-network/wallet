@@ -9,12 +9,13 @@ import {
   support,
   thresholds,
   trackLabel,
+  type ProposalSpend,
   type Referendum,
   type Track,
 } from '@/chain/governance'
 import { Beneficiary } from './Beneficiary'
 import { formatAmount } from '@/lib/balance'
-import { waitFor } from '@/lib/blocks'
+import { daySpan, waitFor } from '@/lib/blocks'
 import { Button } from '@/ui/Button'
 import { ExplorerIcon } from '@/ui/icons'
 
@@ -38,6 +39,56 @@ function Stat({ label, children }: { label: string; children: React.ReactNode })
 function Needs({ percent }: { percent: number | undefined }) {
   if (percent === undefined) return null
   return <span className="font-normal text-dim">/{percent.toFixed(2)}%</span>
+}
+
+/** When the treasury lets a booking go, which is the whole point of splitting one up. */
+function due(validFrom: number | null, height: number, blockSeconds: number): string {
+  return validFrom == null || validFrom <= height ? 'immediately' : `in ${daySpan(validFrom - height, blockSeconds)}`
+}
+
+/**
+ * What a referendum pays. One booking reads as a sentence, several read as the
+ * schedule they are, since the dates are what splitting them up was for.
+ */
+function Spending({
+  spends,
+  symbol,
+  height,
+  blockSeconds,
+}: {
+  spends: ProposalSpend[]
+  symbol: string
+  height: number
+  blockSeconds: number | undefined
+}) {
+  const [first] = spends
+  if (spends.length === 1 && first) {
+    return (
+      <>
+        Pay <span className="font-mono font-semibold">{formatAmount(first.amount, { precision: 2 })} {symbol}</span> to{' '}
+        <Beneficiary address={first.beneficiary} />
+      </>
+    )
+  }
+
+  const total = spends.reduce((sum, spend) => sum + spend.amount, 0n)
+  return (
+    <>
+      Pay <span className="font-mono font-semibold">{formatAmount(total, { precision: 2 })} {symbol}</span> over{' '}
+      {spends.length} payouts
+      <ul className="mt-1.5 space-y-0.5 text-[12.5px]">
+        {spends.map((spend, index) => (
+          <li key={index} className="text-lead">
+            <span className="font-mono">{formatAmount(spend.amount, { precision: 2 })} {symbol}</span>{' '}
+            to <Beneficiary address={spend.beneficiary} />
+            {blockSeconds !== undefined && (
+              <span className="text-dim"> {due(spend.validFrom, height, blockSeconds)}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
+  )
 }
 
 interface CardProps {
@@ -101,13 +152,12 @@ export function ReferendumCard({
 
       <div className="mt-2 text-[13.5px]">
         {proposal.kind === 'spend' ? (
-          <>
-            Pay{' '}
-            <span className="font-mono font-semibold">
-              {formatAmount(proposal.amount, { precision: 2 })} {symbol}
-            </span>{' '}
-            to <Beneficiary address={proposal.beneficiary} />
-          </>
+          <Spending
+            spends={proposal.spends}
+            symbol={symbol}
+            height={height}
+            blockSeconds={facts?.blockSeconds}
+          />
         ) : (
           <span className="text-lead">{proposal.label}</span>
         )}

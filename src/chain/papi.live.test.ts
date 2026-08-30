@@ -422,8 +422,7 @@ describe('governance', () => {
     await send({
       kind: 'propose',
       track: 0,
-      amount: 1_000n * UNIT,
-      beneficiary: alice.address,
+      payouts: [{ amount: 1_000n * UNIT, beneficiary: alice.address, validFrom: null }],
       title: 'Pay Alice a thousand',
       description: words,
     })
@@ -438,11 +437,10 @@ describe('governance', () => {
     // Noted as a preimage, named by set_metadata, and read back through both
     expect(referendum?.title).toBe('Pay Alice a thousand')
     expect(referendum?.description).toBe(words)
-    // The proposal is inline, so the runtime's own metadata reads it back
+    // One payout fits inline, so the runtime's own metadata reads it back
     expect(referendum?.proposal).toEqual({
       kind: 'spend',
-      amount: 1_000n * UNIT,
-      beneficiary: alice.address,
+      spends: [{ amount: 1_000n * UNIT, beneficiary: alice.address, validFrom: null }],
     })
 
     // The title went up as a preimage the proposer is paying for
@@ -479,6 +477,38 @@ describe('governance', () => {
     expect(
       (await repository.locks(alice.address)).find((lock) => lock.track === 0)?.polls,
     ).toEqual([])
+
+    // Three payouts run past what Referenda takes inline, so this one has to go
+    // up as a preimage and come back through the preimage store
+    const staged = `Three payments against milestones. ${Date.now()}`
+    // The proposal is a preimage too, so a suite that asks for the same payouts
+    // twice is turned down with AlreadyNoted
+    const mark = Date.now() % 1_000_000
+    const beforeStaged = await repository.referenda()
+    await send({
+      kind: 'propose',
+      track: 0,
+      payouts: [
+        { amount: 300n * UNIT, beneficiary: alice.address, validFrom: null },
+        { amount: 300n * UNIT, beneficiary: alice.address, validFrom: 10_000_000 + mark },
+        { amount: 400n * UNIT, beneficiary: alice.address, validFrom: 20_000_000 + mark },
+      ],
+      title: 'Pay Alice in three',
+      description: staged,
+    })
+
+    const instalments = (await repository.referenda()).find(
+      (referendum) => !beforeStaged.some((old) => old.index === referendum.index),
+    )
+    expect(instalments?.title).toBe('Pay Alice in three')
+    expect(instalments?.proposal).toEqual({
+      kind: 'spend',
+      spends: [
+        { amount: 300n * UNIT, beneficiary: alice.address, validFrom: null },
+        { amount: 300n * UNIT, beneficiary: alice.address, validFrom: 10_000_000 + mark },
+        { amount: 400n * UNIT, beneficiary: alice.address, validFrom: 20_000_000 + mark },
+      ],
+    })
   })
 
   it('prices every governance call through the runtime', async () => {
@@ -486,8 +516,7 @@ describe('governance', () => {
       {
         kind: 'propose',
         track: 1,
-        amount: UNIT,
-        beneficiary: alice.address,
+        payouts: [{ amount: UNIT, beneficiary: alice.address, validFrom: null }],
         title: 'A title',
         description: 'A description',
       },

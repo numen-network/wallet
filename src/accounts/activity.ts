@@ -356,15 +356,22 @@ export function describe(
       const inner = describe(operation.call, symbol, tracks, options)
       return { title: inner.title, fields: [...inner.fields, { name: 'as', value: who(operation.real) }] }
     }
-    case 'propose':
+    case 'propose': {
+      const asked = operation.payouts.reduce((sum, payout) => sum + payout.amount, 0n)
+      const staged = operation.payouts.length > 1 ? { paid: `over ${operation.payouts.length} payouts` } : {}
+      // One name when they all go to the same place, a count when they do not
+      const payees = new Set(operation.payouts.map((payout) => payout.beneficiary))
+      const [only] = [...payees]
       return {
         title: 'Open a referendum',
         fields: row({
-          amount: amount(operation.amount),
-          to: who(operation.beneficiary),
+          amount: amount(asked),
+          ...staged,
+          to: payees.size === 1 && only ? who(only) : `${payees.size} accounts`,
           track: named(operation.track),
         }),
       }
+    }
     case 'batch': {
       // Every call is written out, since a count says nothing about where the
       // money went. A title carries what its own fields leave out, such as

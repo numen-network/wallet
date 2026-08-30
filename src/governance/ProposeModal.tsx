@@ -1,29 +1,51 @@
 import { useState } from 'react'
 import { AccountPassword, FeeLine, SignerField } from '@/accounts/Authorize'
 import {
+  shutsTooSoon,
   trackFor,
   trackLabel,
   TITLE_MAX,
   type Held,
   type NotedPreimage,
+  type Payout,
   type Referendum,
   type Spend,
 } from '@/chain/governance'
 import { isQualified, shortfall } from '@/chain/identity'
-import { useFacts, useStanding, useSymbol, useTracks } from '@/chain/queries'
+import { format, parseISO } from 'date-fns'
+import { useFacts, useHead, useStanding, useSymbol, useTracks } from '@/chain/queries'
 import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { daySpan, waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
+import { Button, IconButton } from '@/ui/Button'
 import { useDraft } from '@/ui/draft'
-import { Field, FieldError, Input, Modal, Textarea } from '@/ui/Modal'
+import { BOX, Field, FieldError, Input, Modal, Textarea } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
+import { PlusIcon, TrashIcon } from '@/ui/icons'
 import { AddressField } from '@/accounts/AddressField'
+
+/** One row of the payout list, as typed rather than as the chain takes it. */
+interface PayoutDraft {
+  to: string
+  amount: string
+  /** The day the treasury may let it go, empty for one that pays on enactment. */
+  on: string
+}
+
+const BLANK: PayoutDraft = { to: '', amount: '', on: '' }
+
+const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-lead uppercase'
+const COLUMNS = 'grid grid-cols-[1fr_9rem_9rem_28px] gap-x-2'
+
+const stamp = (on: Date) => format(on, 'yyyy-MM-dd')
 
 /**
  * Every track on this chain is a spender track, so a referendum asks the
  * treasury for money and nothing else. The track follows from the amount, since
- * the cheapest one that can release it is the one to ask on.
+ * the cheapest one that can release it is the one to ask on. Several payouts
+ * off one referendum is how a grant is paid against milestones.
  */
 export function ProposeModal({
   accounts,
@@ -35,15 +57,15 @@ export function ProposeModal({
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
   const { data: facts } = useFacts()
+  const head = useHead()
   const [draft, patch, sent] = useDraft('propose', {
     address: accounts[0].address,
     title: '',
     description: '',
-    amount: '',
-    /** Null until somebody types one, which is what lets it follow the signer. */
-    beneficiary: null as string | null,
+    // Most proposals pay whoever opens them, so the first row starts there
+    payouts: [{ ...BLANK, to: accounts[0].address }] as PayoutDraft[],
   })
-  const { address, title, description, amount, beneficiary } = draft
+  const { address, title, description, payouts } = draft
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -53,21 +75,66 @@ export function ProposeModal({
   const { data: standing } = useStanding(address)
   const qualified = isQualified(standing ?? null)
 
-  // Most of these ask the treasury to pay whoever opened them, so the box
-  // follows the signer until somebody types over it and takes it over for good
-  const paidTo = beneficiary ?? address
+  // Parsed rather than handed to Date, which reads a bare yyyy-MM-dd as UTC and
+  // lands on the day before for anybody west of Greenwich
+  const startsOn = (row: PayoutDraft): Date | null => (row.on ? parseISO(row.on) : null)
 
-  let asked = 0n
-  try {
-    asked = amount ? parseAmount(amount) : 0n
-  } catch {
-    asked = 0n
+  // The chain holds a payout against a block, so the date has to come back as one
+  const release = (row: PayoutDraft): number | null => {
+    const on = startsOn(row)
+    if (on == null || !head || !facts) return null
+    return head.number + Math.round((on.getTime() - Date.now()) / 1000 / facts.blockSeconds)
   }
+
+  // The wait reads easily, the block is what the call actually carries
+  const untilOf = (row: PayoutDraft): string => {
+    const at = release(row)
+    if (at == null || !head || !facts || at <= head.number) return 'immediately'
+    return `in ${daySpan(at - head.number, facts.blockSeconds)} · #${at.toLocaleString('en-US')}`
+  }
+
+  // Every row that reads as a payout. The form turns anything short of all of
+  // them away, so what reaches the chain is what was typed
+  const booked: Payout[] = payouts.flatMap((row) => {
+    let planck = 0n
+    try {
+      planck = row.amount ? parseAmount(row.amount) : 0n
+    } catch {
+      return []
+    }
+    const target = resolveAddress(row.to)
+    if (planck <= 0n || !target) return []
+    return [{ amount: planck, beneficiary: target, validFrom: release(row) }]
+  })
+
+  const asked = booked.reduce((sum, payout) => sum + payout.amount, 0n)
+  // The track has to clear the whole ask. Sizing it off the largest single
+  // payout would let instalments walk a big spend onto a small track
   const track = facts ? trackFor(asked, facts.spenders) : null
-  const deposit = tracks?.find((entry) => entry.id === track)?.decisionDeposit ?? 0n
+  const running = tracks?.find((entry) => entry.id === track)
+  const deposit = running?.decisionDeposit ?? 0n
+  // How long the referendum itself can take before the spends are booked
+  const runsFor = running
+    ? running.preparePeriod + running.decisionPeriod + running.confirmPeriod + running.minEnactmentPeriod
+    : 0
+
+  // The soonest a payout can be dated and still have a claim window left
+  const earliest =
+    facts && head
+      ? stamp(new Date(Date.now() + Math.max(0, runsFor - facts.payoutPeriod) * facts.blockSeconds * 1000))
+      : undefined
+  const editPayout = (index: number, next: Partial<PayoutDraft>) =>
+    patch({ payouts: payouts.map((row, at) => (at === index ? { ...row, ...next } : row)) })
 
   const form = () => {
     setError('')
+
+    // Without a head every date reads as no date at all, which would sign away
+    // the schedule and pay the lot at once
+    if (!head || !facts) {
+      setError('Still reading the chain, so give it a moment')
+      return false
+    }
 
     if (!qualified) {
       setError('This account does not clear the identity standard')
@@ -79,15 +146,23 @@ export function ProposeModal({
       return false
     }
 
-    let planck = 0n
-    try {
-      planck = parseAmount(amount)
-    } catch (problem) {
-      setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
+    if (booked.length !== payouts.length) {
+      // A named complaint about an amount beats the general one
+      for (const row of payouts) {
+        try {
+          parseAmount(row.amount)
+        } catch (problem) {
+          if (problem instanceof AmountError) {
+            setError(problem.message)
+            return false
+          }
+        }
+      }
+      setError('Every payout needs an amount and an address to pay it to')
       return false
     }
 
-    if (planck <= 0n || track === null) {
+    if (track === null) {
       const biggest = (facts?.spenders ?? []).reduce(
         (most, spender) => (spender.cap > most ? spender.cap : most),
         0n,
@@ -96,21 +171,26 @@ export function ProposeModal({
       return false
     }
 
-    const target = resolveAddress(paidTo)
-    if (!target) {
-      setError('Enter the Numen or EVM address the money would go to')
+    // pallet_treasury throws out a spend whose claim window has already shut by
+    // the time the referendum enacts, and batch_all takes the rest down with it
+    const shut = booked.some((payout) =>
+      shutsTooSoon(payout.validFrom, head.number, runsFor, facts.payoutPeriod),
+    )
+    if (shut) {
+      const least = daySpan(Math.max(0, runsFor - facts.payoutPeriod), facts.blockSeconds)
+      setError(`A payout has to be dated at least ${least} out, or its claim window shuts before the referendum enacts`)
       return false
     }
 
-    void send(planck, target, track)
+    void send(booked, track)
     return false
   }
 
-  const send = async (planck: bigint, target: string, id: number) => {
+  const send = async (asking: Payout[], id: number) => {
     setBusy(true)
     try {
       await voter.submit(
-        { kind: 'propose', track: id, amount: planck, beneficiary: target, title, description },
+        { kind: 'propose', track: id, payouts: asking, title, description },
         password,
       )
       toast('Sent')
@@ -128,7 +208,7 @@ export function ProposeModal({
     <Modal
       title="Open a referendum"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy || !qualified}
+      disabled={busy || !qualified || !head || !facts}
       width={650}
       footNote={
         track === null ? undefined : `${trackLabel(tracks, track)}, decision deposit ${formatAmount(deposit, { precision: 0 })} ${symbol}`
@@ -137,9 +217,9 @@ export function ProposeModal({
       onSubmit={form}
     >
       <p className="text-[13.5px] text-lead">
-        A referendum here asks the treasury to pay somebody. Which track it runs on follows from how
-        much it asks for, and the bigger the ask the longer it runs and the more it costs to start
-        deciding.
+        A referendum here asks the treasury to pay somebody, in one go or against milestones. Which
+        track it runs on follows from the whole ask, and the bigger the ask the longer it runs and
+        the more it costs to start deciding.
       </p>
 
       {/* What the referendum says, then what it does */}
@@ -181,22 +261,69 @@ export function ProposeModal({
           </p>
         )}
 
-        <Field label="Amount">
-          <Input
-            value={amount}
-            inputMode="decimal"
-            placeholder={`0.0 ${symbol}`}
-            autoComplete="off"
-            onChange={(event) => patch({ amount: amountInput(event.target.value) })}
-          />
-        </Field>
+        <div className={`mt-4 ${COLUMNS}`}>
+          <span className={HEADING}>Address</span>
+          <span className={HEADING}>Amount</span>
+          <span className={HEADING}>Release</span>
+          <span />
+        </div>
 
-        <AddressField
-          label="Paid to"
-          value={paidTo}
-          onChange={(next: string) => patch({ beneficiary: next })}
-          accounts={accounts}
-        />
+        {payouts.map((row, index) => (
+          <div key={index} className={`mt-1.5 items-start ${COLUMNS}`}>
+            <AddressField
+              label={`Address ${index + 1}`}
+              value={row.to}
+              onChange={(next: string) => editPayout(index, { to: next })}
+              accounts={accounts}
+              className="w-full"
+              labelled={false}
+            />
+
+            <Input
+              value={row.amount}
+              inputMode="decimal"
+              placeholder="0.0"
+              autoComplete="off"
+              aria-label={`Amount ${index + 1}`}
+              className={`px-3 py-2 font-mono ${BOX}`}
+              onChange={(event) => editPayout(index, { amount: amountInput(event.target.value) })}
+            />
+
+            <Input
+              type="date"
+              value={row.on}
+              min={earliest}
+              aria-label={`Release date for payout ${index + 1}`}
+              className={`px-3 py-2 ${BOX}`}
+              onChange={(event) => editPayout(index, { on: event.target.value })}
+            />
+
+            <IconButton
+              type="button"
+              aria-label={`Remove payout ${index + 1}`}
+              className="mt-1"
+              onClick={() => {
+                // Removing the only payout leaves a blank one, so the form never goes empty
+                const rest = payouts.filter((_row, at) => at !== index)
+                patch({ payouts: rest.length > 0 ? rest : [BLANK] })
+              }}
+            >
+              <TrashIcon />
+            </IconButton>
+
+            {/* What the date works out to, which is the block the call carries */}
+            <span className="col-span-3 text-right text-[11.5px] text-dim">{untilOf(row)}</span>
+          </div>
+        ))}
+
+        <Button
+          type="button"
+          className="mt-2.5"
+          onClick={() => patch({ payouts: [...payouts, BLANK] })}
+        >
+          <PlusIcon />
+          Add
+        </Button>
 
         {voter.needsPassword && (
           <AccountPassword
@@ -215,14 +342,22 @@ export function ProposeModal({
         deposit, which can be you or anybody else.
       </p>
 
+      {payouts.length > 1 && facts && track !== null && (
+        <p className="mt-2 text-[12.5px] text-dim">
+          A date is read against today, not against the day the referendum passes, and this track
+          can take {waitFor(runsFor, facts.blockSeconds)} to get there. Each payout is then
+          claimable for {waitFor(facts.payoutPeriod, facts.blockSeconds)}, and whatever nobody
+          claims stays in the treasury.
+        </p>
+      )}
+
       {track !== null && (
         <FeeLine
           from={voter.signer.address}
           operation={voter.wrap({
             kind: 'propose',
             track,
-            amount: asked,
-            beneficiary: address,
+            payouts: booked,
             title,
             description,
           })}

@@ -188,7 +188,7 @@ test('subs go up as one list, and each one costs the parent a deposit', async ({
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Add the account to the list before signing')).toBeVisible()
 
-  await dialog.getByRole('button', { name: 'Add to the list' }).click()
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click()
 
   // The row is only in the form until it is signed, and the deposit follows it
   await expect(dialog.getByText('Payouts')).toBeVisible()
@@ -209,7 +209,7 @@ test('a sub reads as the parent as soon as the list is signed', async ({ page })
   const dialog = page.getByRole('dialog')
   await pickAddress(page, dialog, 'Add an account', 'Payouts')
   await dialog.getByLabel('Called').fill('Payouts')
-  await dialog.getByRole('button', { name: 'Add to the list' }).click()
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 
@@ -228,7 +228,7 @@ test('a sub can reject the parent identity on its own signature', async ({ page 
   const list = page.getByRole('dialog')
   await pickAddress(page, list, 'Add an account', 'Payouts')
   await list.getByLabel('Called').fill('Payouts')
-  await list.getByRole('button', { name: 'Add to the list' }).click()
+  await list.getByRole('button', { name: 'Add', exact: true }).click()
   await list.getByLabel('Account password').fill(PASSWORD)
   await list.getByRole('button', { name: 'Sign and send' }).click()
   await expect(card(page, 'Payouts').getByText('Numen/Payouts')).toBeVisible()
@@ -265,7 +265,7 @@ test('a multisig named a sub rejects it through its signatories', async ({ page 
   const list = page.getByRole('dialog')
   await pickAddress(page, list, 'Add an account', 'Treasury')
   await list.getByLabel('Called').fill('Cold')
-  await list.getByRole('button', { name: 'Add to the list' }).click()
+  await list.getByRole('button', { name: 'Add', exact: true }).click()
   await list.getByLabel('Account password').fill(PASSWORD)
   await list.getByRole('button', { name: 'Sign and send' }).click()
   await expect(card(page, 'Treasury').getByText('Numen/Cold')).toBeVisible()

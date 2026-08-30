@@ -53,9 +53,28 @@ export type Ballot =
   | { kind: 'aye' | 'nay'; conviction: Conviction; amount: bigint }
   | { kind: 'abstain'; amount: bigint }
 
+/**
+ * One instalment of a proposal. pallet_treasury books each spend separately, so
+ * every one names its own beneficiary and waits on its own block. A null release
+ * pays the moment the referendum enacts.
+ */
+export interface Payout {
+  amount: bigint
+  beneficiary: string
+  validFrom: number | null
+}
+
+/** One booking a proposal makes, as the chain has it written down. */
+export interface ProposalSpend {
+  amount: bigint
+  beneficiary: string
+  /** Block the payout window opens on, null when the call names none. */
+  validFrom: number | null
+}
+
 export type Proposal =
-  | { kind: 'spend'; amount: bigint; beneficiary: string }
-  /** Anything else the chain is carrying, which on these tracks means a preimage. */
+  | { kind: 'spend'; spends: ProposalSpend[] }
+  /** Anything the wallet cannot read as treasury spending. */
   | { kind: 'other'; label: string }
 
 /**
@@ -138,6 +157,20 @@ export interface Spend {
   expireAt: number
   /** True once the payout moved it and only the record is left behind. */
   paid: boolean
+}
+
+/**
+ * Whether a payout would already be past claiming by the time the referendum
+ * enacts. pallet_treasury refuses that spend outright, and `batch_all` takes
+ * every other payout in the same proposal down with it.
+ */
+export function shutsTooSoon(
+  validFrom: number | null,
+  height: number,
+  runsFor: number,
+  payoutPeriod: number,
+): boolean {
+  return validFrom != null && validFrom + payoutPeriod <= height + runsFor
 }
 
 export type SpendState = 'waiting' | 'ready' | 'paid' | 'expired'

@@ -9,6 +9,7 @@ import {
   readMeta,
   readableTrack,
   refundsSubmission,
+  shutsTooSoon,
   SORTS,
   spendState,
   support,
@@ -186,6 +187,36 @@ describe('an approved treasury spend, which pays nobody on its own', () => {
   it('is paid whatever the clock says, since the money has already moved', () => {
     expect(spendState(spend({ paid: true }), 0)).toBe('paid')
     expect(spendState(spend({ paid: true }), 5_000)).toBe('paid')
+  })
+})
+
+describe('a payout the referendum would outlast', () => {
+  // Blocks, at the ten second target the runtime holds
+  const DAY = (24 * 3600) / 10
+  const HEIGHT = 4_000_000
+  // Big spender takes longer to run than the window a spend is claimable for
+  const BIG = 35 * DAY
+  const WINDOW = 30 * DAY
+
+  it('turns down a date the referendum has not finished by', () => {
+    expect(shutsTooSoon(HEIGHT + 3 * DAY, HEIGHT, BIG, WINDOW)).toBe(true)
+  })
+
+  it('takes one far enough out to still be claimable', () => {
+    expect(shutsTooSoon(HEIGHT + 6 * DAY, HEIGHT, BIG, WINDOW)).toBe(false)
+  })
+
+  // payout wants expire_at strictly after now, so landing on it is already shut
+  it('counts the boundary as shut, the way the pallet reads it', () => {
+    expect(shutsTooSoon(HEIGHT + 5 * DAY, HEIGHT, BIG, WINDOW)).toBe(true)
+  })
+
+  it('leaves a dateless payout alone, since the chain dates it on enactment', () => {
+    expect(shutsTooSoon(null, HEIGHT, BIG, WINDOW)).toBe(false)
+  })
+
+  it('lets any date through on a track that finishes inside the window', () => {
+    expect(shutsTooSoon(HEIGHT + 1, HEIGHT, 8 * DAY, WINDOW)).toBe(false)
   })
 })
 

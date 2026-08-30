@@ -3,6 +3,7 @@ import type {
   Ballot,
   ClassLock,
   NotedPreimage,
+  Payout,
   Referendum,
   Settled,
   Spend,
@@ -273,12 +274,15 @@ export type Operation =
    * registered and of a type that allows the call, so nothing here has to.
    */
   | { kind: 'asProxy'; real: string; call: Operation }
-  /** Every track is a spender track, so a proposal is a treasury spend. */
+  /**
+   * Every track is a spender track, so a proposal is a treasury spend. Several
+   * of them cover instalments and paying several people at once, and the track
+   * has to clear the whole ask rather than the largest single payout.
+   */
   | {
       kind: 'propose'
       track: number
-      amount: bigint
-      beneficiary: string
+      payouts: Payout[]
       title: string
       description: string
     }
@@ -381,6 +385,8 @@ export interface ChainFacts {
   voteLockingPeriod: number
   /** Blocks a referendum may sit undecided before it is called off. */
   undecidingTimeout: number
+  /** Blocks a booked spend stays claimable for, after which it goes back to the treasury. */
+  payoutPeriod: number
   proxyDepositBase: bigint
   proxyDepositFactor: bigint
   maxProxies: number

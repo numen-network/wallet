@@ -23,6 +23,7 @@ import {
   type Metadata,
   type NotedPreimage,
   type Proposal,
+  type ProposalSpend,
   type Referendum,
   type Outcome,
   type ReferendumState,
@@ -144,6 +145,9 @@ interface RegistrationEntry {
  */
 const BEST = { at: 'best' } as const
 
+/** What frame_support takes inline, past which a proposal has to be a preimage. */
+const INLINE_BOUND = 128
+
 /** A pallet_referenda Curve. The linear parts are Perbill, the rest FixedI64. */
 type CurveInfo =
   | { type: 'LinearDecreasing'; value: { length: number; floor: number; ceil: number } }
@@ -165,7 +169,7 @@ interface TrackInfo {
 /** As pallet_referenda stores a running referendum. */
 interface ReferendumStatus {
   track: number
-  proposal: { type: string; value: Uint8Array | { hash: Uint8Array } }
+  proposal: { type: string; value: Uint8Array | { hash: string; len: number } }
   submitted: number
   decision_deposit?: { amount: bigint }
   deciding?: { since: number; confirming?: number }
@@ -283,6 +287,8 @@ interface DecodedCall {
     value?: {
       amount?: bigint
       beneficiary?: string
+      /** Absent on a spend the treasury releases as soon as it is booked. */
+      valid_from?: number
       /** A MultiAddress, which for everything the wallet builds is a plain Id. */
       dest?: { type: string; value?: string }
       value?: bigint
@@ -424,6 +430,9 @@ interface UnsafeApi {
       Tracks(): Promise<[number, TrackInfo][]>
       UndecidingTimeout(): Promise<number>
     }
+    Treasury: {
+      PayoutPeriod(): Promise<number>
+    }
     Vesting: { MinVestedTransfer(): Promise<bigint> }
   }
   txFromCallData(data: Uint8Array): Promise<Tx & { decodedCall: DecodedCall }>
@@ -469,7 +478,9 @@ interface UnsafeApi {
     Referenda: {
       submit(args: {
         proposal_origin: { type: string; value: unknown }
-        proposal: { type: string; value: Uint8Array }
+        proposal:
+          | { type: 'Inline'; value: Uint8Array }
+          | { type: 'Lookup'; value: { hash: string; len: number } }
         enactment_moment: { type: string; value: number }
       }): Tx
       place_decision_deposit(args: { index: number }): Tx
@@ -541,7 +552,7 @@ interface UnsafeApi {
         asset_kind: undefined
         amount: bigint
         beneficiary: string
-        valid_from: undefined
+        valid_from: number | undefined
       }): Tx
       payout(args: { index: number }): Tx
     }
@@ -573,6 +584,11 @@ const toHex = (bytes: Uint8Array): string =>
 
 /** How far into a call's own structure is worth writing out before it is noise. */
 const DEEP = 4
+
+const BATCH_CALLS = new Set(['batch', 'batch_all', 'force_batch'])
+
+/** How deep a proposal may nest batches before the walk gives up on it. */
+const PROPOSAL_DEPTH = 4
 
 /** Bytes, whether the codec handed them over raw or wrapped. */
 const asBytes = (value: unknown): Uint8Array | null => {
@@ -774,27 +790,52 @@ export function createPapiRepository(network: Network): ChainRepository {
   }
 
   /**
-   * An inline proposal carries the call itself, so the runtime's own metadata
-   * reads it back. Anything held as a preimage is named by its hash instead,
-   * since fetching and decoding it is the explorer's job.
+   * A proposal sits in the call itself while it is short enough, and in the
+   * preimage store once instalments push it past the inline bound. The lookup
+   * carries both halves of the storage key, so either one reads back here.
    */
-  const readProposal = async (proposal: ReferendumStatus['proposal']): Promise<Proposal> => {
-    if (proposal.type !== 'Inline') {
-      const held = proposal.value as { hash: Uint8Array }
-      return { kind: 'other', label: held.hash ? `preimage ${toHex(held.hash).slice(0, 14)}…` : 'a preimage' }
+  const proposalBytes = async (
+    proposal: ReferendumStatus['proposal'],
+  ): Promise<Uint8Array | undefined> => {
+    if (proposal.type === 'Inline') return proposal.value as Uint8Array
+    // The codec hands the hash over as hex, which is what the key takes
+    const held = proposal.value as { hash?: string; len?: number }
+    if (!held.hash || held.len == null) return undefined
+    return api.query.Preimage.PreimageFor.getValue([held.hash, held.len], BEST)
+  }
+
+  /**
+   * What the treasury pays if the referendum passes. A batch is how one
+   * proposal books several payouts, so the walk goes down rather than reading
+   * the outermost call alone.
+   */
+  const collectSpends = (call: DecodedCall, out: ProposalSpend[], depth: number): void => {
+    const { type: pallet, value: inner } = call
+    if (pallet === 'Utility' && BATCH_CALLS.has(inner.type)) {
+      if (depth >= PROPOSAL_DEPTH) return
+      for (const nested of inner.value?.calls ?? []) collectSpends(nested, out, depth + 1)
+      return
     }
+    if (pallet !== 'Treasury' || inner.type !== 'spend' || !inner.value) return
+    out.push({
+      amount: inner.value.amount ?? 0n,
+      beneficiary: inner.value.beneficiary ?? '',
+      validFrom: inner.value.valid_from ?? null,
+    })
+  }
+
+  const readProposal = async (proposal: ReferendumStatus['proposal']): Promise<Proposal> => {
+    const bytes = await proposalBytes(proposal)
+    if (bytes == null) return { kind: 'other', label: 'a preimage the chain no longer holds' }
 
     try {
-      const { decodedCall } = await api.txFromCallData(proposal.value as Uint8Array)
-      const spend = decodedCall.value
-      if (decodedCall.type !== 'Treasury' || spend.type !== 'spend' || !spend.value) {
-        return { kind: 'other', label: `${decodedCall.type}.${spend.type}` }
+      const { decodedCall } = await api.txFromCallData(bytes)
+      const spends: ProposalSpend[] = []
+      collectSpends(decodedCall, spends, 0)
+      if (spends.length === 0) {
+        return { kind: 'other', label: `${decodedCall.type}.${decodedCall.value.type}` }
       }
-      return {
-        kind: 'spend',
-        amount: spend.value.amount ?? 0n,
-        beneficiary: spend.value.beneficiary ?? '',
-      }
+      return { kind: 'spend', spends }
     } catch {
       return { kind: 'other', label: 'a call this build cannot read' }
     }
@@ -848,6 +889,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       blockSeconds,
       voteLockingPeriod,
       undecidingTimeout,
+      payoutPeriod,
       proxyDepositBase,
       proxyDepositFactor,
       maxProxies,
@@ -864,6 +906,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       api.constants.Difficulty.TargetBlockTime(),
       api.constants.ConvictionVoting.VoteLockingPeriod(),
       api.constants.Referenda.UndecidingTimeout(),
+      api.constants.Treasury.PayoutPeriod(),
       api.constants.Proxy.ProxyDepositBase(),
       api.constants.Proxy.ProxyDepositFactor(),
       api.constants.Proxy.MaxProxies(),
@@ -904,6 +947,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       blockSeconds: Number(blockSeconds),
       voteLockingPeriod,
       undecidingTimeout,
+      payoutPeriod,
       proxyDepositBase,
       proxyDepositFactor,
       maxProxies,
@@ -929,21 +973,38 @@ export function createPapiRepository(network: Network): ChainRepository {
 
   const build = async (operation: Operation): Promise<Tx> => {
     if (operation.kind === 'propose') {
-      const spend = api.tx.Treasury.spend({
-        asset_kind: undefined,
-        amount: operation.amount,
-        beneficiary: operation.beneficiary,
-        valid_from: undefined,
-      })
+      const spends = operation.payouts.map((payout) =>
+        api.tx.Treasury.spend({
+          asset_kind: undefined,
+          amount: payout.amount,
+          beneficiary: payout.beneficiary,
+          valid_from: payout.validFrom ?? undefined,
+        }),
+      )
+      const [only] = spends
+      if (only == null) throw new Error('A proposal has to ask for something')
+      // One payout stands on its own, several have to run or fail together
+      const paying =
+        spends.length === 1
+          ? only
+          : api.tx.Utility.batch_all({ calls: spends.map((tx) => tx.decodedCall) })
+
       const table = await trackTable()
       const track = table.find((entry) => entry.id === operation.track)
       const spender = (await chainFacts()).spenders.find((entry) => entry.track === operation.track)
       if (!track || !spender) throw new Error(`Track ${operation.track} takes no proposals`)
 
-      // A treasury spend is well under the inline bound, so it needs no preimage
+      // Referenda carries a short proposal in the call itself and leaves a
+      // longer one in the preimage store, which is where instalments land
+      const encoded = await paying.getEncodedData()
+      const inline = encoded.length <= INLINE_BOUND
+      const proposal = inline
+        ? Enum('Inline', encoded)
+        : Enum('Lookup', { hash: blake2AsHex(encoded, 256), len: encoded.length })
+
       const submit = api.tx.Referenda.submit({
         proposal_origin: Enum('Origins', Enum(spender.origin)),
-        proposal: Enum('Inline', await spend.getEncodedData()),
+        proposal,
         enactment_moment: Enum('After', track.minEnactmentPeriod),
       })
 
@@ -959,9 +1020,9 @@ export function createPapiRepository(network: Network): ChainRepository {
         maybe_hash: blake2AsHex(dump, 256),
       })
 
-      return api.tx.Utility.batch_all({
-        calls: [note.decodedCall, submit.decodedCall, name.decodedCall],
-      })
+      const calls = [note.decodedCall, submit.decodedCall, name.decodedCall]
+      if (!inline) calls.unshift(api.tx.Preimage.note_preimage({ bytes: encoded }).decodedCall)
+      return api.tx.Utility.batch_all({ calls })
     }
 
     if (operation.kind === 'batch') {

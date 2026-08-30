@@ -9,6 +9,13 @@ import { expectAddress, fillAddress, pickAddress } from './address'
 const PASSWORD = 'correct horse battery'
 const BENEFICIARY = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 
+/** A date box takes yyyy-MM-dd, and the form only accepts days still ahead. */
+const inDays = (days: number) => {
+  const on = new Date()
+  on.setDate(on.getDate() + days)
+  return on.toISOString().slice(0, 10)
+}
+
 async function createKey(page: Page, name = 'Vault') {
   await page.goto('/')
   // The empty state offers one, and once there is an account the board's own
@@ -66,9 +73,13 @@ test('the list shows what each referendum would pay and where it has got to', as
   // Nothing titled #0, so the track is the best name it has
   await expect(referendum(page, 0).getByText('Small spender')).toBeVisible()
   await expect(running.getByText(/Pay\s*250,000/)).toBeVisible()
+  // Four quarters off the one referendum, and the card says when each is due
+  await expect(running.getByText(/over 4 payouts/)).toBeVisible()
+  await expect(running.getByText(/62,500/)).toHaveCount(4)
+  await expect(running.getByText('immediately')).toBeVisible()
   // A registrar has checked this beneficiary, so the chain's name for it stands
   // in for the address and the hover hands the address back
-  const paid = running.getByRole('link', { name: 'Numen Explorer Team' })
+  const paid = running.getByRole('link', { name: 'Numen Explorer Team' }).first()
   await expect(paid).toHaveAttribute('href', /\/account\/nu2uaQWz/)
   await expect(paid).toHaveAttribute(
     'title',
@@ -278,7 +289,7 @@ test('an amount past every cap is refused before it is signed', async ({ page })
 
   await page.getByRole('button', { name: 'Referendum' }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByLabel('Amount').fill('11000000')
+  await dialog.getByLabel('Amount 1').fill('11000000')
 
   // The footnote names the track, and no track can carry this
   await expect(dialog.getByText(/spender, decision deposit/)).toBeHidden()
@@ -291,34 +302,69 @@ test('the amount decides the track', async ({ page }) => {
   await page.getByRole('button', { name: 'Referendum' }).click()
   const dialog = page.getByRole('dialog')
 
-  await dialog.getByLabel('Amount').fill('50000')
+  await dialog.getByLabel('Amount 1').fill('50000')
   await expect(dialog.getByText(/Small spender, decision deposit 100/)).toBeVisible()
 
-  await dialog.getByLabel('Amount').fill('500000')
+  await dialog.getByLabel('Amount 1').fill('500000')
   await expect(dialog.getByText(/Medium spender, decision deposit 1,000/)).toBeVisible()
 
-  await fillAddress(page, dialog, 'Paid to', BENEFICIARY)
+  await fillAddress(page, dialog, 'Address 1', BENEFICIARY)
   await expect(dialog.getByRole('button', { name: 'Sign and send' })).toBeDisabled()
 })
 
-test('the beneficiary follows whoever is signing until it is typed over', async ({ page }) => {
-  await createKey(page, 'One')
-  await createKey(page, 'Two')
+test('the whole ask decides the track, not the largest payout', async ({ page }) => {
+  await createKey(page)
   await governance(page)
 
   await page.getByRole('button', { name: 'Referendum' }).click()
   const dialog = page.getByRole('dialog')
-  // A proposal pays whoever opened it, so it starts on the account that signs
-  await expectAddress(dialog, 'Paid to', 'One')
 
-  // Switching who signs moves it, since nobody has named anybody yet
-  await pickAddress(page, dialog, 'Voting as', 'Two')
-  await expectAddress(dialog, 'Paid to', 'Two')
+  await dialog.getByLabel('Amount 1').fill('150000')
+  await expect(dialog.getByText(/Small spender, decision deposit 100/)).toBeVisible()
 
-  // Once somebody names a beneficiary it stays named, whoever signs
-  await fillAddress(page, dialog, 'Paid to', BENEFICIARY)
-  await pickAddress(page, dialog, 'Voting as', 'One')
-  await expectAddress(dialog, 'Paid to', `${BENEFICIARY.slice(0, 7)}…${BENEFICIARY.slice(-5)}`)
+  // Splitting an ask in two would otherwise walk it onto a cheaper track
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click()
+  await fillAddress(page, dialog, 'Address 2', BENEFICIARY)
+  await dialog.getByLabel('Amount 2').fill('150000')
+  await dialog.getByLabel('Release date for payout 2').fill(inDays(90))
+  await expect(dialog.getByText(/Medium spender, decision deposit 1,000/)).toBeVisible()
+})
+
+test('the date box will not offer a day the referendum would outlast', async ({ page }) => {
+  await createKey(page)
+  await governance(page)
+
+  await page.getByRole('button', { name: 'Referendum' }).click()
+  const dialog = page.getByRole('dialog')
+  const date = dialog.getByLabel('Release date for payout 1')
+
+  // Small spender finishes well inside the payout window, so today will do
+  await dialog.getByLabel('Amount 1').fill('150000')
+  await expect(date).toHaveAttribute('min', inDays(0))
+
+  // Big spender runs five days past it, and those five days are off the table
+  await dialog.getByLabel('Amount 1').fill('5000000')
+  await expect(date).toHaveAttribute('min', inDays(5))
+})
+
+test('every payout names its own account, starting on whoever opened it', async ({ page }) => {
+  await createKey(page, 'One')
+  await governance(page)
+
+  await page.getByRole('button', { name: 'Referendum' }).click()
+  const dialog = page.getByRole('dialog')
+  // Most proposals pay the account that opens them, so the first row starts there
+  await expectAddress(dialog, 'Address 1', 'One')
+
+  // A second payout starts empty, since paying somebody else is the point of it
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: 'Address 2', exact: true })).toContainText(
+    'nu… or 0x…',
+  )
+
+  await fillAddress(page, dialog, 'Address 2', BENEFICIARY)
+  await expectAddress(dialog, 'Address 1', 'One')
+  await expectAddress(dialog, 'Address 2', `${BENEFICIARY.slice(0, 7)}…${BENEFICIARY.slice(-5)}`)
 })
 
 test('an approved spend pays nobody until somebody claims it', async ({ page }) => {

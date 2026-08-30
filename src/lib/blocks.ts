@@ -6,3 +6,26 @@ export function waitFor(blocks: number, blockSeconds: number): string {
   const days = Math.ceil(hours / 24)
   return `about ${days} day${days === 1 ? '' : 's'}`
 }
+
+const MONTH_DAYS = 30
+const YEAR_DAYS = 365
+
+/**
+ * A wait in calendar units, since a payout months away reads as nothing in days.
+ * A month is 30 days and a year 365, which is what anybody reading a schedule
+ * takes them for.
+ */
+export function daySpan(blocks: number, blockSeconds: number): string {
+  const days = Math.max(1, Math.ceil((blocks * blockSeconds) / 86400))
+  if (days >= YEAR_DAYS) {
+    const years = Math.floor(days / YEAR_DAYS)
+    const months = Math.floor((days % YEAR_DAYS) / MONTH_DAYS)
+    return months > 0 ? `${years}y ${months}mo` : `${years}y`
+  }
+  if (days >= MONTH_DAYS) {
+    const months = Math.floor(days / MONTH_DAYS)
+    const rest = days % MONTH_DAYS
+    return rest > 0 ? `${months}mo ${rest}d` : `${months}mo`
+  }
+  return `${days}d`
+}

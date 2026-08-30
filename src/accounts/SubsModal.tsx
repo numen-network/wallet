@@ -5,7 +5,7 @@ import { isSubstrateAddress, shorten, toNumenAddress } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Button, IconButton } from '@/ui/Button'
-import { TrashIcon } from '@/ui/icons'
+import { PlusIcon, TrashIcon } from '@/ui/icons'
 import { Field, FieldError, Input, Modal } from '@/ui/Modal'
 import { toast, toastProblem } from '@/ui/Toast'
 import { AccountPassword, FeeLine, SignerField, useSigning } from './Authorize'
@@ -166,7 +166,8 @@ export function SubsModal({
       </Field>
 
       <Button type="button" className="mt-2.5" onClick={add}>
-        Add to the list
+        <PlusIcon />
+        Add
       </Button>
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />

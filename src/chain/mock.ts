@@ -92,6 +92,7 @@ const FACTS: ChainFacts = {
   blockSeconds: 10,
   voteLockingPeriod: (7 * 24 * 3600) / 10,
   undecidingTimeout: (14 * 24 * 3600) / 10,
+  payoutPeriod: (30 * 24 * 3600) / 10,
   proxyDepositBase: 5n * UNIT,
   proxyDepositFactor: (37n * UNIT) / 100n,
   maxProxies: 32,
@@ -269,7 +270,7 @@ const SEEDED: Referendum[] = [
     state: 'confirming',
     // Past both curves, which is the only way one gets to be confirming
     tally: { ayes: 7_800_000n * UNIT, nays: 200_000n * UNIT, support: 5_200_000n * UNIT },
-    proposal: { kind: 'spend', amount: 400_000n * UNIT, beneficiary: TEAM },
+    proposal: { kind: 'spend', spends: [{ amount: 400_000n * UNIT, beneficiary: TEAM, validFrom: null }] },
     decisionDeposit: 1_000n * UNIT,
     submitted: 4_178_200,
     deciding: { since: NOW - 3 * DAYS, confirming: NOW + 12 * HOURS },
@@ -281,7 +282,7 @@ const SEEDED: Referendum[] = [
     description: 'The faucet runs dry about once a month and somebody has to notice.',
     state: 'queued',
     tally: { ayes: 0n, nays: 0n, support: 0n },
-    proposal: { kind: 'spend', amount: 5_000n * UNIT, beneficiary: PAYOUTS },
+    proposal: { kind: 'spend', spends: [{ amount: 5_000n * UNIT, beneficiary: PAYOUTS, validFrom: null }] },
     decisionDeposit: 100n * UNIT,
     submitted: 4_182_600,
     deciding: null,
@@ -291,13 +292,18 @@ const SEEDED: Referendum[] = [
     track: 1,
     title: 'Fund the block explorer for a year',
     description:
-      'Hosting, the indexer and one person to keep it running. Twelve months, paid up front, and the code stays open whatever happens after that.',
+      'Hosting, the indexer and one person to keep it running. Twelve months, paid a quarter at a time, and the code stays open whatever happens after that.',
     state: 'deciding',
     tally: { ayes: 4_100_000n * UNIT, nays: 900_000n * UNIT, support: 2_600_000n * UNIT },
+    // Four quarters off one referendum, which is what a batch of spends buys
     proposal: {
       kind: 'spend',
-      amount: 250_000n * UNIT,
-      beneficiary: TEAM,
+      spends: [
+        { amount: 62_500n * UNIT, beneficiary: TEAM, validFrom: null },
+        { amount: 62_500n * UNIT, beneficiary: TEAM, validFrom: NOW + 90 * DAYS },
+        { amount: 62_500n * UNIT, beneficiary: TEAM, validFrom: NOW + 180 * DAYS },
+        { amount: 62_500n * UNIT, beneficiary: TEAM, validFrom: NOW + 270 * DAYS },
+      ],
     },
     decisionDeposit: 1_000n * UNIT,
     submitted: 4_180_000,
@@ -313,8 +319,13 @@ const SEEDED: Referendum[] = [
     tally: { ayes: 0n, nays: 0n, support: 0n },
     proposal: {
       kind: 'spend',
-      amount: 12_000n * UNIT,
-      beneficiary: 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98',
+      spends: [
+        {
+          amount: 12_000n * UNIT,
+          beneficiary: 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98',
+          validFrom: null,
+        },
+      ],
     },
     decisionDeposit: null,
     submitted: 4_182_400,
@@ -976,8 +987,11 @@ export function createMockRepository(): ChainRepository {
           tally: { ayes: 0n, nays: 0n, support: 0n },
           proposal: {
             kind: 'spend',
-            amount: operation.amount,
-            beneficiary: operation.beneficiary,
+            spends: operation.payouts.map((payout) => ({
+              amount: payout.amount,
+              beneficiary: payout.beneficiary,
+              validFrom: payout.validFrom,
+            })),
           },
           decisionDeposit: null,
           submitted: height,
