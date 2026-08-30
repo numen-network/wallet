@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { byteLength, FIELD_MAX_BYTES, type Sub } from '@/chain/identity'
+import { byteLength, SUB_NAME_MAX_BYTES, type Sub } from '@/chain/identity'
 import { useFacts, useStanding, useSubs, useSymbol } from '@/chain/queries'
 import { isSubstrateAddress, shorten, toNumenAddress } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
@@ -66,8 +66,8 @@ export function SubsModal({
       setError('That account is already on the list')
       return
     }
-    if (byteLength(name.trim()) > FIELD_MAX_BYTES) {
-      setError(`A name is at most ${FIELD_MAX_BYTES} bytes`)
+    if (byteLength(name.trim()) > SUB_NAME_MAX_BYTES) {
+      setError(`A name is at most ${SUB_NAME_MAX_BYTES} bytes`)
       return
     }
 
@@ -158,7 +158,7 @@ export function SubsModal({
       <Field label="Called">
         <Input
           value={name}
-          maxLength={FIELD_MAX_BYTES}
+          maxLength={SUB_NAME_MAX_BYTES}
           placeholder="Payouts"
           autoComplete="off"
           onChange={(event) => setName(event.target.value)}

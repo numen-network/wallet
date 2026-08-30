@@ -66,7 +66,7 @@ describe('what the bot already stands behind', () => {
     index: 2,
     account: 'nuBot',
     fee: UNIT,
-    fields: (1n << 6n) | (1n << 7n),
+    fields: (1n << 8n) | (1n << 9n),
   }
   const info = { ...EMPTY_IDENTITY, display: 'Alice', telegram: 'alice', discord: 'alice_dc' }
 
@@ -107,23 +107,37 @@ describe('what the bot already stands behind', () => {
 })
 
 describe('what the chain charges to hold an identity', () => {
-  it('counts a variant byte for every field, filled in or not', () => {
-    expect(encodedSize(EMPTY_IDENTITY)).toBe(8)
-    expect(encodedSize({ ...EMPTY_IDENTITY, display: 'Alice', x: '@alice' })).toBe(19)
+  it('counts a length byte for every field, filled in or not', () => {
+    expect(encodedSize(EMPTY_IDENTITY)).toBe(10)
+    expect(encodedSize({ ...EMPTY_IDENTITY, display: 'Alice', x: '@alice' })).toBe(21)
+  })
+
+  // Only the about field is long enough for a compact length to take a second
+  // byte
+  it('widens the length prefix once a field passes 63 bytes', () => {
+    expect(encodedSize({ ...EMPTY_IDENTITY, about: 'a'.repeat(63) })).toBe(73)
+    expect(encodedSize({ ...EMPTY_IDENTITY, about: 'a'.repeat(64) })).toBe(75)
   })
 
   it('adds the byte price to the flat entry', () => {
     const base = 5n * UNIT + (17n * UNIT) / 100n
     const perByte = UNIT / 100n
     const info = { ...EMPTY_IDENTITY, display: 'Alice', x: '@alice' }
-    expect(depositFor(info, base, perByte)).toBe(base + perByte * 19n)
+    expect(depositFor(info, base, perByte)).toBe(base + perByte * 21n)
   })
 
-  it('measures a field in bytes, since that is what Data::Raw bounds', () => {
+  it('measures a field in bytes, since that is what the runtime bounds', () => {
     expect(byteLength('中文')).toBe(6)
     expect(overlong({ ...EMPTY_IDENTITY, display: 'a'.repeat(33) })).toEqual(['display'])
     expect(overlong({ ...EMPTY_IDENTITY, display: '中'.repeat(11) })).toEqual(['display'])
     expect(overlong({ ...EMPTY_IDENTITY, display: '中'.repeat(10) })).toEqual([])
+  })
+
+  it('bounds each field on its own', () => {
+    expect(overlong({ ...EMPTY_IDENTITY, avatar: 'a'.repeat(128) })).toEqual([])
+    expect(overlong({ ...EMPTY_IDENTITY, avatar: 'a'.repeat(129) })).toEqual(['avatar'])
+    expect(overlong({ ...EMPTY_IDENTITY, about: 'a'.repeat(2048) })).toEqual([])
+    expect(overlong({ ...EMPTY_IDENTITY, about: 'a'.repeat(2049) })).toEqual(['about'])
   })
 })
 
@@ -274,8 +288,8 @@ describe('what a registrar says it checks', () => {
 
   it('reads the bit per field the runtime numbers them by', () => {
     // Telegram is bit 6, Discord bit 7
-    expect(checkedBy(registrar((1n << 6n) | (1n << 7n)))).toEqual(['telegram', 'discord'])
-    expect(checkedBy(registrar(1n << 5n))).toEqual(['x'])
+    expect(checkedBy(registrar((1n << 8n) | (1n << 9n)))).toEqual(['telegram', 'discord'])
+    expect(checkedBy(registrar(1n << 7n))).toEqual(['x'])
     expect(checkedBy(registrar(1n))).toEqual(['display'])
   })
 
@@ -284,32 +298,51 @@ describe('what a registrar says it checks', () => {
     expect(checkedBy(undefined)).toEqual([])
   })
 
-  it('leaves everything else over, the display name aside', () => {
-    expect(unchecked(registrar((1n << 6n) | (1n << 7n)))).toEqual([
+  it('leaves everything else over, the profile aside', () => {
+    expect(unchecked(registrar((1n << 8n) | (1n << 9n)))).toEqual([
       'web',
       'email',
-      'matrix',
       'github',
+      'matrix',
       'x',
     ])
-    expect(unchecked(undefined)).toEqual(['web', 'email', 'matrix', 'github', 'x', 'telegram', 'discord'])
+    expect(unchecked(undefined)).toEqual([
+      'web',
+      'email',
+      'github',
+      'matrix',
+      'x',
+      'telegram',
+      'discord',
+    ])
   })
 })
 
 describe('what a bot is allowed to put on chain', () => {
   it('writes the name beside the proved channels and blanks the rest', () => {
-    expect(identityFrom('alice', { telegram: '@alice', discord: '' })).toEqual({
+    expect(
+      identityFrom({ display: 'alice', avatar: '', about: '' }, { telegram: '@alice', discord: '' }),
+    ).toEqual({
       ...EMPTY_IDENTITY,
       display: 'alice',
       telegram: '@alice',
     })
   })
 
-  // Nobody proves a name, so an account may go on chain with only a handle
-  it('takes an empty name', () => {
-    expect(identityFrom('', { telegram: '', discord: 'alice' })).toEqual({
+  // The bot cannot check a profile and does not have to. An automatic write
+  // carries what the account already said about itself
+  it('carries the profile through', () => {
+    expect(
+      identityFrom(
+        { display: 'alice', avatar: 'https://example.com/a.png', about: 'Runs a validator.' },
+        { telegram: '@alice', discord: '' },
+      ),
+    ).toEqual({
       ...EMPTY_IDENTITY,
-      discord: 'alice',
+      display: 'alice',
+      avatar: 'https://example.com/a.png',
+      about: 'Runs a validator.',
+      telegram: '@alice',
     })
   })
 
@@ -328,7 +361,23 @@ describe('what a bot is allowed to put on chain', () => {
     expect(dropped(registration({ info: { ...EMPTY_IDENTITY, x: '@alice' } }))).toEqual(['x'])
   })
 
-  it('takes nothing off a record that is already only provable fields', () => {
+  it('leaves the profile alone', () => {
+    expect(
+      dropped(
+        registration({
+          info: {
+            ...EMPTY_IDENTITY,
+            display: 'alice',
+            avatar: 'https://example.com/a.png',
+            about: 'Runs a validator.',
+            telegram: '@alice',
+          },
+        }),
+      ),
+    ).toEqual([])
+  })
+
+  it('takes nothing off a record that is already only kept fields', () => {
     expect(
       dropped(registration({ info: { ...EMPTY_IDENTITY, display: 'alice', discord: 'alice' } })),
     ).toEqual([])

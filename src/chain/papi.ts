@@ -1,6 +1,7 @@
 import { hexToU8a } from '@polkadot/util'
 import { blake2AsHex } from '@polkadot/util-crypto'
 import {
+  Binary,
   createClient,
   Enum,
   InvalidTxError,
@@ -123,7 +124,10 @@ interface Weight {
 /** As pallet_proxy stores it, a bounded list of definitions beside its deposit. */
 type ProxiesEntry = [{ delegate: string; proxy_type: { type: string }; delay: number }[], bigint]
 
-/** pallet_identity's Data, one variant per byte length plus the hashed forms. */
+/**
+ * pallet_identity's Data, one variant per byte length plus the hashed forms.
+ * Sub account names are the last thing still wearing it.
+ */
 type IdentityData = { type: string; value?: string | number }
 
 /** pallet_identity's Judgement, where only FeePaid carries an amount. */
@@ -134,7 +138,7 @@ type JudgementEntry =
 interface RegistrationEntry {
   judgements: [number, JudgementEntry][]
   deposit: bigint
-  info: Record<string, IdentityData>
+  info: Record<string, Uint8Array>
 }
 
 /**
@@ -557,7 +561,7 @@ interface UnsafeApi {
       payout(args: { index: number }): Tx
     }
     Identity: {
-      set_identity(args: { info: Record<string, IdentityData> }): Tx
+      set_identity(args: { info: Record<string, Uint8Array> }): Tx
       clear_identity(args: Record<string, never>): Tx
       /** A plain account, unlike add_sub and remove_sub, which take a lookup. */
       set_subs(args: { subs: [string, IdentityData][] }): Tx
@@ -600,7 +604,7 @@ const asBytes = (value: unknown): Uint8Array | null => {
 /**
  * Data carries its byte length in the variant name, and PAPI wants a fixed size
  * field as a hex string, except the one byte case where its codec takes the
- * bare number and rejects hex.
+ * bare number and rejects hex. Only sub account names still go through here.
  */
 function toData(text: string): IdentityData {
   if (text === '') return Enum('None')
@@ -617,13 +621,16 @@ function fromData(data: IdentityData | undefined): string {
   return decoder.decode(Uint8Array.from(bytes, (byte) => parseInt(byte, 16)))
 }
 
-const toIdentityInfo = (info: Record<string, IdentityData>): IdentityInfo =>
+const toIdentityInfo = (info: Record<string, Uint8Array>): IdentityInfo =>
   Object.fromEntries(
-    IDENTITY_FIELDS.map((field) => [field, fromData(info[field])]),
+    IDENTITY_FIELDS.map((field) => {
+      const bytes = info[field]
+      return [field, bytes ? Binary.toText(bytes) : '']
+    }),
   ) as IdentityInfo
 
-const fromIdentityInfo = (info: IdentityInfo): Record<string, IdentityData> =>
-  Object.fromEntries(IDENTITY_FIELDS.map((field) => [field, toData(info[field])]))
+const fromIdentityInfo = (info: IdentityInfo): Record<string, Uint8Array> =>
+  Object.fromEntries(IDENTITY_FIELDS.map((field) => [field, Binary.fromText(info[field])]))
 
 /** Perbill and FixedI64 both scale by a billion, which is all the curves need. */
 const BILLIONTHS = 1_000_000_000

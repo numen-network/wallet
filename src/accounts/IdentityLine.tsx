@@ -1,11 +1,11 @@
 import {
   byteLength,
-  FIELD_MAX_BYTES,
   LABELS,
+  MAX_BYTES,
   PLACEHOLDERS,
   type IdentityField,
 } from '@/chain/identity'
-import { Field, FieldError, Input } from '@/ui/Modal'
+import { Field, FieldError, Input, Textarea } from '@/ui/Modal'
 
 /**
  * One field of an identity, with the only rule the chain has about it. Kept out
@@ -24,19 +24,19 @@ export function IdentityLine({
   onChange: (value: string) => void
 }) {
   const bytes = byteLength(value)
+  const max = MAX_BYTES[field]
+  const box = { value, placeholder: PLACEHOLDERS[field], autoComplete: 'off' }
 
   return (
     <Field label={LABELS[field]}>
-      <Input
-        value={value}
-        placeholder={PLACEHOLDERS[field]}
-        autoComplete="off"
-        spellCheck={false}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      {bytes > FIELD_MAX_BYTES && (
+      {field === 'about' ? (
+        <Textarea {...box} rows={4} onChange={(event) => onChange(event.target.value)} />
+      ) : (
+        <Input {...box} spellCheck={false} onChange={(event) => onChange(event.target.value)} />
+      )}
+      {bytes > max && (
         <FieldError>
-          {bytes} bytes, {FIELD_MAX_BYTES} is the most the chain holds
+          {bytes} bytes, {max} is the most the chain holds
         </FieldError>
       )}
     </Field>

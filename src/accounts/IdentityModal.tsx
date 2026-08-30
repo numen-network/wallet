@@ -6,12 +6,14 @@ import {
   checkedBy,
   depositFor,
   EMPTY_IDENTITY,
-  FIELD_MAX_BYTES,
   isChecked,
   isEmpty,
   LABELS,
+  MAX_BYTES,
+  named,
   overlong,
   pendingWith,
+  PROFILE,
   unchecked,
   type IdentityField,
   type IdentityInfo,
@@ -51,6 +53,8 @@ export interface IdentityDraft {
   chosen: number | null
   ask: boolean | null
   display: string | null
+  avatar: string | null
+  about: string | null
   checks: Checks
 }
 
@@ -60,6 +64,8 @@ const EMPTY_DRAFT: IdentityDraft = {
   chosen: null,
   ask: null,
   display: null,
+  avatar: null,
+  about: null,
   checks: {},
 }
 
@@ -153,9 +159,14 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
       return false
     }
 
+    if (!named(current.display)) {
+      setError('The record needs a display name')
+      return false
+    }
+
     const [long] = overlong(current)
     if (long) {
-      setError(`${LABELS[long]} is longer than ${FIELD_MAX_BYTES} bytes`)
+      setError(`${LABELS[long]} is longer than ${MAX_BYTES[long]} bytes`)
       return false
     }
 
@@ -210,7 +221,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
       )}
 
       <p className="text-[12.5px] text-dim">Anyone can read this.</p>
-      {line('display')}
+      {PROFILE.map(line)}
 
       {checked.length > 0 && <p className={HEADING}>Checked by this registrar</p>}
       {checked.map(line)}

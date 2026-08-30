@@ -453,6 +453,32 @@ test('verifying puts an identity on chain in one call', async ({ page }) => {
   await expect(sent.getByText('Set identity')).toHaveCount(1)
 })
 
+test('the one click record carries the whole profile', async ({ page }) => {
+  await createKey(page)
+  await openIdentity(page, 'Automatic')
+
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Display name', { exact: true }).fill('Alice')
+  await dialog.getByLabel('Avatar', { exact: true }).fill('https://example.com/alice.png')
+  await dialog.getByLabel('About', { exact: true }).fill('Keeper of the vault')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
+  await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Identity registered')).toBeVisible()
+
+  await openIdentity(page, 'Manual')
+  const manual = page.getByRole('dialog')
+  await expect(manual.getByLabel('Avatar', { exact: true })).toHaveValue(
+    'https://example.com/alice.png',
+  )
+  // The textarea's value rides inside the wrapping label, so the box goes by
+  // its accessible name once the record holds one
+  await expect(manual.getByRole('textbox', { name: 'About', exact: true })).toHaveValue(
+    'Keeper of the vault',
+  )
+})
+
 test('a fresh account is quoted the whole price before it signs in anywhere', async ({ page }) => {
   await createKey(page)
   await openIdentity(page, 'Automatic')
@@ -572,7 +598,7 @@ test('a channel row says whether it is checked and how long the sign in holds', 
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('0 × 10.0000 = 0.0000 tNUMN')).toBeVisible()
   // What is held is the record about to be written, so an empty one is the floor
-  await expect(dialog.getByText('5.25 tNUMN', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('5.27 tNUMN', { exact: true })).toBeVisible()
 
   // A sign in is good for an hour, and only the channel it was for changes
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
@@ -581,16 +607,18 @@ test('a channel row says whether it is checked and how long the sign in holds', 
   await expect(channel(page, 'Discord')).toContainText('Not signed in')
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
   // The handle went on the record, so the held amount grew with it
-  await expect(dialog.getByText('5.36 tNUMN', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('5.38 tNUMN', { exact: true })).toBeVisible()
 })
 
-test('the only two boxes are the name and the password', async ({ page }) => {
+test('the only boxes are the profile and the password', async ({ page }) => {
   await createKey(page)
   await openIdentity(page, 'Automatic')
 
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByRole('textbox')).toHaveCount(2)
+  await expect(dialog.getByRole('textbox')).toHaveCount(4)
   await expect(dialog.getByLabel('Display name', { exact: true })).toBeVisible()
+  await expect(dialog.getByLabel('Avatar', { exact: true })).toBeVisible()
+  await expect(dialog.getByLabel('About', { exact: true })).toBeVisible()
 
   // Signing in never touches the key, so no password stands in its way
   const telegram = dialog.getByRole('button', { name: 'Verify with Telegram' })
@@ -611,6 +639,14 @@ test('the only two boxes are the name and the password', async ({ page }) => {
   await expect(dialog.getByText('33 bytes, 32 is the most the chain holds')).toBeVisible()
   await expect(sign).toBeDisabled()
   await expect(dialog.getByRole('button', { name: 'Verify with Discord' })).toBeEnabled()
+
+  // Any profile field past what the chain holds stops it the same way. The
+  // byte error rides inside the wrapping label, so the box goes by its
+  // placeholder while the error shows
+  await dialog.getByPlaceholder('The name this account goes by').fill('Alice')
+  await dialog.getByLabel('Avatar', { exact: true }).fill('a'.repeat(129))
+  await expect(dialog.getByText('129 bytes, 128 is the most the chain holds')).toBeVisible()
+  await expect(sign).toBeDisabled()
 })
 
 test('a record with no name does not sign', async ({ page }) => {

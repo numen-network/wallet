@@ -3,15 +3,19 @@
  * On chain identity, as numen_runtime::identity_info::IdentityInfo has it. The
  * field order is the encoding order, so it has to match the runtime struct.
  *
- * Only x, telegram and discord gate anything. The rest are contact details.
+ * Only x, telegram and discord gate anything. The rest is self description
+ * and contact detail.
  */
 
+/** What an account writes about itself, none of it provable by anyone. */
+export const PROFILE = ['display', 'avatar', 'about'] as const
+
 export const IDENTITY_FIELDS = [
-  'display',
+  ...PROFILE,
   'web',
   'email',
-  'matrix',
   'github',
+  'matrix',
   'x',
   'telegram',
   'discord',
@@ -21,12 +25,17 @@ export type IdentityField = (typeof IDENTITY_FIELDS)[number]
 
 export type IdentityInfo = Record<IdentityField, string>
 
+/** What an account says for itself, carried through every write. */
+export type Profile = Pick<IdentityInfo, (typeof PROFILE)[number]>
+
 export const EMPTY_IDENTITY: IdentityInfo = {
   display: '',
+  avatar: '',
+  about: '',
   web: '',
   email: '',
-  matrix: '',
   github: '',
+  matrix: '',
   x: '',
   telegram: '',
   discord: '',
@@ -40,7 +49,7 @@ export const CHANNELS = ['x', 'telegram', 'discord'] as const satisfies readonly
  * checked, so the automatic registrar refuses to judge a record holding one and
  * the wallet never puts one there.
  */
-export const PROVABLE = ['display', 'telegram', 'discord'] as const
+export const KEPT = [...PROFILE, 'telegram', 'discord'] as const
 
 /** The channels the automated registrar checks, fixed by what a bot can sign into. */
 export const BOT_CHANNELS = ['telegram', 'discord'] as const satisfies readonly IdentityField[]
@@ -52,24 +61,43 @@ export const BOT_CHANNELS = ['telegram', 'discord'] as const satisfies readonly 
  */
 export type Proven = Pick<IdentityInfo, (typeof BOT_CHANNELS)[number]>
 
-const provable = new Set<string>(PROVABLE)
+const profile = new Set<string>(PROFILE)
+const kept = new Set<string>(KEPT)
 
 /** One call writes the whole record, so anything else on it goes. */
 export function dropped(registration: Registration | null): IdentityField[] {
   if (!registration) return []
-  return IDENTITY_FIELDS.filter(
-    (field) => !provable.has(field) && registration.info[field] !== '',
-  )
+  return IDENTITY_FIELDS.filter((field) => !kept.has(field) && registration.info[field] !== '')
 }
 
-export const identityFrom = (display: string, proven: Proven): IdentityInfo => ({
+export const identityFrom = (profile: Profile, proven: Proven): IdentityInfo => ({
   ...EMPTY_IDENTITY,
-  display,
+  ...profile,
   ...proven,
 })
 
-/** Data::Raw stops at Raw32, so a field is bounded in bytes rather than characters. */
-export const FIELD_MAX_BYTES = 32
+/** The runtime bounds each field in bytes, so a CJK name runs out fast. */
+export const MAX_BYTES: Record<IdentityField, number> = {
+  display: 32,
+  avatar: 128,
+  about: 2048,
+  web: 128,
+  email: 128,
+  github: 32,
+  matrix: 32,
+  x: 32,
+  telegram: 32,
+  discord: 32,
+}
+
+/** Sub account names ride pallet_identity's Data, which stops at Raw32. */
+export const SUB_NAME_MAX_BYTES = 32
+
+/** Text that renders as nothing, whitespace and invisible format characters alike. */
+const BLANK = /^[\s\p{Cf}]*$/u
+
+/** A record has to go by something, and a name nobody can see is no name. */
+export const named = (display: string): boolean => !BLANK.test(display)
 
 export const byteLength = (text: string): number => new TextEncoder().encode(text).length
 
@@ -212,7 +240,7 @@ export function carriedBy(
 /** Everything else the account may fill in, the name it goes by aside. */
 export const unchecked = (registrar: Registrar | undefined): IdentityField[] => {
   const checked = checkedBy(registrar)
-  return IDENTITY_FIELDS.filter((field) => field !== 'display' && !checked.includes(field))
+  return IDENTITY_FIELDS.filter((field) => !profile.has(field) && !checked.includes(field))
 }
 
 /** The two a registrar gives to an identity it has actually checked. */
@@ -299,12 +327,18 @@ export function feePaidTo(registration: Registration | null, index: number): big
   return mine?.judgement === 'FeePaid' ? mine.fee : null
 }
 
+/** SCALE compact, one byte below 64, two below 16384, four beyond. */
+const compactSize = (length: number): number => (length < 64 ? 1 : length < 16_384 ? 2 : 4)
+
 /**
- * IdentityInfo encodes as one variant byte per field followed by the raw bytes,
+ * IdentityInfo encodes as a compact length per field followed by the bytes,
  * which is what the chain charges for on top of the flat entry.
  */
 export function encodedSize(info: IdentityInfo): number {
-  return IDENTITY_FIELDS.reduce((total, field) => total + 1 + byteLength(info[field]), 0)
+  return IDENTITY_FIELDS.reduce((total, field) => {
+    const length = byteLength(info[field])
+    return total + compactSize(length) + length
+  }, 0)
 }
 
 export function depositFor(info: IdentityInfo, base: bigint, perByte: bigint): bigint {
@@ -314,24 +348,26 @@ export function depositFor(info: IdentityInfo, base: bigint, perByte: bigint): b
 export const isEmpty = (info: IdentityInfo): boolean =>
   IDENTITY_FIELDS.every((field) => info[field] === '')
 
-/** Fields somebody typed past what Data::Raw can hold. */
+/** Fields somebody typed past the runtime bound. */
 export function overlong(info: IdentityInfo): IdentityField[] {
-  return IDENTITY_FIELDS.filter((field) => byteLength(info[field]) > FIELD_MAX_BYTES)
+  return IDENTITY_FIELDS.filter((field) => byteLength(info[field]) > MAX_BYTES[field])
 }
 
-/** What an account filled in past its name, in the order the runtime holds them. */
+/** The ways to reach the account, in the order the runtime holds them. */
 export function channelsOf(info: IdentityInfo): [IdentityField, string][] {
-  return IDENTITY_FIELDS.filter((field) => field !== 'display' && info[field] !== '').map(
+  return IDENTITY_FIELDS.filter((field) => !profile.has(field) && info[field] !== '').map(
     (field): [IdentityField, string] => [field, info[field]],
   )
 }
 
 export const LABELS: Record<IdentityField, string> = {
   display: 'Display name',
+  avatar: 'Avatar',
+  about: 'About',
   web: 'Website',
   email: 'Email',
-  matrix: 'Matrix',
   github: 'GitHub',
+  matrix: 'Matrix',
   x: 'X',
   telegram: 'Telegram',
   discord: 'Discord',
@@ -339,10 +375,12 @@ export const LABELS: Record<IdentityField, string> = {
 
 export const PLACEHOLDERS: Record<IdentityField, string> = {
   display: 'The name this account goes by',
+  avatar: 'https://example.com/you.png',
+  about: 'What this account does',
   web: 'https://example.com',
   email: 'you@example.com',
-  matrix: '@you:matrix.org',
   github: 'you',
+  matrix: '@you:matrix.org',
   x: '@you',
   telegram: '@you',
   discord: 'you',

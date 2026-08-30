@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { IDENTITY_CHECK_FEE } from '@/chain/config'
 import {
   botRegistrar,
-  byteLength,
   carriedBy,
   depositFor,
   dropped,
-  FIELD_MAX_BYTES,
   identityFrom,
   LABELS,
+  named,
+  overlong,
+  type Profile,
   type Proven,
 } from '@/chain/identity'
 import { useChain } from '@/chain/provider'
@@ -57,7 +58,7 @@ function useNow(every: number): number {
  * one judgement and every channel has to ride the same signature. That
  * signature pays the site's judge one price per sign in, a transfer the judge
  * matches against this very extrinsic. The other tab is for whoever wants a
- * record holding more than handles and a name.
+ * record carrying claims no bot can check.
  */
 export function VerifyIdentity({
   account,
@@ -87,13 +88,15 @@ export function VerifyIdentity({
 
   const now = useNow(TICK_MS)
 
-  // The form owns the name the moment somebody types, before that the chain does
-  const display = draft.display ?? registration?.info.display ?? ''
-  const named = display.trim() !== ''
+  // The form owns a field the moment somebody types, before that the chain does
+  const profile: Profile = {
+    display: draft.display ?? registration?.info.display ?? '',
+    avatar: draft.avatar ?? registration?.info.avatar ?? '',
+    about: draft.about ?? registration?.info.about ?? '',
+  }
+  const hasName = named(profile.display)
   const checks = alive(draft.checks, now)
   const loses = dropped(registration ?? null)
-  const stuck =
-    (needsPassword && password === '') || byteLength(display) > FIELD_MAX_BYTES || !named
 
   const registrar = botRegistrar(registrars ?? [], network.registrar)
 
@@ -112,7 +115,8 @@ export function VerifyIdentity({
   const emptied =
     proven === 0 && PROVIDERS.some((provider) => removed[provider] && carried[provider])
   const cost = IDENTITY_CHECK_FEE * BigInt(fresh.length)
-  const record = identityFrom(display, worn)
+  const record = identityFrom(profile, worn)
+  const stuck = (needsPassword && password === '') || overlong(record).length > 0 || !hasName
 
   // The judgement fee is the chain's own rail. Filing while a paid request
   // still stands would break the whole batch, so the open request rides
@@ -244,8 +248,19 @@ export function VerifyIdentity({
         </p>
       )}
 
-      <IdentityLine field="display" value={display} onChange={(next) => patch({ display: next })} />
-      {proven > 0 && !named && <FieldError>The record needs a display name</FieldError>}
+      <IdentityLine
+        field="display"
+        value={profile.display}
+        onChange={(next) => patch({ display: next })}
+      />
+      {proven > 0 && !hasName && <FieldError>The record needs a display name</FieldError>}
+      <IdentityLine
+        field="avatar"
+        value={profile.avatar}
+        onChange={(next) => patch({ avatar: next })}
+      />
+      <IdentityLine field="about" value={profile.about} onChange={(next) => patch({ about: next })} />
+
 
       {/* One channel a row, and the two states beside the button answer
           different questions. What the chain stands behind outlives this
