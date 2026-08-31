@@ -9,6 +9,7 @@ import {
   LABELS,
   named,
   overlong,
+  pictured,
   type Profile,
   type Proven,
 } from '@/chain/identity'
@@ -95,6 +96,7 @@ export function VerifyIdentity({
     about: draft.about ?? registration?.info.about ?? '',
   }
   const hasName = named(profile.display)
+  const hasPicture = pictured(profile.avatar)
   const checks = alive(draft.checks, now)
   const loses = dropped(registration ?? null)
 
@@ -116,7 +118,11 @@ export function VerifyIdentity({
     proven === 0 && PROVIDERS.some((provider) => removed[provider] && carried[provider])
   const cost = IDENTITY_CHECK_FEE * BigInt(fresh.length)
   const record = identityFrom(profile, worn)
-  const stuck = (needsPassword && password === '') || overlong(record).length > 0 || !hasName
+  const stuck =
+    (needsPassword && password === '') ||
+    overlong(record).length > 0 ||
+    !hasName ||
+    !hasPicture
 
   // The judgement fee is the chain's own rail. Filing while a paid request
   // still stands would break the whole batch, so the open request rides
@@ -265,6 +271,11 @@ export function VerifyIdentity({
         value={profile.avatar}
         onChange={(next) => patch({ avatar: next })}
       />
+      {!hasPicture && (
+        <FieldError>
+          The avatar needs an https address ending in .png, .jpg, .jpeg, .gif or .webp
+        </FieldError>
+      )}
       <IdentityLine field="about" value={profile.about} onChange={(next) => patch({ about: next })} />
 
 

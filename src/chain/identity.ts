@@ -99,6 +99,12 @@ const BLANK = /^[\s\p{Cf}]*$/u
 /** A record has to go by something, and a name nobody can see is no name. */
 export const named = (display: string): boolean => !BLANK.test(display)
 
+/** An address a wallet can actually hang a picture off. */
+const PICTURE = /^https:\/\/\S+\.(?:png|jpe?g|gif|webp)$/i
+
+/** No avatar is fine, an avatar showing nothing is not. */
+export const pictured = (avatar: string): boolean => avatar === '' || PICTURE.test(avatar)
+
 export const byteLength = (text: string): number => new TextEncoder().encode(text).length
 
 export type Judgement =

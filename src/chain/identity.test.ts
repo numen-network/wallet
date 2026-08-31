@@ -17,6 +17,7 @@ import {
   labelOf,
   overlong,
   pendingWith,
+  pictured,
   shortfall,
   type Registrar,
   type Registration,
@@ -382,5 +383,37 @@ describe('what a bot is allowed to put on chain', () => {
       dropped(registration({ info: { ...EMPTY_IDENTITY, display: 'alice', discord: 'alice' } })),
     ).toEqual([])
     expect(dropped(null)).toEqual([])
+  })
+})
+
+// The automatic registrar marks a record whose avatar shows nothing, so the
+// dialog has to catch the address before it gets signed
+describe('an avatar the record can actually show', () => {
+  it('takes the picture formats the registrar names', () => {
+    for (const avatar of [
+      'https://example.com/alice.png',
+      'https://example.com/alice.jpg',
+      'https://example.com/alice.jpeg',
+      'https://example.com/alice.gif',
+      'https://example.com/alice.webp',
+    ]) {
+      expect(pictured(avatar)).toBe(true)
+    }
+  })
+
+  it('takes a record wearing no avatar', () => {
+    expect(pictured('')).toBe(true)
+  })
+
+  it('turns down anything that is not an https picture', () => {
+    for (const avatar of [
+      'http://example.com/alice.png',
+      'example.com/alice.png',
+      'https://example.com/alice',
+      'https://example.com/alice.svg',
+      'https://example.com/alice.png?size=64',
+    ]) {
+      expect(pictured(avatar)).toBe(false)
+    }
   })
 })
