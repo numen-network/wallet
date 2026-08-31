@@ -102,17 +102,13 @@ test('an identity can go on chain with nobody asked to check it', async ({ page 
   await expect(card(page).getByRole('img', { name: /No registrar has checked/ })).toBeVisible()
 })
 
-test('the dialog says which fields a registrar will check', async ({ page }) => {
+test('the manual tab leaves out the automated registrar', async ({ page }) => {
   await createKey(page)
   await openIdentity(page, 'Manual')
 
-  // The bot never takes a manual request, so the list starts at the human
-  // registrar, which declares X and sorts the fields by that
+  // The bot never takes a manual request, so the list starts at the human one
   const dialog = page.getByRole('dialog')
-  // Which registrar is a choice, and it decides how the fields sort
   await expectAddress(dialog, 'Registrar', '1 · 0.5000')
-  await expect(dialog.getByText('Checked by this registrar', { exact: true })).toBeVisible()
-  await expect(dialog.getByText('Not checked by this registrar')).toBeVisible()
   await expect(dialog.getByText(/deposit, returned when the identity is cleared/)).toBeVisible()
   // Nothing here talks about what the chain does with a verdict afterwards
   await expect(dialog.getByText(/[Gg]overnance/)).toHaveCount(0)

@@ -160,21 +160,18 @@ const callHashOf = (operation: Operation) => receipt(callText(operation))
 
 /**
  * Two registrars, the automated one and a human one. The first sits on the
- * account the local network names as its bot. The second takes manual requests
- * and declares X.
+ * account the local network names as its bot. The second takes manual requests.
  */
 const REGISTRARS: Registrar[] = [
   {
     index: 0,
     account: 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb',
     fee: UNIT / 2n,
-    fields: (1n << 6n) | (1n << 7n),
   },
   {
     index: 1,
     account: 'nu5uyy5Nbb59unGAqDVLUM85nDJyyhx7irzPtdUcrSTG6xNXm',
     fee: UNIT / 2n,
-    fields: 1n << 5n,
   },
 ]
 

@@ -10,16 +10,9 @@
 /** What an account writes about itself, none of it provable by anyone. */
 export const PROFILE = ['display', 'avatar', 'about'] as const
 
-export const IDENTITY_FIELDS = [
-  ...PROFILE,
-  'web',
-  'email',
-  'github',
-  'matrix',
-  'x',
-  'telegram',
-  'discord',
-] as const
+export const CONTACT = ['web', 'email', 'github', 'matrix', 'x', 'telegram', 'discord'] as const
+
+export const IDENTITY_FIELDS = [...PROFILE, ...CONTACT] as const
 
 export type IdentityField = (typeof IDENTITY_FIELDS)[number]
 
@@ -200,17 +193,6 @@ export interface Registrar {
   index: number
   account: string
   fee: bigint
-  /**
-   * Which fields this registrar says it will check, one bit per field in the
-   * order IDENTITY_FIELDS has them. Zero means it has never said.
-   */
-  fields: bigint
-}
-
-/** What this registrar has declared it checks. Declaring nothing claims nothing. */
-export function checkedBy(registrar: Registrar | undefined): IdentityField[] {
-  if (!registrar) return []
-  return IDENTITY_FIELDS.filter((_, bit) => ((registrar.fields >> BigInt(bit)) & 1n) === 1n)
 }
 
 /**
@@ -241,12 +223,6 @@ export function carriedBy(
     if (registration.info[field] !== '') held[field] = registration.info[field]
   }
   return held
-}
-
-/** Everything else the account may fill in, the name it goes by aside. */
-export const unchecked = (registrar: Registrar | undefined): IdentityField[] => {
-  const checked = checkedBy(registrar)
-  return IDENTITY_FIELDS.filter((field) => !profile.has(field) && !checked.includes(field))
 }
 
 /** The two a registrar gives to an identity it has actually checked. */

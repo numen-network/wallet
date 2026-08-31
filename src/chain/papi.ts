@@ -328,7 +328,7 @@ interface UnsafeApi {
       Registrars: {
         getValue(
           at: typeof BEST,
-        ): Promise<({ account: string; fee: bigint; fields: bigint } | undefined)[] | undefined>
+        ): Promise<({ account: string; fee: bigint } | undefined)[] | undefined>
       }
       SuperOf: {
         getValue(address: string, at: typeof BEST): Promise<[string, IdentityData] | undefined>
@@ -1533,7 +1533,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       // The list is sparse once one is removed, and the index is what a request
       // names, so a gap keeps its slot rather than shifting the ones after it
       return entries.flatMap((entry, index) =>
-        entry ? [{ index, account: entry.account, fee: entry.fee, fields: entry.fields }] : [],
+        entry ? [{ index, account: entry.account, fee: entry.fee }] : [],
       )
     },
 

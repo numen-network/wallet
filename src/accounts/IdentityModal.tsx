@@ -3,7 +3,7 @@ import { useChain } from '@/chain/provider'
 import { useFacts, useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import {
   botRegistrar,
-  checkedBy,
+  CONTACT,
   depositFor,
   EMPTY_IDENTITY,
   isChecked,
@@ -14,7 +14,6 @@ import {
   overlong,
   pendingWith,
   PROFILE,
-  unchecked,
   type IdentityField,
   type IdentityInfo,
   type Registrar,
@@ -109,8 +108,8 @@ export interface IdentityFormProps {
 }
 
 /**
- * What an account says about itself on chain, sorted by what the registrar has
- * said it will check. That is all the split means.
+ * Every field the chain holds, typed by hand. Asking a registrar to check it
+ * rides the same signature.
  */
 function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: IdentityFormProps) {
   const { network } = useChain()
@@ -188,7 +187,6 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
     }
   }
 
-  const checked = checkedBy(registrar)
   const line = (field: IdentityField) => (
     <IdentityLine
       key={field}
@@ -227,12 +225,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
 
       <p className="text-[12.5px] text-dim">Anyone can read this.</p>
       {PROFILE.map(line)}
-
-      {checked.length > 0 && <p className={HEADING}>Checked by this registrar</p>}
-      {checked.map(line)}
-
-      {checked.length > 0 && <p className={HEADING}>Not checked by this registrar</p>}
-      {unchecked(registrar).map(line)}
+      {CONTACT.map(line)}
 
       {/* A chain with nobody to ask still takes an identity, it just cannot have
           one checked, and a form that stops here says none of that */}

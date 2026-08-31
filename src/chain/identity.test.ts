@@ -5,8 +5,6 @@ import {
   botRegistrar,
   carriedBy,
   byteLength,
-  checkedBy,
-  unchecked,
   depositFor,
   dropped,
   EMPTY_IDENTITY,
@@ -48,7 +46,6 @@ describe('finding the automated registrar', () => {
     index,
     account,
     fee: UNIT,
-    fields: 0n,
   })
 
   it('is the account the network names, wherever it sits', () => {
@@ -67,7 +64,6 @@ describe('what the bot already stands behind', () => {
     index: 2,
     account: 'nuBot',
     fee: UNIT,
-    fields: (1n << 8n) | (1n << 9n),
   }
   const info = { ...EMPTY_IDENTITY, display: 'Alice', telegram: 'alice', discord: 'alice_dc' }
 
@@ -95,15 +91,6 @@ describe('what the bot already stands behind', () => {
     expect(carriedBy(held, bot)).toEqual({})
     expect(carriedBy(null, bot)).toEqual({})
     expect(carriedBy(held, undefined)).toEqual({})
-  })
-
-  it('carries both whatever the chain says it declares', () => {
-    const silent: Registrar = { ...bot, fields: 0n }
-    const held = registration({
-      info,
-      judgements: [{ registrar: 2, judgement: 'Reasonable' }],
-    })
-    expect(carriedBy(held, silent)).toEqual({ telegram: 'alice', discord: 'alice_dc' })
   })
 })
 
@@ -281,41 +268,6 @@ describe('what to tell somebody who falls short', () => {
     })
 
     expect(feePaidTo(held, 1)).toBe(UNIT / 2n)
-  })
-})
-
-describe('what a registrar says it checks', () => {
-  const registrar = (fields: bigint) => ({ index: 0, account: 'nu7', fee: 0n, fields })
-
-  it('reads the bit per field the runtime numbers them by', () => {
-    // Telegram is bit 6, Discord bit 7
-    expect(checkedBy(registrar((1n << 8n) | (1n << 9n)))).toEqual(['telegram', 'discord'])
-    expect(checkedBy(registrar(1n << 7n))).toEqual(['x'])
-    expect(checkedBy(registrar(1n))).toEqual(['display'])
-  })
-
-  it('claims nothing for a registrar that declared nothing', () => {
-    expect(checkedBy(registrar(0n))).toEqual([])
-    expect(checkedBy(undefined)).toEqual([])
-  })
-
-  it('leaves everything else over, the profile aside', () => {
-    expect(unchecked(registrar((1n << 8n) | (1n << 9n)))).toEqual([
-      'web',
-      'email',
-      'github',
-      'matrix',
-      'x',
-    ])
-    expect(unchecked(undefined)).toEqual([
-      'web',
-      'email',
-      'github',
-      'matrix',
-      'x',
-      'telegram',
-      'discord',
-    ])
   })
 })
 
