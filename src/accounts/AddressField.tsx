@@ -20,12 +20,6 @@ export interface Pickable {
   name: string
 }
 
-/**
- * As wide as whatever holds it, and no wider. A floor under the width made this
- * box the one thing in a dialog that would not fit, so it stuck out past the
- * fields above it and the dialog grew a sideways scrollbar to reach it. What is
- * in the box truncates on its own.
- */
 const WIDE = 'w-full'
 
 const ROW =
@@ -144,7 +138,7 @@ export function AddressField<T extends Pickable>({
         type="button"
         aria-label={label}
         disabled={!offers}
-        className={`flex items-center gap-3 py-2 pr-2 pl-3 text-left ${BOX} ${
+        className={`flex min-w-[350px] items-center gap-3 py-2 pr-2 pl-3 text-left ${BOX} ${
           labelled ? 'mt-2.5 first:mt-0' : ''
         } ${className} data-[state=open]:border-accent`}
       >

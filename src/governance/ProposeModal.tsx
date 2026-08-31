@@ -214,7 +214,7 @@ export function ProposeModal({
       title="Open a referendum"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy || !qualified || !head || !facts}
-      width={650}
+      width={760}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={track !== null ? voter.wrap({ kind: 'propose', track, payouts: booked, title, description, }) : null}
