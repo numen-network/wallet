@@ -10,7 +10,7 @@ import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/meta
 import { formatAmount } from '@/lib/balance'
 import { Button, IconButton } from '@/ui/Button'
 import { Footer } from '@/ui/Footer'
-import { PlusIcon, SignalIcon, SignatureIcon, SyncIcon } from '@/ui/icons'
+import { MetaMaskIcon, PlusIcon, SignalIcon, SignatureIcon, SyncIcon } from '@/ui/icons'
 import { ConfirmModal, PromptModal } from '@/ui/PromptModal'
 import { PILL, Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
@@ -156,11 +156,7 @@ function MetaMaskButton() {
       },
     )
 
-  return (
-    <Button type="button" className="px-2.5 py-1 text-xs" onClick={add}>
-      Add to MetaMask
-    </Button>
-  )
+  return <ToolButton icon={<MetaMaskIcon />} label="Add to MetaMask" onClick={add} />
 }
 
 type View = 'accounts' | 'governance' | 'activity'
