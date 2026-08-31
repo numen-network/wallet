@@ -6,6 +6,7 @@ import {
   evmToSubstrate,
   isEvmAddress,
   isSubstrateAddress,
+  palletAccount,
   shorten,
   shortenEvm,
   toNumenAddress,
@@ -17,6 +18,9 @@ const ALICE_NUMEN = 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb'
 
 const H160 = '0x1234567890abcdef1234567890abcdef12345678'
 const H160_MIRROR = 'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg'
+
+const TREASURY_PALLET_ID = stringToU8a('py/trsry')
+const TREASURY = 'nu57jR3GB3XHGGDYiG5Hx7f8NBK5yMvgPNedmiFFoBA6fbxKX'
 
 beforeAll(async () => {
   // Without this the hashing falls back to the JS path and the two
@@ -53,6 +57,24 @@ describe('evmToSubstrate', () => {
   it('gives every H160 its own account', () => {
     const other = '0x1234567890abcdef1234567890abcdef12345679'
     expect(evmToSubstrate(other)).not.toBe(evmToSubstrate(H160))
+  })
+})
+
+describe('palletAccount', () => {
+  it('holds its value, a change here sends the check fee somewhere else', () => {
+    expect(palletAccount(TREASURY_PALLET_ID)).toBe(TREASURY)
+  })
+
+  it('writes the type tag, the pallet id and zeros into the 32 bytes', () => {
+    const raw = decodeAddress(palletAccount(TREASURY_PALLET_ID))
+    expect(raw.length).toBe(32)
+    expect(u8aToHex(raw.slice(0, 4))).toBe(u8aToHex(stringToU8a('modl')))
+    expect(u8aToHex(raw.slice(4, 12))).toBe(u8aToHex(TREASURY_PALLET_ID))
+    expect(raw.slice(12).every((byte) => byte === 0)).toBe(true)
+  })
+
+  it('gives every pallet its own account', () => {
+    expect(palletAccount(stringToU8a('py/bount'))).not.toBe(palletAccount(TREASURY_PALLET_ID))
   })
 })
 

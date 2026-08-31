@@ -389,6 +389,11 @@ export interface ChainFacts {
   submissionDeposit: bigint
   /** Blocks a booked spend stays claimable for, after which it goes back to the treasury. */
   payoutPeriod: number
+  /**
+   * The treasury's own account, derived from its pallet id. Nobody holds a key
+   * to it, so money sent there goes out only on a referendum.
+   */
+  treasury: string
   proxyDepositBase: bigint
   proxyDepositFactor: bigint
   maxProxies: number

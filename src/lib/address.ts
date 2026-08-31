@@ -32,6 +32,18 @@ export function evmToSubstrate(evmAddress: string): string {
   return encodeAddress(blake2AsU8a(payload, 256), SS58_PREFIX)
 }
 
+/**
+ * The account a pallet owns, which frame derives by writing the type tag, the
+ * pallet id and trailing zeros into the 32 bytes an address takes. Nobody holds
+ * a key to one, so the runtime is the only thing that spends what lands there.
+ */
+export function palletAccount(palletId: Uint8Array): string {
+  const raw = new Uint8Array(32)
+  raw.set(stringToU8a('modl'))
+  raw.set(palletId, 4)
+  return encodeAddress(raw, SS58_PREFIX)
+}
+
 /** Numen addresses are long. Show enough on each end to be checkable by eye. */
 export function shorten(address: string, head = 7, tail = 5): string {
   if (address.length <= head + tail + 1) return address

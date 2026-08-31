@@ -58,6 +58,11 @@ interface UnsafeApi {
         getValue(address: string): Promise<{ amount: bigint }[]>
       }
     }
+    System: {
+      Account: {
+        getValue(address: string, at: { at: string }): Promise<{ data: { free: bigint } }>
+      }
+    }
   }
   tx: {
     System: { set_code(args: { code: unknown }): PrimeTx }
@@ -376,6 +381,21 @@ describe('governance', () => {
     expect(symbol).toMatch(/\S/)
     expect(evmChainId).toBeGreaterThan(0)
     expect(balancesErc20).toMatch(/^0x[0-9a-f]{40}$/)
+  })
+
+  it('derives the treasury account the chain deactivates', async () => {
+    const { treasury, existentialDeposit } = await repository.facts()
+    const [total, active, account] = await Promise.all([
+      api.query.Balances.TotalIssuance.getValue({ at: 'best' }),
+      repository.activeIssuance(),
+      api.query.System.Account.getValue(treasury, { at: 'best' }),
+    ])
+
+    // The pot is the treasury's balance bar what keeps the account alive, and
+    // it is the only thing this chain takes out of circulation. Get the
+    // derivation wrong and the address names an empty account holding nothing
+    expect(account.data.free).toBeGreaterThan(0n)
+    expect(total - active).toBe(account.data.free - existentialDeposit)
   })
 
   it('measures support against issuance that leaves the treasury out', async () => {

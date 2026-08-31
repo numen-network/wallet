@@ -12,9 +12,10 @@ export const DECIMALS = 18
 export const UNIT = 10n ** BigInt(DECIMALS)
 
 /**
- * What the automated registrar charges for one checked sign in, mirrored from
- * the judge's REGISTRAR_FEE_NUMN in website-id. The judge refuses records that
- * paid less, so a price change lands there and here together.
+ * What one checked sign in costs, mirrored from the judge's CHANNEL_FEE_NUMN in
+ * registrar-id. It rides the identity as a transfer to the treasury, and the
+ * judge leaves a record that paid less alone, so a price change lands there and
+ * here together.
  */
 export const IDENTITY_CHECK_FEE = 10n * UNIT
 

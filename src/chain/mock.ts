@@ -1,4 +1,6 @@
+import { stringToU8a } from '@polkadot/util'
 import { encodeMultiAddress } from '@polkadot/util-crypto'
+import { palletAccount } from '@/lib/address'
 import { DECIMALS, SS58_PREFIX, UNIT } from './config'
 import {
   hasRefund,
@@ -94,6 +96,7 @@ const FACTS: ChainFacts = {
   undecidingTimeout: (14 * 24 * 3600) / 10,
   submissionDeposit: 100n * UNIT,
   payoutPeriod: (30 * 24 * 3600) / 10,
+  treasury: palletAccount(stringToU8a('py/trsry')),
   proxyDepositBase: 5n * UNIT,
   proxyDepositFactor: (37n * UNIT) / 100n,
   maxProxies: 32,

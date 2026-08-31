@@ -57,7 +57,7 @@ function useNow(every: number): number {
 /**
  * Signing in proves a handle and the dialog holds it, since a proof is spent by
  * one judgement and every channel has to ride the same signature. That
- * signature pays the site's judge one price per sign in, a transfer the judge
+ * signature pays the treasury one price per sign in, a transfer the judge
  * matches against this very extrinsic. The other tab is for whoever wants a
  * record carrying claims no bot can check.
  */
@@ -134,14 +134,15 @@ export function VerifyIdentity({
 
   // What the form would sign, quoted by the bill and the fee whether or not a
   // channel has been proved yet. The two states with nothing to quote say so
-  // in place of the bill
+  // in place of the bill. The chain says where the sign fee lands, so there is
+  // no call to build until it has answered
   const operation =
-    registrar !== undefined && !emptied
+    registrar !== undefined && facts !== undefined && !emptied
       ? ({
           kind: 'registerIdentity',
           info: record,
           registrar: asked ? null : { index: registrar.index, maxFee: registrar.fee },
-          pay: { to: registrar.account, amount: cost },
+          pay: { to: facts.treasury, amount: cost },
         } as const)
       : null
 
@@ -149,8 +150,8 @@ export function VerifyIdentity({
   const signable = operation !== null && proven > 0
 
   // Every coin the record costs, in one place. The sign fee goes to the
-  // site's judge for the checks, the judgement fee is the chain collecting
-  // what the registrar declared, the reserve rides the record
+  // treasury, the judgement fee is the chain collecting what the registrar
+  // declared, the reserve rides the record
   const bill: Fact[] = [
     {
       name: 'Sign fee',

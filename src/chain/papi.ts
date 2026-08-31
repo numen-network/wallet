@@ -9,6 +9,7 @@ import {
   type PolkadotSigner,
 } from 'polkadot-api'
 import { getWsProvider } from 'polkadot-api/ws'
+import { palletAccount } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { DECIMALS, SS58_PREFIX, type Network } from './config'
 import { ChainError, refusalMessage, type Validity } from './refusal'
@@ -437,6 +438,7 @@ interface UnsafeApi {
     }
     Treasury: {
       PayoutPeriod(): Promise<number>
+      PalletId(): Promise<string>
     }
     Vesting: { MinVestedTransfer(): Promise<bigint> }
   }
@@ -909,6 +911,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       caps,
       balancesErc20,
       evmChainId,
+      treasuryPalletId,
     ] = await Promise.all([
       api.constants.System.SS58Prefix(),
       api.constants.Balances.ExistentialDeposit(),
@@ -927,6 +930,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       api.constants.Origins.SpendCaps(),
       api.constants.Precompiles.BalancesErc20(),
       api.query.EVMChainId.ChainId.getValue(),
+      api.constants.Treasury.PalletId(),
     ])
 
     // Addresses and amounts are formatted long before anything is read from
@@ -959,6 +963,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       undecidingTimeout,
       submissionDeposit,
       payoutPeriod,
+      treasury: palletAccount(hexToU8a(treasuryPalletId)),
       proxyDepositBase,
       proxyDepositFactor,
       maxProxies,
