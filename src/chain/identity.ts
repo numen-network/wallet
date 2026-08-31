@@ -376,7 +376,7 @@ export const LABELS: Record<IdentityField, string> = {
 export const PLACEHOLDERS: Record<IdentityField, string> = {
   display: 'The name this account goes by',
   avatar: 'https://example.com/you.png',
-  about: 'What this account does',
+  about: 'First line is the bio\nThe rest is the full description',
   web: 'https://example.com',
   email: 'you@example.com',
   github: 'you',
