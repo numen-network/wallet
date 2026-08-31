@@ -1,3 +1,5 @@
+import { CONTROL } from './shell'
+
 export interface TabOption<T extends string> {
   id: T
   label: string
@@ -18,14 +20,16 @@ export function Tabs<T extends string>({
   className?: string
 }) {
   return (
-    <div className={`flex gap-1 rounded-full border border-line bg-recess p-[3px] ${className}`}>
+    <div
+      className={`flex ${CONTROL} items-stretch gap-1 rounded-full border border-line bg-recess p-[3px] ${className}`}
+    >
       {options.map((option) => (
         <button
           key={option.id}
           type="button"
           aria-current={value === option.id}
           onClick={() => onChange(option.id)}
-          className={`rounded-full px-3 py-[3px] text-[12px] font-semibold transition-colors ${
+          className={`flex items-center rounded-full px-3 text-[12px] font-semibold transition-colors ${
             value === option.id ? 'bg-panel text-ink shadow-card' : 'text-lead hover:text-ink'
           }`}
         >

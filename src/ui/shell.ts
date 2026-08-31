@@ -8,3 +8,10 @@
  * reach.
  */
 export const SHELL = 'mx-auto w-full max-w-[1700px] px-6 max-[560px]:px-4'
+
+/**
+ * The height the tab switch and the action pills stand at. One number keeps
+ * them level. Heights worked out from padding drift apart as soon as one
+ * control changes its type size.
+ */
+export const CONTROL = 'h-9'
