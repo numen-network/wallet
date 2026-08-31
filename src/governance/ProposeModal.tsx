@@ -20,6 +20,7 @@ import { daySpan, waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
 import { Button, IconButton } from '@/ui/Button'
 import { useDraft } from '@/ui/draft'
+import { Figure } from '@/ui/Figure'
 import { BOX, Field, Input, Textarea } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
@@ -112,7 +113,11 @@ export function ProposeModal({
   // payout would let instalments walk a big spend onto a small track
   const track = facts ? trackFor(asked, facts.spenders) : null
   const running = tracks?.find((entry) => entry.id === track)
-  const deposit = running?.decisionDeposit ?? 0n
+  const trackName = track === null ? 'Over every cap' : trackLabel(tracks, track)
+  // Held by the submit call itself, so the track it lands on never changes it
+  const depositLine = facts
+    ? `${formatAmount(facts.submissionDeposit, { precision: 0 })} ${symbol}`
+    : '…'
   // How long the referendum itself can take before the spends are booked
   const runsFor = running
     ? running.preparePeriod + running.decisionPeriod + running.confirmPeriod + running.minEnactmentPeriod
@@ -210,9 +215,6 @@ export function ProposeModal({
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy || !qualified || !head || !facts}
       width={650}
-      footNote={
-        track === null ? undefined : `${trackLabel(tracks, track)}, decision deposit ${formatAmount(deposit, { precision: 0 })} ${symbol}`
-      }
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={track !== null ? voter.wrap({ kind: 'propose', track, payouts: booked, title, description, }) : null}
@@ -330,6 +332,11 @@ export function ProposeModal({
           <PlusIcon />
           Add
         </Button>
+      </div>
+
+      <div className="mt-3.5 grid grid-cols-2 gap-2.5">
+        <Figure label="Track" value={trackName} />
+        <Figure label="Submission deposit" value={depositLine} />
       </div>
 
       <p className="mt-2.5 text-[12.5px] text-dim">

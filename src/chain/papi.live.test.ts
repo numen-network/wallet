@@ -364,6 +364,12 @@ describe('governance', () => {
     }
   })
 
+  it('reads what opening a referendum holds, which no track changes', async () => {
+    const { submissionDeposit } = await repository.facts()
+
+    expect(submissionDeposit).toBeGreaterThan(0n)
+  })
+
   it('carries the evm facts the metamask flow builds on', async () => {
     const { symbol, evmChainId, balancesErc20 } = await repository.facts()
 

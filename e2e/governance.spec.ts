@@ -291,8 +291,8 @@ test('an amount past every cap is refused before it is signed', async ({ page })
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Amount 1').fill('11000000')
 
-  // The footnote names the track, and no track can carry this
-  await expect(dialog.getByText(/spender, decision deposit/)).toBeHidden()
+  // No track can carry this, and the box that names one has to say so
+  await expect(dialog.getByText('Over every cap', { exact: true })).toBeVisible()
 })
 
 test('the amount decides the track', async ({ page }) => {
@@ -303,10 +303,13 @@ test('the amount decides the track', async ({ page }) => {
   const dialog = page.getByRole('dialog')
 
   await dialog.getByLabel('Amount 1').fill('50000')
-  await expect(dialog.getByText(/Small spender, decision deposit 100/)).toBeVisible()
+  await expect(dialog.getByText('Small spender', { exact: true })).toBeVisible()
 
   await dialog.getByLabel('Amount 1').fill('500000')
-  await expect(dialog.getByText(/Medium spender, decision deposit 1,000/)).toBeVisible()
+  await expect(dialog.getByText('Medium spender', { exact: true })).toBeVisible()
+
+  // Both tracks hold the same deposit, since submit sets it rather than the track
+  await expect(dialog.getByText('100 tNUMN', { exact: true })).toBeVisible()
 
   await fillAddress(page, dialog, 'Address 1', BENEFICIARY)
   await expect(dialog.getByRole('button', { name: 'Sign and send' })).toBeDisabled()
@@ -320,14 +323,14 @@ test('the whole ask decides the track, not the largest payout', async ({ page })
   const dialog = page.getByRole('dialog')
 
   await dialog.getByLabel('Amount 1').fill('150000')
-  await expect(dialog.getByText(/Small spender, decision deposit 100/)).toBeVisible()
+  await expect(dialog.getByText('Small spender', { exact: true })).toBeVisible()
 
   // Splitting an ask in two would otherwise walk it onto a cheaper track
   await dialog.getByRole('button', { name: 'Add', exact: true }).click()
   await fillAddress(page, dialog, 'Address 2', BENEFICIARY)
   await dialog.getByLabel('Amount 2').fill('150000')
   await dialog.getByLabel('Release date for payout 2').fill(inDays(90))
-  await expect(dialog.getByText(/Medium spender, decision deposit 1,000/)).toBeVisible()
+  await expect(dialog.getByText('Medium spender', { exact: true })).toBeVisible()
 })
 
 test('the date box will not offer a day the referendum would outlast', async ({ page }) => {

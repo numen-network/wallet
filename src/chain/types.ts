@@ -385,6 +385,8 @@ export interface ChainFacts {
   voteLockingPeriod: number
   /** Blocks a referendum may sit undecided before it is called off. */
   undecidingTimeout: number
+  /** What opening a referendum holds, whatever track it lands on. */
+  submissionDeposit: bigint
   /** Blocks a booked spend stays claimable for, after which it goes back to the treasury. */
   payoutPeriod: number
   proxyDepositBase: bigint

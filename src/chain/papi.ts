@@ -433,6 +433,7 @@ interface UnsafeApi {
     Referenda: {
       Tracks(): Promise<[number, TrackInfo][]>
       UndecidingTimeout(): Promise<number>
+      SubmissionDeposit(): Promise<bigint>
     }
     Treasury: {
       PayoutPeriod(): Promise<number>
@@ -896,6 +897,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       blockSeconds,
       voteLockingPeriod,
       undecidingTimeout,
+      submissionDeposit,
       payoutPeriod,
       proxyDepositBase,
       proxyDepositFactor,
@@ -913,6 +915,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       api.constants.Difficulty.TargetBlockTime(),
       api.constants.ConvictionVoting.VoteLockingPeriod(),
       api.constants.Referenda.UndecidingTimeout(),
+      api.constants.Referenda.SubmissionDeposit(),
       api.constants.Treasury.PayoutPeriod(),
       api.constants.Proxy.ProxyDepositBase(),
       api.constants.Proxy.ProxyDepositFactor(),
@@ -954,6 +957,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       blockSeconds: Number(blockSeconds),
       voteLockingPeriod,
       undecidingTimeout,
+      submissionDeposit,
       payoutPeriod,
       proxyDepositBase,
       proxyDepositFactor,

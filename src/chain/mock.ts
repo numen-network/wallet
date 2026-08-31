@@ -92,6 +92,7 @@ const FACTS: ChainFacts = {
   blockSeconds: 10,
   voteLockingPeriod: (7 * 24 * 3600) / 10,
   undecidingTimeout: (14 * 24 * 3600) / 10,
+  submissionDeposit: 100n * UNIT,
   payoutPeriod: (30 * 24 * 3600) / 10,
   proxyDepositBase: 5n * UNIT,
   proxyDepositFactor: (37n * UNIT) / 100n,
