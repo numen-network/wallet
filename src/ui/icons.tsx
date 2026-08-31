@@ -195,6 +195,23 @@ export function CheckIcon({ className = 'size-3.5' }: IconProps) {
   )
 }
 
+export function CrossIcon({ className = 'size-3.5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...stroke} strokeWidth={2.4} aria-hidden>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  )
+}
+
+export function MinusIcon({ className = 'size-3.5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...stroke} strokeWidth={2.4} aria-hidden>
+      <path d="M5 12h14" />
+    </svg>
+  )
+}
+
 export function DotsIcon({ className = 'size-4' }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...stroke} strokeWidth={2} aria-hidden>

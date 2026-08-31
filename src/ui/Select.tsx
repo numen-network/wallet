@@ -5,6 +5,8 @@ import { CheckIcon, ChevronIcon } from './icons'
 export interface SelectOption {
   value: string
   label: string
+  /** A mark beside the label, for a value that reads as a state. */
+  icon?: ReactNode
 }
 
 interface SelectProps {
@@ -26,6 +28,12 @@ export const PILL =
   'rounded-full border border-line bg-panel py-[3px] pr-2 pl-2.5 text-[11.5px] font-semibold text-lead hover:bg-hover'
 
 const SCROLLER = 'flex h-4 cursor-default items-center justify-center text-dim'
+
+const ITEM =
+  'flex cursor-pointer items-center gap-2 rounded-[6px] py-[7px] pr-2.5 pl-2 text-[13.5px] outline-none select-none data-highlighted:bg-hover'
+
+/** What stands in for the tick where a value brings a mark of its own. */
+const PICKED = 'data-[state=checked]:font-semibold'
 
 /**
  * The native control cannot be styled past its border, and an OS dropdown in
@@ -56,8 +64,12 @@ export function Select({
       }}
     >
       <RadixSelect.Trigger className={`${TRIGGER} ${className}`} aria-label={label} title={title}>
-        {children}
-        <RadixSelect.Value>{current?.label}</RadixSelect.Value>
+        {/* One item, so a mark ahead of the value travels with it instead of
+            being pushed away from its own label */}
+        <span className="flex items-center gap-1.5">
+          {children}
+          <RadixSelect.Value>{current?.label}</RadixSelect.Value>
+        </span>
         <RadixSelect.Icon>
           <ChevronIcon className="size-3 text-dim" />
         </RadixSelect.Icon>
@@ -81,12 +93,17 @@ export function Select({
               <RadixSelect.Item
                 key={option.value}
                 value={option.value}
-                className="flex cursor-pointer items-center gap-2 rounded-[6px] py-[7px] pr-2.5 pl-2 text-[13.5px] outline-none select-none data-highlighted:bg-hover"
+                className={`${ITEM} ${option.icon ? PICKED : ''}`}
               >
+                {/* One column for one mark. Where a value brings its own, the
+                    tick steps aside, since two of them side by side read as a
+                    puzzle */}
                 <span className="w-3.5 shrink-0">
-                  <RadixSelect.ItemIndicator>
-                    <CheckIcon className="size-3.5 text-accent" />
-                  </RadixSelect.ItemIndicator>
+                  {option.icon ?? (
+                    <RadixSelect.ItemIndicator>
+                      <CheckIcon className="size-3.5 text-accent" />
+                    </RadixSelect.ItemIndicator>
+                  )}
                 </span>
                 <RadixSelect.ItemText>{option.label}</RadixSelect.ItemText>
               </RadixSelect.Item>

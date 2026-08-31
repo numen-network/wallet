@@ -14,6 +14,7 @@ import {
 } from '@/chain/types'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
+import { CheckIcon, CrossIcon, MinusIcon } from '@/ui/icons'
 import { Field, Input, INSIDE } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
@@ -248,11 +249,27 @@ export function RemoveVoteModal({
 }
 
 const CHOICES = [
-  { value: 'skip', label: 'Skip' },
-  { value: 'aye', label: 'Aye' },
-  { value: 'nay', label: 'Nay' },
-  { value: 'abstain', label: 'Abstain' },
-]
+  { value: 'skip', label: 'Skip', tone: 'text-dim', mark: null },
+  { value: 'aye', label: 'Aye', tone: 'text-good', mark: <CheckIcon /> },
+  { value: 'nay', label: 'Nay', tone: 'text-bad', mark: <CrossIcon /> },
+  { value: 'abstain', label: 'Abstain', tone: 'text-accent', mark: <MinusIcon /> },
+] as const
+
+type Choice = (typeof CHOICES)[number]
+
+/** Skip keeps an empty box so every row reads from the same left edge. */
+const marked = (choice: Choice) => (
+  <span className={`flex size-3.5 shrink-0 ${choice.tone}`}>{choice.mark}</span>
+)
+
+const choiceFor = (side: Side | undefined): Choice =>
+  CHOICES.find((choice) => choice.value === side) ?? CHOICES[0]
+
+const CHOICE_OPTIONS = CHOICES.map((choice) => ({
+  value: choice.value,
+  label: choice.label,
+  icon: marked(choice),
+}))
 
 /**
  * One ballot over several referenda. pallet_conviction_voting takes the largest
@@ -355,40 +372,46 @@ export function VoteManyModal({
       onSubmit={form}
     >
       <p className="text-[13.5px] text-lead">
-        The chain takes the largest vote on a track as the lock rather than the sum, so voting the
-        same amount on all of these locks it once. It stays locked for as long as the conviction
-        says, counted from the day each referendum ends.
+        The chain takes the largest vote across every track as the lock rather than the sum, so
+        voting the same amount on all of these locks it once. It stays locked for as long as the
+        conviction says, counted from the day each referendum ends.
       </p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
       <ul className="mt-3.5 rounded-[6px] border border-line">
-        {referenda.map((referendum) => (
-          <li
-            key={referendum.index}
-            className="flex items-center gap-2.5 border-t border-line px-2.5 py-1.5 first:border-t-0"
-          >
-            <span className="font-mono text-[12.5px] font-bold text-dim">#{referendum.index}</span>
-            <span className="min-w-0 flex-1 truncate text-[13px]">
-              {referendum.title ?? trackLabel(tracks, referendum.track)}
-            </span>
-            <Select
-              value={sides[referendum.index] ?? 'skip'}
-              onValueChange={(value) =>
-                setSides((held) => {
-                  const { [referendum.index]: gone, ...rest } = held
-                  return value === 'skip' ? rest : { ...rest, [referendum.index]: value as Side }
-                })
-              }
-              options={CHOICES}
-              label={`Vote on referendum ${referendum.index}`}
-              className="w-[104px] justify-between rounded-[4px] border border-line-strong bg-recess px-2.5 py-1 text-[13px]"
-            />
-          </li>
-        ))}
+        {referenda.map((referendum) => {
+          const choice = choiceFor(sides[referendum.index])
+
+          return (
+            <li
+              key={referendum.index}
+              className="flex items-center gap-2.5 border-t border-line px-2.5 py-1.5 first:border-t-0"
+            >
+              <span className="font-mono text-[12.5px] font-bold text-dim">#{referendum.index}</span>
+              <span className="min-w-0 flex-1 truncate text-[13px]">
+                {referendum.title ?? trackLabel(tracks, referendum.track)}
+              </span>
+              <Select
+                value={choice.value}
+                onValueChange={(value) =>
+                  setSides((held) => {
+                    const { [referendum.index]: gone, ...rest } = held
+                    return value === 'skip' ? rest : { ...rest, [referendum.index]: value as Side }
+                  })
+                }
+                options={CHOICE_OPTIONS}
+                label={`Vote on referendum ${referendum.index}`}
+                className={`w-[120px] justify-between rounded-[4px] border border-line-strong bg-recess px-2.5 py-1 text-[13px] ${choice.tone}`}
+              >
+                {marked(choice)}
+              </Select>
+            </li>
+          )
+        })}
       </ul>
 
-      <div className="mt-3.5 grid grid-cols-2 gap-x-3.5 max-[560px]:grid-cols-1">
+      <div className="mt-3.5 grid grid-cols-2 gap-x-3.5 gap-y-2.5 *:mt-0 max-[560px]:grid-cols-1">
         <Field label="Conviction">
           <Select
             value={conviction}
