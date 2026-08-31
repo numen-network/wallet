@@ -116,8 +116,8 @@ export function MultisigModal({ accounts, onClose }: { accounts: Account[]; onCl
         )}
       </p>
       <p className="mt-1 text-[12.5px] text-dim">
-        Sending from a multisig needs the on chain approval flow, which this build does not carry
-        yet. It can hold and receive.
+        Sending starts with one signatory here and runs once enough of the others have signed.
+        A multisig with no signatory here only holds and receives.
       </p>
 
       <FieldError>{error}</FieldError>

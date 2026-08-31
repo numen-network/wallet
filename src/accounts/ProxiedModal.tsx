@@ -79,8 +79,8 @@ export function ProxiedModal({ accounts, onClose }: { accounts: Account[]; onClo
       <GroupField value={groupId} onChange={setGroupId} />
 
       <p className="mt-3 text-[12.5px] text-dim">
-        The proxy has to have been granted on chain already. Sending through it needs the proxy
-        call, which this build does not carry yet, so the account can hold and receive.
+        The proxy has to have been granted on chain already. Nothing here checks that, and the
+        chain rejects calls from a pairing it never saw.
       </p>
 
       <FieldError>{error}</FieldError>
