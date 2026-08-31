@@ -123,6 +123,26 @@ export function DelegateIcon({ className = 'size-3.5' }: IconProps) {
   )
 }
 
+/** A ballot with a tick, for a say cast on a referendum. */
+export function VoteIcon({ className = 'size-3.5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...stroke} strokeWidth={2} aria-hidden>
+      <path d="m9 12 2 2 4-4" />
+      <path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7Z" />
+      <path d="M22 19H2" />
+    </svg>
+  )
+}
+
+export function ArrowUpRightIcon({ className = 'size-3.5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...stroke} strokeWidth={2} aria-hidden>
+      <path d="M7 7h10v10" />
+      <path d="M7 17 17 7" />
+    </svg>
+  )
+}
+
 export function ExplorerIcon({ className = 'size-3.5' }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...stroke} strokeWidth={2} aria-hidden>

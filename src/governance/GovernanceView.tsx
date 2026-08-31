@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { Account } from '@/accounts/types'
 import {
   spendState,
@@ -25,13 +25,12 @@ import {
   useTracks,
 } from '@/chain/queries'
 import type { AccountBalance } from '@/chain/types'
-import { Button } from '@/ui/Button'
 import { Empty } from '@/ui/Empty'
-import { ExplorerIcon, PlusIcon } from '@/ui/icons'
+import { ArrowUpRightIcon, CoinsIcon, PlusIcon, UnlockIcon, VoteIcon } from '@/ui/icons'
 import { PILL, Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
 import { Tabs, type TabOption } from '@/ui/Tabs'
-import { ToolButton } from '@/ui/ToolButton'
+import { ToolButton, ToolLink } from '@/ui/ToolButton'
 import { voters } from './Voter'
 import {
   DepositModal,
@@ -129,12 +128,14 @@ export function GovernanceView({
     onDeposit: (referendum: Referendum) => setModal({ kind: 'deposit', referendum }),
   }
 
-  const addButton = (label: string, opens: Modal) => (
+  // The row keeps every button whatever the tab shows, so idle carries the
+  // reason one has nothing to do
+  const pill = (label: string, icon: ReactNode, opens: Modal, idle: string | null = null) => (
     <ToolButton
-      icon={<PlusIcon />}
+      icon={icon}
       label={label}
-      disabled={!canSign}
-      title={canSign ? undefined : 'No account here can sign'}
+      disabled={!canSign || idle !== null}
+      title={canSign ? (idle ?? undefined) : 'No account here can sign'}
       onClick={() => setModal(opens)}
     />
   )
@@ -148,43 +149,43 @@ export function GovernanceView({
           onChange={setTab}
         />
         {tab === 'referenda' && (
-          <>
-            <Select
-              value={sort}
-              onValueChange={(value) => setSort(value as Sort)}
-              options={SORT_OPTIONS}
-              label="Sort"
-              className={PILL}
-            />
-            <a
-              href={explorerGovernance(network)}
-              target="_blank"
-              rel="noopener"
-              className="flex items-center gap-1 text-[12.5px] font-semibold text-lead hover:text-accent"
-            >
-              Every referendum ever
-              <ExplorerIcon className="size-3" />
-            </a>
-            {running.length > 1 && (
-              <Button type="button" onClick={() => setModal({ kind: 'voteAll' })} disabled={!canSign}>
-                Batch vote
-              </Button>
-            )}
-          </>
+          <Select
+            value={sort}
+            onValueChange={(value) => setSort(value as Sort)}
+            options={SORT_OPTIONS}
+            label="Sort"
+            className={PILL}
+          />
         )}
-        {tab === 'spends' && ready.length > 0 && (
-          <Button type="button" onClick={() => setModal({ kind: 'claimAll' })} disabled={!canSign}>
-            Claim every ready spend
-          </Button>
-        )}
-        {tab === 'deposits' && owed.length > 0 && (
-          <Button type="button" onClick={() => setModal({ kind: 'returnAll' })} disabled={!canSign}>
-            Return every deposit
-          </Button>
-        )}
-        <span className="flex-1" />
-        {addButton('Referendum', { kind: 'propose' })}
-        {addButton('Bounty', { kind: 'proposeBounty' })}
+        <div className="ml-auto flex flex-wrap gap-2 max-[560px]:ml-0">
+          {pill('Referendum', <PlusIcon />, { kind: 'propose' })}
+          {pill('Bounty', <PlusIcon />, { kind: 'proposeBounty' })}
+          {pill(
+            'Batch vote',
+            <VoteIcon />,
+            { kind: 'voteAll' },
+            running.length > 1 ? null : 'Too few running to vote at once',
+          )}
+          {pill(
+            'Claim every ready spend',
+            <CoinsIcon />,
+            { kind: 'claimAll' },
+            ready.length > 0 ? null : 'No spend is ready to claim',
+          )}
+          {pill(
+            'Return every deposit',
+            <UnlockIcon />,
+            { kind: 'returnAll' },
+            owed.length > 0 ? null : 'Nothing to hand back',
+          )}
+          <ToolLink
+            href={explorerGovernance(network)}
+            target="_blank"
+            rel="noopener"
+            icon={<ArrowUpRightIcon />}
+            label="Browse every referendum"
+          />
+        </div>
       </section>
 
       <main className={`${SHELL} grow pt-1.5 pb-16`}>

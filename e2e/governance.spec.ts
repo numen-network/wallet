@@ -537,7 +537,7 @@ test('every ready spend is claimed at once', async ({ page }) => {
 
   // One of them is one call, not a batch of one, so it settles as a payout does
   await expect(page.getByText('Treasury spend paid')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Claim every ready spend' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Claim every ready spend' })).toBeDisabled()
 })
 
 test('one signature takes back the finished votes and frees the track', async ({ page }) => {
