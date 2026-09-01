@@ -103,11 +103,12 @@ export interface Referendum {
 }
 
 /**
- * pallet_referenda keeps a referendum's metadata as a preimage of a JSON dump.
- * The pallet says nothing about what goes in it, so the two keys below are the
- * whole of the contract between whatever opens a referendum and whatever reads
- * one back. Anybody may write their own dump, so nothing in there is trusted
- * past these two strings.
+ * pallet_referenda keeps a referendum's metadata as a preimage of a text dump
+ * shaped like a commit message. The first line is the title and everything
+ * past the first blank line is the description. The pallet says nothing about
+ * what goes in it, so this shape is the whole of the contract between whatever
+ * opens a referendum and whatever reads one back. Anybody may write their own
+ * dump, so nothing in there is trusted past these two strings.
  */
 export const TITLE_MAX = 120
 
@@ -120,27 +121,20 @@ export interface Metadata {
 export const NO_METADATA: Metadata = { title: null, description: null }
 
 export function readMeta(dump: string): Metadata {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(dump)
-  } catch {
-    return NO_METADATA
-  }
-
-  const held = parsed as { title?: unknown; description?: unknown } | null
-  const headline = typeof held?.title === 'string' ? held.title.trim().slice(0, TITLE_MAX) : ''
+  const cut = dump.indexOf('\n')
+  const headline = (cut === -1 ? dump : dump.slice(0, cut)).trim().slice(0, TITLE_MAX)
   // Whatever length the proposer paid to store, since cutting it here would
   // hide half of what somebody is being asked to vote on
-  const body = typeof held?.description === 'string' ? held.description.trim() : ''
+  const body = cut === -1 ? '' : dump.slice(cut + 1).trim()
 
   return { title: headline || null, description: body || null }
 }
 
 export function metadataDump(title: string, description: string): string {
-  return JSON.stringify({
-    title: title.trim().slice(0, TITLE_MAX),
-    description: description.trim(),
-  })
+  // A break inside the title would smuggle half of it into the body
+  const headline = title.replace(/[\r\n]+/g, ' ').trim().slice(0, TITLE_MAX)
+  const body = description.trim()
+  return body ? `${headline}\n\n${body}` : headline
 }
 
 /**

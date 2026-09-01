@@ -135,31 +135,41 @@ describe('what a referendum carries as metadata', () => {
       title: 'Fund the explorer',
       description: 'A year of hosting',
     })
-    expect(JSON.parse(metadataDump('Fund the explorer', 'A year of hosting'))).toEqual({
-      title: 'Fund the explorer',
-      description: 'A year of hosting',
-    })
+    expect(metadataDump('Fund the explorer', 'A year of hosting')).toBe(
+      'Fund the explorer\n\nA year of hosting',
+    )
   })
 
-  it('reads a dump another tool wrote', () => {
-    expect(readMeta('{"title":"Fund the explorer","description":"the long version"}')).toEqual({
+  it('reads a dump another tool wrote, blank separator or not', () => {
+    expect(readMeta('Fund the explorer\n\nthe long version\nover two lines')).toEqual({
+      title: 'Fund the explorer',
+      description: 'the long version\nover two lines',
+    })
+    expect(readMeta('Fund the explorer\nthe long version')).toEqual({
       title: 'Fund the explorer',
       description: 'the long version',
     })
   })
 
-  it('has nothing for anything it cannot make sense of', () => {
-    for (const dump of ['not json at all', 'null', '"a bare string"', '{"title":42}']) {
-      expect(readMeta(dump)).toEqual({ title: null, description: null })
-    }
-    expect(readMeta('{"description":"no title in here"}').title).toBeNull()
-    expect(readMeta('{"title":"   "}').title).toBeNull()
+  it('has nothing for a half that is not there', () => {
+    expect(readMeta('')).toEqual({ title: null, description: null })
+    expect(readMeta('   \n\n  ')).toEqual({ title: null, description: null })
+    expect(readMeta('Only a subject')).toEqual({ title: 'Only a subject', description: null })
+    expect(readMeta('\n\nno subject in here')).toEqual({
+      title: null,
+      description: 'no subject in here',
+    })
+    expect(metadataDump('Only a subject', '')).toBe('Only a subject')
+  })
+
+  it('keeps a break out of the title, which would smuggle it into the body', () => {
+    expect(metadataDump('two\nlines', 'body')).toBe('two lines\n\nbody')
   })
 
   // The card has one line for it. The description has a page of its own
   it('cuts a title nobody could fit on a card, and leaves the rest whole', () => {
     const long = 'x'.repeat(TITLE_MAX + 50)
-    expect(readMeta(JSON.stringify({ title: long })).title).toHaveLength(TITLE_MAX)
+    expect(readMeta(long).title).toHaveLength(TITLE_MAX)
     expect(readMeta(metadataDump(long, long)).title).toHaveLength(TITLE_MAX)
     expect(readMeta(metadataDump(long, long)).description).toHaveLength(TITLE_MAX + 50)
   })
