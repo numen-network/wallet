@@ -93,7 +93,7 @@ export function VerifyIdentity({
   const profile: Profile = {
     display: draft.display ?? registration?.info.display ?? '',
     avatar: draft.avatar ?? registration?.info.avatar ?? '',
-    about: draft.about ?? registration?.info.about ?? '',
+    bio: draft.bio ?? registration?.info.bio ?? '',
   }
   const hasName = named(profile.display)
   const hasPicture = pictured(profile.avatar)
@@ -277,7 +277,7 @@ export function VerifyIdentity({
           The avatar needs an https address ending in .png, .jpg, .jpeg, .gif or .webp
         </FieldError>
       )}
-      <IdentityLine field="about" value={profile.about} onChange={(next) => patch({ about: next })} />
+      <IdentityLine field="bio" value={profile.bio} onChange={(next) => patch({ bio: next })} />
 
 
       {/* One channel a row, and the two states beside the button answer

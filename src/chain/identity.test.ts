@@ -100,11 +100,10 @@ describe('what the chain charges to hold an identity', () => {
     expect(encodedSize({ ...EMPTY_IDENTITY, display: 'Alice', x: '@alice' })).toBe(21)
   })
 
-  // Only the about field is long enough for a compact length to take a second
-  // byte
+  // Only the bio field is long enough for a compact length to take a second byte
   it('widens the length prefix once a field passes 63 bytes', () => {
-    expect(encodedSize({ ...EMPTY_IDENTITY, about: 'a'.repeat(63) })).toBe(73)
-    expect(encodedSize({ ...EMPTY_IDENTITY, about: 'a'.repeat(64) })).toBe(75)
+    expect(encodedSize({ ...EMPTY_IDENTITY, bio: 'a'.repeat(63) })).toBe(73)
+    expect(encodedSize({ ...EMPTY_IDENTITY, bio: 'a'.repeat(64) })).toBe(75)
   })
 
   it('adds the byte price to the flat entry', () => {
@@ -124,8 +123,8 @@ describe('what the chain charges to hold an identity', () => {
   it('bounds each field on its own', () => {
     expect(overlong({ ...EMPTY_IDENTITY, avatar: 'a'.repeat(128) })).toEqual([])
     expect(overlong({ ...EMPTY_IDENTITY, avatar: 'a'.repeat(129) })).toEqual(['avatar'])
-    expect(overlong({ ...EMPTY_IDENTITY, about: 'a'.repeat(2048) })).toEqual([])
-    expect(overlong({ ...EMPTY_IDENTITY, about: 'a'.repeat(2049) })).toEqual(['about'])
+    expect(overlong({ ...EMPTY_IDENTITY, bio: 'a'.repeat(2048) })).toEqual([])
+    expect(overlong({ ...EMPTY_IDENTITY, bio: 'a'.repeat(2049) })).toEqual(['bio'])
   })
 })
 
@@ -274,7 +273,7 @@ describe('what to tell somebody who falls short', () => {
 describe('what a bot is allowed to put on chain', () => {
   it('writes the name beside the proved channels and blanks the rest', () => {
     expect(
-      identityFrom({ display: 'alice', avatar: '', about: '' }, { telegram: '@alice', discord: '' }),
+      identityFrom({ display: 'alice', avatar: '', bio: '' }, { telegram: '@alice', discord: '' }),
     ).toEqual({
       ...EMPTY_IDENTITY,
       display: 'alice',
@@ -287,14 +286,14 @@ describe('what a bot is allowed to put on chain', () => {
   it('carries the profile through', () => {
     expect(
       identityFrom(
-        { display: 'alice', avatar: 'https://example.com/a.png', about: 'Runs a validator.' },
+        { display: 'alice', avatar: 'https://example.com/a.png', bio: 'Runs a validator.' },
         { telegram: '@alice', discord: '' },
       ),
     ).toEqual({
       ...EMPTY_IDENTITY,
       display: 'alice',
       avatar: 'https://example.com/a.png',
-      about: 'Runs a validator.',
+      bio: 'Runs a validator.',
       telegram: '@alice',
     })
   })
@@ -322,7 +321,7 @@ describe('what a bot is allowed to put on chain', () => {
             ...EMPTY_IDENTITY,
             display: 'alice',
             avatar: 'https://example.com/a.png',
-            about: 'Runs a validator.',
+            bio: 'Runs a validator.',
             telegram: '@alice',
           },
         }),

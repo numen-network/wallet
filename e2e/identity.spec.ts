@@ -456,7 +456,7 @@ test('the one click record carries the whole profile', async ({ page }) => {
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Display name', { exact: true }).fill('Alice')
   await dialog.getByLabel('Avatar', { exact: true }).fill('https://example.com/alice.png')
-  await dialog.getByLabel('About', { exact: true }).fill('Keeper of the vault')
+  await dialog.getByLabel('Bio', { exact: true }).fill('Keeper of the vault')
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
   await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
@@ -470,7 +470,7 @@ test('the one click record carries the whole profile', async ({ page }) => {
   )
   // The textarea's value rides inside the wrapping label, so the box goes by
   // its accessible name once the record holds one
-  await expect(manual.getByRole('textbox', { name: 'About', exact: true })).toHaveValue(
+  await expect(manual.getByRole('textbox', { name: 'Bio', exact: true })).toHaveValue(
     'Keeper of the vault',
   )
 })
@@ -614,7 +614,7 @@ test('the only boxes are the profile and the password', async ({ page }) => {
   await expect(dialog.getByRole('textbox')).toHaveCount(4)
   await expect(dialog.getByLabel('Display name', { exact: true })).toBeVisible()
   await expect(dialog.getByLabel('Avatar', { exact: true })).toBeVisible()
-  await expect(dialog.getByLabel('About', { exact: true })).toBeVisible()
+  await expect(dialog.getByLabel('Bio', { exact: true })).toBeVisible()
 
   // Signing in never touches the key, so no password stands in its way
   const telegram = dialog.getByRole('button', { name: 'Verify with Telegram' })

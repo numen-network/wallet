@@ -52,7 +52,7 @@ export interface IdentityDraft {
   ask: boolean | null
   display: string | null
   avatar: string | null
-  about: string | null
+  bio: string | null
   checks: Checks
 }
 
@@ -63,7 +63,7 @@ const EMPTY_DRAFT: IdentityDraft = {
   ask: null,
   display: null,
   avatar: null,
-  about: null,
+  bio: null,
   checks: {},
 }
 

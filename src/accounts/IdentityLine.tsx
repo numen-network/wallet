@@ -29,7 +29,7 @@ export function IdentityLine({
 
   return (
     <Field label={LABELS[field]}>
-      {field === 'about' ? (
+      {field === 'bio' ? (
         <Textarea {...box} rows={4} onChange={(event) => onChange(event.target.value)} />
       ) : (
         <Input {...box} spellCheck={false} onChange={(event) => onChange(event.target.value)} />

@@ -8,7 +8,7 @@
  */
 
 /** What an account writes about itself, none of it provable by anyone. */
-export const PROFILE = ['display', 'avatar', 'about'] as const
+export const PROFILE = ['display', 'avatar', 'bio'] as const
 
 export const CONTACT = ['web', 'email', 'github', 'matrix', 'x', 'telegram', 'discord'] as const
 
@@ -24,7 +24,7 @@ export type Profile = Pick<IdentityInfo, (typeof PROFILE)[number]>
 export const EMPTY_IDENTITY: IdentityInfo = {
   display: '',
   avatar: '',
-  about: '',
+  bio: '',
   web: '',
   email: '',
   github: '',
@@ -73,7 +73,7 @@ export const identityFrom = (profile: Profile, proven: Proven): IdentityInfo => 
 export const MAX_BYTES: Record<IdentityField, number> = {
   display: 32,
   avatar: 128,
-  about: 2048,
+  bio: 2048,
   web: 64,
   email: 32,
   github: 32,
@@ -345,7 +345,7 @@ export function channelsOf(info: IdentityInfo): [IdentityField, string][] {
 export const LABELS: Record<IdentityField, string> = {
   display: 'Display name',
   avatar: 'Avatar',
-  about: 'About',
+  bio: 'Bio',
   web: 'Website',
   email: 'Email',
   github: 'GitHub',
@@ -358,7 +358,7 @@ export const LABELS: Record<IdentityField, string> = {
 export const PLACEHOLDERS: Record<IdentityField, string> = {
   display: 'The name this account goes by',
   avatar: 'https://example.com/you.png',
-  about: 'First line is the bio\nThe rest is the full description',
+  bio: 'The first line is the Short Bio; the rest is the Full Bio.',
   web: 'https://example.com',
   email: 'you@example.com',
   github: 'you',
