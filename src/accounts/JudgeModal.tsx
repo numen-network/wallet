@@ -122,7 +122,7 @@ export function JudgeModal({
       {/* Exactly what is being vouched for. The chain hashes these fields and
           turns the call down if they have moved since this was read */}
       {target && (
-        <div className="mt-2.5 rounded-[4px] border border-line bg-recess px-2.5 py-2">
+        <div className="mt-2.5 rounded-[4px] border border-border bg-muted px-2.5 py-2">
           {registration === null ? (
             <p className="text-[12.5px] text-dim">
               Nothing on chain for this account, so there is nothing to judge.
@@ -147,10 +147,10 @@ export function JudgeModal({
       {seat && registration && (
         <div className={`mt-2.5 px-3 py-2 ${BOX}`}>
           <span className="text-[11.5px] text-dim">Your fee</span>
-          <p className="flex items-center gap-2 text-[15px] text-lead">
+          <p className="flex items-center gap-2 text-[15px] text-muted-foreground">
             <MarkDisc
               className="size-4"
-              fill={owed === null ? 'var(--color-bad)' : 'var(--color-good)'}
+              fill={owed === null ? 'var(--color-destructive)' : 'var(--color-good)'}
               mark={owed === null ? CROSS : TICK}
             />
             {owed === null ? 'Not paid' : 'Paid'}

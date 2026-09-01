@@ -61,7 +61,7 @@ export function ToastHost() {
       // Clear of the header, which is where a working notice would otherwise
       // land on top of the tabs
       offset={{ top: 60 }}
-      icons={{ loading: <SyncIcon className="mt-[3px] size-3.5 animate-spin text-accent" /> }}
+      icons={{ loading: <SyncIcon className="mt-[3px] size-3.5 animate-spin text-primary" /> }}
       // Its own styles are dropped rather than overridden, so nothing depends
       // on which stylesheet the browser happened to read last
       toastOptions={{
@@ -74,14 +74,14 @@ export function ToastHost() {
           icon: 'relative flex size-3.5 shrink-0 items-center justify-center',
           // What the call is stays put in bold, what it is doing changes under
           // it, so the notice does not rewrite itself on every stage
-          description: 'text-[11.5px] font-medium text-lead',
-          default: 'bg-ink text-ground',
-          error: 'bg-bad text-bad-ink',
+          description: 'text-[11.5px] font-medium text-muted-foreground',
+          default: 'bg-foreground text-background',
+          error: 'bg-destructive text-destructive-foreground',
           // Still going, so it reads as part of the page rather than a verdict.
           // A width of its own keeps the box still while the words underneath
           // it change length
           loading:
-            'min-w-[188px] items-start gap-2.5 rounded-[6px] border border-line bg-panel text-ink',
+            'min-w-[188px] items-start gap-2.5 rounded-[6px] border border-border bg-card text-foreground',
         },
       }}
     />

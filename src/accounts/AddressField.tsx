@@ -23,7 +23,7 @@ export interface Pickable {
 const WIDE = 'w-full'
 
 const ROW =
-  'flex cursor-pointer items-center gap-3 rounded-[6px] px-3 py-2.5 text-[15px] select-none data-[selected=true]:bg-hover'
+  'flex cursor-pointer items-center gap-3 rounded-[6px] px-3 py-2.5 text-[15px] select-none data-[selected=true]:bg-accent'
 
 /**
  * What the chain says about the address, over the address itself. The name the
@@ -140,7 +140,7 @@ export function AddressField<T extends Pickable>({
         disabled={!offers}
         className={`flex min-w-[350px] items-center gap-3 py-2 pr-2 pl-3 text-left ${BOX} ${
           labelled ? 'mt-2.5 first:mt-0' : ''
-        } ${className} data-[state=open]:border-accent`}
+        } ${className} data-[state=open]:border-primary`}
       >
         <Identicon address={resolved ?? ''} size={labelled ? 34 : 22} />
 
@@ -177,7 +177,7 @@ export function AddressField<T extends Pickable>({
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-95 w-[var(--radix-popover-trigger-width)] rounded-[6px] border border-line bg-panel p-1.5 shadow-lift"
+          className="z-95 w-[var(--radix-popover-trigger-width)] rounded-[6px] border border-border bg-card p-1.5 shadow-lift"
         >
           <Command
             // The list is names and addresses, and neither is worth fuzzy matching
@@ -197,7 +197,7 @@ export function AddressField<T extends Pickable>({
 
             <Command.List className="max-h-[280px] overflow-y-auto">
               {!readOnly && typed !== '' && !resolveAddress(typed) && (
-                <p className="px-3 py-2.5 text-[13.5px] text-bad">Not a Numen or EVM address</p>
+                <p className="px-3 py-2.5 text-[13.5px] text-destructive">Not a Numen or EVM address</p>
               )}
               {!readOnly && resolveAddress(typed) && (
                 <Command.Item value={typed} onSelect={() => take(typed)} className={ROW}>

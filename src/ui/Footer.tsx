@@ -49,8 +49,8 @@ const SOCIAL: [label: string, href: string, box: string, path: string][] = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-line bg-panel">
-      <div className={`${SHELL} flex flex-wrap items-center gap-x-8 gap-y-3 py-4 text-xs text-lead`}>
+    <footer className="border-t border-border bg-card">
+      <div className={`${SHELL} flex flex-wrap items-center gap-x-8 gap-y-3 py-4 text-xs text-muted-foreground`}>
         <span>© 2026 Numen Network</span>
         <div className="ml-auto flex items-center">
           {SOCIAL.map(([label, href, box, path]) => (
@@ -60,7 +60,7 @@ export function Footer() {
               target="_blank"
               rel="noopener"
               aria-label={label}
-              className="grid size-8 place-items-center text-dim hover:text-ink"
+              className="grid size-8 place-items-center text-dim hover:text-foreground"
             >
               <svg width="16" height="16" viewBox={box} fill="currentColor">
                 <path d={path} />

@@ -83,9 +83,9 @@ export function PendingModal({
       onClose={onClose}
     >
       {isPending ? (
-        <p className="text-[13.5px] text-lead">Reading the chain…</p>
+        <p className="text-[13.5px] text-muted-foreground">Reading the chain…</p>
       ) : waiting.length === 0 ? (
-        <p className="text-[13.5px] text-lead">
+        <p className="text-[13.5px] text-muted-foreground">
           Nothing is waiting. A call this multisig starts shows up here until enough signatories
           have put their name to it.
         </p>
@@ -217,7 +217,7 @@ function WaitingCall({
   const enough = call.approvals.length + (signed ? 0 : 1) >= threshold
 
   return (
-    <div className="rounded-[6px] border border-line bg-recess p-3">
+    <div className="rounded-[6px] border border-border bg-muted p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13px] font-semibold">
           {call.approvals.length} of {threshold} signed
@@ -249,7 +249,7 @@ function WaitingCall({
       <ul className="mt-2 grid gap-1 text-[12.5px]">
         {signatories.map((address) => (
           <li key={address} className="flex items-baseline gap-2">
-            <span className={call.approvals.includes(address) ? 'text-accent' : 'text-hint'}>
+            <span className={call.approvals.includes(address) ? 'text-primary' : 'text-hint'}>
               {call.approvals.includes(address) ? '✓' : '·'}
             </span>
             <span className={call.approvals.includes(address) ? '' : 'text-dim'}>
@@ -292,7 +292,7 @@ function WaitingCall({
         </>
       )}
 
-      {problem && <p className="mt-1.5 text-[12.5px] text-bad">{problem}</p>}
+      {problem && <p className="mt-1.5 text-[12.5px] text-destructive">{problem}</p>}
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2">
         {known && (!signed || call.approvals.length >= threshold) && (
@@ -315,7 +315,7 @@ function WaitingCall({
             text={known.hex}
             label="Copy the call data"
             spelled
-            className="rounded-[4px] border border-line-strong px-2.5 py-1.5"
+            className="rounded-[4px] border border-input px-2.5 py-1.5"
           />
         )}
         {mine && (

@@ -109,16 +109,16 @@ export function UnlockModal({
       onSubmit={form}
     >
       {held.length === 0 ? (
-        <p className="text-[13.5px] text-lead">{account.name} has nothing locked behind a vote.</p>
+        <p className="text-[13.5px] text-muted-foreground">{account.name} has nothing locked behind a vote.</p>
       ) : (
         <>
-          <ul className="rounded-[6px] border border-line bg-recess">
+          <ul className="rounded-[6px] border border-border bg-muted">
             {held.map((lock) => {
               const blocking = why(lock)
               return (
                 <li
                   key={lock.track}
-                  className="flex items-baseline gap-2 border-t border-line px-2.5 py-1.5 first:border-t-0"
+                  className="flex items-baseline gap-2 border-t border-border px-2.5 py-1.5 first:border-t-0"
                 >
                   <span className="flex-1 text-[13px] font-semibold">
                     {trackLabel(tracks, lock.track)}
@@ -126,7 +126,7 @@ export function UnlockModal({
                   <span className="font-mono text-[12.5px]">
                     {formatAmount(lock.amount, { precision: 2 })} {symbol}
                   </span>
-                  <span className={`text-[11.5px] ${blocking ? 'text-dim' : 'text-accent'}`}>
+                  <span className={`text-[11.5px] ${blocking ? 'text-dim' : 'text-primary'}`}>
                     {blocking ?? 'free'}
                   </span>
                 </li>
@@ -135,7 +135,7 @@ export function UnlockModal({
           </ul>
 
           {takes > 0 && (
-            <p className="mt-2.5 text-[12.5px] text-lead">
+            <p className="mt-2.5 text-[12.5px] text-muted-foreground">
               This takes back {plural(takes, 'vote')} on referenda that are over, since the chain
               counts a vote as holding the balance until somebody says otherwise. A vote on anything
               still running stays where it is.

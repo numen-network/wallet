@@ -81,7 +81,7 @@ function Sweep({
         return false
       }}
     >
-      <p className="text-[13.5px] text-lead">{says}</p>
+      <p className="text-[13.5px] text-muted-foreground">{says}</p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
     </CallModal>

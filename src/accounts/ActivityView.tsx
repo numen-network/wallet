@@ -46,7 +46,7 @@ function Row({
             href={explorerExtrinsic(network, entry.hash)}
             target="_blank"
             rel="noopener"
-            className="hover:text-accent"
+            className="hover:text-primary"
           >
             {shorten(entry.hash)}
           </a>
@@ -57,16 +57,16 @@ function Row({
   }
 
   return (
-    <article className="rounded-[6px] border border-line bg-panel p-3.5 shadow-card">
+    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13.5px] font-semibold">{title}</span>
         <span
           className={`rounded-full border px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase ${
             entry.error
-              ? 'border-bad text-bad'
+              ? 'border-destructive text-destructive'
               : entry.stage === 'finalized'
-                ? 'border-accent text-accent'
-                : 'border-line-strong text-dim'
+                ? 'border-primary text-primary'
+                : 'border-input text-dim'
           }`}
         >
           {state}
@@ -77,7 +77,7 @@ function Row({
           target="_blank"
           rel="noopener"
           title={entry.address}
-          className="flex items-baseline gap-1.5 text-[12.5px] text-lead hover:text-accent"
+          className="flex items-baseline gap-1.5 text-[12.5px] text-muted-foreground hover:text-primary"
         >
           {name && <span className="font-semibold">{name}</span>}
           <span className="font-mono">{shorten(entry.address)}</span>

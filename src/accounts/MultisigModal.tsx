@@ -11,7 +11,7 @@ import { deriveMultisig } from './multisig'
 import { useAccountsStore } from './store'
 import type { Account } from './types'
 
-const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-lead uppercase'
+const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase'
 
 /** The floor for a multisig, so the rows never fall below what one needs. */
 const LEAST = 2
@@ -105,7 +105,7 @@ export function MultisigModal({ accounts, onClose }: { accounts: Account[]; onCl
 
       <GroupField value={groupId} onChange={setGroupId} />
 
-      <p className="mt-3 text-[12.5px] text-lead">
+      <p className="mt-3 text-[12.5px] text-muted-foreground">
         {derived ? (
           <>
             Address <span className="font-mono">{shorten(derived.address)}</span>, spendable by any{' '}

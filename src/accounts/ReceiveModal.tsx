@@ -17,7 +17,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
       <div className="text-[10.5px] font-bold tracking-[0.08em] text-dim uppercase">
         {kind} address
       </div>
-      <div className="rounded-[6px] border border-line bg-white p-2.5">
+      <div className="rounded-[6px] border border-border bg-white p-2.5">
         {hidden ? (
           <div
             style={{ width: QR_SIZE, height: QR_SIZE }}
@@ -29,7 +29,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
           <Qr text={address} />
         )}
       </div>
-      <div className="font-mono text-[11px] leading-relaxed break-all text-lead">{address}</div>
+      <div className="font-mono text-[11px] leading-relaxed break-all text-muted-foreground">{address}</div>
       <Button
         type="button"
         className="px-2.5 py-1 text-[12.5px]"
@@ -42,7 +42,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
       <button
         type="button"
         aria-label={`${hidden ? 'Show' : 'Hide'} the ${kind} QR code`}
-        className="text-xs text-dim underline underline-offset-2 hover:text-lead"
+        className="text-xs text-dim underline underline-offset-2 hover:text-muted-foreground"
         onClick={() => setHidden(!hidden)}
       >
         {hidden ? 'Show QR code' : 'Hide QR code'}

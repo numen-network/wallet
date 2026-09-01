@@ -51,7 +51,7 @@ export function Modal({
           <Dialog.Content
             // The overlay row grows with its content, so the cap is the viewport
             // itself, less the padding the overlay keeps around the dialog
-            className="flex max-h-[calc(100dvh-40px)] w-full flex-col rounded-[6px] border border-line bg-panel px-[22px] py-5 shadow-lift"
+            className="flex max-h-[calc(100dvh-40px)] w-full flex-col rounded-[6px] border border-border bg-card px-[22px] py-5 shadow-lift"
             style={{ maxWidth: width }}
             aria-describedby={undefined}
           >
@@ -65,7 +65,7 @@ export function Modal({
 
               {/* The form scrolls, the foot holds still, so a refusal lands
                   beside the button that was pressed */}
-              <div className="shrink-0 border-t border-line">
+              <div className="shrink-0 border-t border-border">
                 <div className="mt-3.5 empty:hidden">{footer}</div>
 
                 <div className="mt-3.5 flex items-center gap-2.5">
@@ -99,7 +99,7 @@ export function Modal({
  * too, so a column of boxes comes out one height without anyone measuring.
  */
 export const BOX =
-  'rounded-[4px] border border-line-strong bg-recess focus-within:border-accent'
+  'rounded-[4px] border border-input bg-muted focus-within:border-primary'
 
 /** What a control wears inside a box, which is nothing of its own. */
 export const INSIDE = 'w-full justify-between bg-transparent text-[15px]'
@@ -149,5 +149,5 @@ export function Textarea({
 
 export function FieldError({ children }: { children: ReactNode }) {
   if (!children) return null
-  return <p className="mt-1.5 text-[12.5px] text-bad">{children}</p>
+  return <p className="mt-1.5 text-[12.5px] text-destructive">{children}</p>
 }

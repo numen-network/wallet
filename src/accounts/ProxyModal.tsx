@@ -184,7 +184,7 @@ export function RemoveProxyModal({
       onSubmit={form}
     >
       {proxies.length === 0 ? (
-        <p className="text-[13.5px] text-lead">
+        <p className="text-[13.5px] text-muted-foreground">
           {isPending ? 'Reading the chain…' : `Nothing acts for ${account.name}.`}
         </p>
       ) : (

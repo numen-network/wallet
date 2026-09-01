@@ -23,7 +23,7 @@ export interface MenuSection {
 }
 
 const ITEM =
-  'flex cursor-pointer items-center gap-2 rounded-[6px] px-2.5 py-[7px] text-[13.5px] outline-none select-none data-highlighted:bg-hover'
+  'flex cursor-pointer items-center gap-2 rounded-[6px] px-2.5 py-[7px] text-[13.5px] outline-none select-none data-highlighted:bg-accent'
 
 export function Menu({
   label,
@@ -66,12 +66,12 @@ export function Menu({
           align="end"
           sideOffset={6}
           collisionPadding={8}
-          className={`z-95 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-[6px] border border-line bg-panel p-1.5 shadow-lift ${className}`}
+          className={`z-95 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-[6px] border border-border bg-card p-1.5 shadow-lift ${className}`}
         >
           {sections.map((section, index) => (
             <Fragment key={section.label ?? index}>
               {index > 0 && (
-                <DropdownMenu.Separator className="mx-1 my-1.5 border-t border-line" />
+                <DropdownMenu.Separator className="mx-1 my-1.5 border-t border-border" />
               )}
               <DropdownMenu.Group>
                 {section.label && (
@@ -83,9 +83,9 @@ export function Menu({
                   <DropdownMenu.Item
                     key={item.label}
                     onSelect={item.onSelect}
-                    className={`${ITEM} ${item.danger ? 'text-bad' : ''}`}
+                    className={`${ITEM} ${item.danger ? 'text-destructive' : ''}`}
                   >
-                    <span className={item.danger ? '' : 'text-lead'}>{item.icon}</span>
+                    <span className={item.danger ? '' : 'text-muted-foreground'}>{item.icon}</span>
                     {item.label}
                     {item.aside && (
                       <span className="ml-auto pl-4 font-mono text-[11.5px] text-dim">

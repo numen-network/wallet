@@ -14,7 +14,7 @@ import { Identicon as PolkadotIdenticon } from '@polkadot/react-identicon'
 export function Identicon({ address, size = 38 }: { address: string; size?: number }) {
   return (
     <span
-      className="inline-flex shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-line-strong ring-inset"
+      className="inline-flex shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-input ring-inset"
       style={{ width: size, height: size }}
     >
       <PolkadotIdenticon

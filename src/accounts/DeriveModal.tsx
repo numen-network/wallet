@@ -54,7 +54,7 @@ export function DeriveModal({ account, onClose }: { account: Account; onClose: (
 
   return (
     <Modal title="Derive an account" submitLabel="Derive" onClose={onClose} onSubmit={submit}>
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         The new account comes out of {account.name} and the path below. Both are needed to restore
         it, so keep the path with the seed.
       </p>

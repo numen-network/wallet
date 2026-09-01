@@ -21,7 +21,7 @@ export function Tabs<T extends string>({
 }) {
   return (
     <div
-      className={`flex ${CONTROL} items-stretch gap-1 rounded-full border border-line bg-recess p-[3px] ${className}`}
+      className={`flex ${CONTROL} items-stretch gap-1 rounded-full border border-border bg-muted p-[3px] ${className}`}
     >
       {options.map((option) => (
         <button
@@ -30,7 +30,7 @@ export function Tabs<T extends string>({
           aria-current={value === option.id}
           onClick={() => onChange(option.id)}
           className={`flex items-center rounded-full px-3 text-[12px] font-semibold transition-colors ${
-            value === option.id ? 'bg-panel text-ink shadow-card' : 'text-lead hover:text-ink'
+            value === option.id ? 'bg-card text-foreground shadow-card' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           {option.label}

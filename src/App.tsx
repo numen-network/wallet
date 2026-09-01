@@ -85,7 +85,7 @@ const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ?
 const GRADE: Record<Quality, { bars: number; tint: string; word: string }> = {
   good: { bars: 3, tint: 'text-good', word: 'good link' },
   fair: { bars: 2, tint: 'text-warn', word: 'a slow link' },
-  poor: { bars: 1, tint: 'text-bad', word: 'a bad link' },
+  poor: { bars: 1, tint: 'text-destructive', word: 'a bad link' },
 }
 
 /** Which node the wallet talks to, whether it shipped with one or was told. */
@@ -127,7 +127,7 @@ function EndpointPicker({ onAdd }: { onAdd: () => void }) {
       {usingMock && (
         <span
           title="No node is attached. Every balance on this page is made up"
-          className="rounded-full border border-bad px-2 py-[2px] text-[10px] font-bold tracking-[0.06em] text-bad uppercase"
+          className="rounded-full border border-destructive px-2 py-[2px] text-[10px] font-bold tracking-[0.06em] text-destructive uppercase"
         >
           mock data
         </span>
@@ -179,11 +179,11 @@ function Stat({ label, planck, lead = false }: { label: string; planck: bigint; 
       <div className="text-[11px] font-bold tracking-[0.09em] text-dim uppercase">{label}</div>
       <div
         className={`mt-1 font-mono font-semibold tracking-tight ${
-          lead ? 'text-3xl max-[560px]:text-2xl' : 'text-xl text-lead'
+          lead ? 'text-3xl max-[560px]:text-2xl' : 'text-xl text-muted-foreground'
         }`}
       >
         {formatAmount(planck, { precision: 2 })}
-        <span className={`ml-1 font-semibold ${lead ? 'text-sm text-lead' : 'text-[11px] text-dim'}`}>
+        <span className={`ml-1 font-semibold ${lead ? 'text-sm text-muted-foreground' : 'text-[11px] text-dim'}`}>
           {facts?.symbol ?? ''}
         </span>
       </div>
@@ -262,7 +262,7 @@ export function App() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line bg-panel">
+      <header className="sticky top-0 z-40 border-b border-border bg-card">
         <div className={`${SHELL} flex flex-wrap items-center gap-3 py-2.5`}>
           <div className="flex items-center gap-2.5 text-[15px] font-bold tracking-tight">
             <img src="/logo.svg" width={22} height={22} alt="" />
@@ -280,8 +280,8 @@ export function App() {
 
       {facts.isError && (
         <main className={`${SHELL} grow pt-20`}>
-          <div className="mx-auto max-w-md rounded-[6px] border-[1.5px] border-line-strong p-10 text-center">
-            <p className="text-sm font-bold text-lead">This endpoint answers for a different chain.</p>
+          <div className="mx-auto max-w-md rounded-[6px] border-[1.5px] border-input p-10 text-center">
+            <p className="text-sm font-bold text-muted-foreground">This endpoint answers for a different chain.</p>
             <p className="mt-2 text-[13px] text-dim">{(facts.error as Error).message}</p>
             <p className="mt-2 text-[13px] text-dim">Pick another endpoint from the header.</p>
           </div>
@@ -337,8 +337,8 @@ export function App() {
       <main className={`${SHELL} grow pt-1.5 pb-16`}>
         {/* A group the user just made has to show up, even with nothing in it */}
         {accounts.length === 0 && store.layout.groups.length === 1 ? (
-          <div className="mt-6 rounded-[6px] border-[1.5px] border-dashed border-line-strong p-12 text-center">
-            <p className="text-sm text-lead">No accounts yet.</p>
+          <div className="mt-6 rounded-[6px] border-[1.5px] border-dashed border-input p-12 text-center">
+            <p className="text-sm text-muted-foreground">No accounts yet.</p>
             <p className="mx-auto mt-1 max-w-[420px] text-[13px] text-dim">
               Create a key here, import one you already have, connect a browser extension, or just
               watch an address without holding its key.

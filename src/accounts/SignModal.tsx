@@ -233,7 +233,7 @@ function Verify({
       <FieldError>{error}</FieldError>
 
       {verdict && (
-        <p className={`mt-3 text-[13.5px] ${verdict.valid ? 'text-good' : 'text-bad'}`}>
+        <p className={`mt-3 text-[13.5px] ${verdict.valid ? 'text-good' : 'text-destructive'}`}>
           {verdict.valid
             ? `That address signed that message, over ${verdict.crypto}`
             : 'That address did not sign that message'}

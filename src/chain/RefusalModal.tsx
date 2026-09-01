@@ -38,14 +38,14 @@ export function RefusalModal() {
       width={480}
       onClose={clear}
     >
-      <p className="flex items-center gap-2 text-[14px] text-ink">
-        <MarkDisc className="size-4" fill="var(--color-bad)" mark={CROSS} />
+      <p className="flex items-center gap-2 text-[14px] text-foreground">
+        <MarkDisc className="size-4" fill="var(--color-destructive)" mark={CROSS} />
         {refusal.message}
       </p>
 
       <div className={`mt-3 px-3 py-2 ${BOX}`}>
         <span className="text-[11.5px] text-dim">Raw error</span>
-        <pre className="mt-1 font-mono text-[12.5px] break-all whitespace-pre-wrap text-lead">
+        <pre className="mt-1 font-mono text-[12.5px] break-all whitespace-pre-wrap text-muted-foreground">
           {refusal.detail}
         </pre>
       </div>

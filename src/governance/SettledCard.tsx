@@ -10,8 +10,8 @@ import { Button } from '@/ui/Button'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<Settled['outcome'], string>> = {
-  approved: 'border-accent text-accent',
-  rejected: 'border-bad text-bad',
+  approved: 'border-primary text-primary',
+  rejected: 'border-destructive text-destructive',
 }
 
 function Line({
@@ -27,11 +27,11 @@ function Line({
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]">
-      <span className="text-lead">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <span className="font-mono font-semibold">
         {formatAmount(held.amount, { precision: 0 })} {symbol}
       </span>
-      <span className="text-lead">to</span>
+      <span className="text-muted-foreground">to</span>
       <Beneficiary address={held.who} />
       {action}
     </div>
@@ -59,12 +59,12 @@ export function SettledCard({
   const back = refundsSubmission(settled)
 
   return (
-    <article className="rounded-[6px] border border-line bg-panel p-3.5 shadow-card">
+    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{settled.index}</span>
         <span
           className={`rounded-full border px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase ${
-            TONE[settled.outcome] ?? 'border-line-strong text-dim'
+            TONE[settled.outcome] ?? 'border-input text-dim'
           }`}
         >
           {OUTCOME_LABELS[settled.outcome]}

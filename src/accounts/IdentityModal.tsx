@@ -217,7 +217,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
       onSubmit={form}
     >
       {loses && (
-        <p className="text-[12.5px] text-bad">
+        <p className="text-[12.5px] text-destructive">
           Changing any field drops the judgement this identity already has. It has to be checked
           again.
         </p>
@@ -247,7 +247,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
             <input
               type="checkbox"
               checked={asking}
-              className="mt-0.5 accent-accent"
+              className="mt-0.5 accent-primary"
               onChange={(event) => patch({ ask: event.target.checked })}
             />
             <span>Ask this registrar to check it in the same signature</span>
@@ -334,7 +334,7 @@ export function ClearIdentityModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         {account.name} goes back to being an address with nothing attached, and the{' '}
         {formatAmount(registration?.deposit ?? 0n, { precision: 2 })} {symbol} deposit is
         released. Anything that gates on a checked identity stops letting this account through.

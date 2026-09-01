@@ -33,7 +33,7 @@ export function CopyButton({ text, label, spelled = false, className = '' }: Cop
       aria-label={label}
       className={`inline-flex items-center gap-1.5 rounded p-0.5 ${
         spelled ? 'text-[12.5px]' : 'grid place-items-center'
-      } ${copied ? 'text-accent' : 'text-dim hover:text-ink'} ${className}`}
+      } ${copied ? 'text-primary' : 'text-dim hover:text-foreground'} ${className}`}
     >
       {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
       {spelled && (copied ? 'Copied' : label)}

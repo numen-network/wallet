@@ -255,7 +255,7 @@ export function VerifyIdentity({
       onSubmit={form}
     >
       {loses.length > 0 && (
-        <p className="mb-3 text-[12.5px] text-bad">
+        <p className="mb-3 text-[12.5px] text-destructive">
           This replaces what is on chain now, so {list.format(loses.map((field) => LABELS[field]))}{' '}
           {loses.length === 1 ? 'goes' : 'go'} with it.
         </p>
@@ -313,7 +313,7 @@ export function VerifyIdentity({
                 <p className={`truncate ${stood && riding ? 'text-good' : 'text-dim'}`}>
                   {stood ? `Checked on chain as ${stood}` : 'Never checked'}
                 </p>
-                <p className={trouble ? 'text-bad' : 'truncate text-dim'}>{trouble ?? state}</p>
+                <p className={trouble ? 'text-destructive' : 'truncate text-dim'}>{trouble ?? state}</p>
               </div>
               {riding && (
                 <IconButton
@@ -335,7 +335,7 @@ export function VerifyIdentity({
           Nobody on this chain checks sign ins automatically yet.
         </p>
       ) : emptied ? (
-        <p className="mt-3.5 text-[12.5px] text-lead">
+        <p className="mt-3.5 text-[12.5px] text-muted-foreground">
           Every channel is off this record, so there is nothing left to sign. Clear on chain
           identity in the account menu takes the whole identity down.
         </p>

@@ -21,16 +21,16 @@ import { ExplorerIcon } from '@/ui/icons'
 
 /** One colour a state, in the order a referendum passes through them. */
 const TONE: Record<Referendum['state'], string> = {
-  preparing: 'border-line-strong text-dim',
+  preparing: 'border-input text-dim',
   queued: 'border-warn-deep text-warn-deep',
-  deciding: 'border-accent text-accent',
-  confirming: 'border-bad text-bad',
+  deciding: 'border-primary text-primary',
+  confirming: 'border-destructive text-destructive',
 }
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <span className="text-dim">
-      {label} <span className="font-semibold text-ink">{children}</span>
+      {label} <span className="font-semibold text-foreground">{children}</span>
     </span>
   )
 }
@@ -78,7 +78,7 @@ function Spending({
       {spends.length} payouts
       <ul className="mt-1.5 space-y-0.5 text-[12.5px]">
         {spends.map((spend, index) => (
-          <li key={index} className="text-lead">
+          <li key={index} className="text-muted-foreground">
             <span className="font-mono">{formatAmount(spend.amount, { precision: 2 })} {symbol}</span>{' '}
             to <Beneficiary address={spend.beneficiary} />
             {blockSeconds !== undefined && (
@@ -127,7 +127,7 @@ export function ReferendumCard({
   const needs = thresholds(referendum, tracks, height)
 
   return (
-    <article className="rounded-[6px] border border-line bg-panel p-3.5 shadow-card">
+    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{referendum.index}</span>
         {/* The track names it while its metadata does not, which is all a
@@ -136,7 +136,7 @@ export function ReferendumCard({
           href={explorerReferendum(network, referendum.index)}
           target="_blank"
           rel="noopener"
-          className="flex items-center gap-1 text-[13px] font-semibold hover:text-accent"
+          className="flex items-center gap-1 text-[13px] font-semibold hover:text-primary"
         >
           {referendum.title ?? trackLabel(tracks, referendum.track)}
           <ExplorerIcon className="size-3" />
@@ -152,7 +152,7 @@ export function ReferendumCard({
           and nothing here ever showed. The whole of it, since somebody is being
           asked to vote on it and a card is not worth hiding it for */}
       {referendum.description && (
-        <p className="mt-2 text-[13px] whitespace-pre-line text-lead">{referendum.description}</p>
+        <p className="mt-2 text-[13px] whitespace-pre-line text-muted-foreground">{referendum.description}</p>
       )}
 
       <div className="mt-2 text-[13.5px]">
@@ -164,7 +164,7 @@ export function ReferendumCard({
             blockSeconds={facts?.blockSeconds}
           />
         ) : (
-          <span className="text-lead">{proposal.label}</span>
+          <span className="text-muted-foreground">{proposal.label}</span>
         )}
       </div>
 
@@ -182,7 +182,7 @@ export function ReferendumCard({
         )}
       </div>
 
-      <p className="mt-1.5 text-[12.5px] text-lead">{STATE_SAYS[referendum.state]}</p>
+      <p className="mt-1.5 text-[12.5px] text-muted-foreground">{STATE_SAYS[referendum.state]}</p>
 
       {canSign && (
         <div className="mt-3 flex flex-wrap gap-2">

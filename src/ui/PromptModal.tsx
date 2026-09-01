@@ -60,7 +60,7 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <Modal title={title} submitLabel={submitLabel} danger onClose={onClose} onSubmit={onConfirm}>
-      <p className="text-[13.5px] text-lead">{children}</p>
+      <p className="text-[13.5px] text-muted-foreground">{children}</p>
     </Modal>
   )
 }

@@ -128,7 +128,7 @@ function Release({
       onSubmit={form}
     >
       {held.length === 0 ? (
-        <p className="text-[13.5px] text-lead">Nothing is vesting on this account.</p>
+        <p className="text-[13.5px] text-muted-foreground">Nothing is vesting on this account.</p>
       ) : (
         <>
           {/* The two figures every schedule adds up to, since what is worth
@@ -140,7 +140,7 @@ function Release({
 
           <div className="mt-2.5 grid gap-1.5">
             {held.map((schedule, index) => (
-              <div key={index} className="rounded-[4px] border border-line bg-recess px-2.5 py-2">
+              <div key={index} className="rounded-[4px] border border-border bg-muted px-2.5 py-2">
                 <Facts
                   rows={[
                     {
@@ -322,7 +322,7 @@ function Grant({
       {/* The same three facts the Release tab lists for a schedule already on
           the chain, so what is signed for reads as what shows up */}
       {schedule && (
-        <div className="mt-2.5 rounded-[4px] border border-line bg-recess px-2.5 py-2">
+        <div className="mt-2.5 rounded-[4px] border border-border bg-muted px-2.5 py-2">
           <Facts
             rows={[
               { name: 'starts', value: at(from) },

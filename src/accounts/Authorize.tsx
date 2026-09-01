@@ -109,7 +109,7 @@ function FeeLine({ from, operation }: { from: string; operation: Operation }) {
   const { data: fee } = useFeeEstimate(from, operation)
 
   return (
-    <p className="text-[11.5px] text-lead">
+    <p className="text-[11.5px] text-muted-foreground">
       {fee === undefined
         ? 'Estimating fee…'
         : `Estimated fee ${formatAmount(fee, { precision: 6 })} ${symbol}`}

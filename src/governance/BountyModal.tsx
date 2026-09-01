@@ -223,7 +223,7 @@ export function BountyModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">{ask.note}</p>
+      <p className="text-[13.5px] text-muted-foreground">{ask.note}</p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
@@ -355,7 +355,7 @@ export function ProposeBountyModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         A bounty is work the treasury pays for once somebody has done it. Proposing one holds a
         bond until governance funds it or throws it out, and governance puts the curator on it.
       </p>

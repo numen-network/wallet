@@ -87,7 +87,7 @@ function Badge({ icon, label, title }: { icon: ReactNode; label: string; title?:
   return (
     <span
       title={title}
-      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line-strong px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] text-lead uppercase"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-input px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] text-muted-foreground uppercase"
     >
       {icon}
       {label}
@@ -151,7 +151,7 @@ function AddressRow({
   children?: ReactNode
 }) {
   return (
-    <div className="mt-px flex items-center gap-1.5 text-lead">
+    <div className="mt-px flex items-center gap-1.5 text-muted-foreground">
       {children}
       {label && (
         <span className="shrink-0 text-[9.5px] font-semibold tracking-[0.07em] text-dim uppercase">
@@ -172,7 +172,7 @@ function AddressRow({
           rel="noopener"
           title="View on the explorer"
           aria-label="View on the explorer"
-          className="grid place-items-center rounded p-0.5 text-dim hover:text-ink"
+          className="grid place-items-center rounded p-0.5 text-dim hover:text-foreground"
         >
           <ExplorerIcon />
         </a>
@@ -454,7 +454,7 @@ function CardBody({
         {/* The three the total is made of, the way the explorer splits it. A
             freeze and a deposit are not the same thing and do not come back the
             same way, so one figure over both says less than it looks */}
-        <div data-nodrag className={`mt-0.5 flex flex-wrap gap-x-2 text-xs text-lead ${PICKABLE}`}>
+        <div data-nodrag className={`mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground ${PICKABLE}`}>
           <span>transferable {formatAmount(holdings.transferable, { precision: 2, compact: true, approx: true })}</span>
           <span>locked {formatAmount(holdings.locked, { precision: 2, compact: true, approx: true })}</span>
           <span>reserved {formatAmount(holdings.reserved, { precision: 2, compact: true, approx: true })}</span>
@@ -489,7 +489,7 @@ function CardBody({
 export const AccountCardBody = memo(CardBody)
 
 const CARD =
-  'flex flex-col rounded-[6px] border border-line bg-panel p-3.5 shadow-card transition-colors select-none touch-pan-y'
+  'flex flex-col rounded-[6px] border border-border bg-card p-3.5 shadow-card transition-colors select-none touch-pan-y'
 
 export function AccountCard(props: CardProps) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -502,8 +502,8 @@ export function AccountCard(props: CardProps) {
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...listeners}
-      className={`${CARD} cursor-grab hover:border-line-strong hover:shadow-hover ${
-        isDragging ? 'opacity-35 outline-[1.5px] outline-dashed outline-accent -outline-offset-2' : ''
+      className={`${CARD} cursor-grab hover:border-input hover:shadow-hover ${
+        isDragging ? 'opacity-35 outline-[1.5px] outline-dashed outline-primary -outline-offset-2' : ''
       }`}
     >
       <AccountCardBody {...props} />

@@ -56,7 +56,7 @@ export function FromJsonModal({ onClose }: { onClose: () => void }) {
         <input
           type="file"
           accept="application/json,.json"
-          className="w-full text-[13px] text-lead file:mr-2.5 file:rounded-[6px] file:border file:border-line-strong file:bg-panel file:px-2.5 file:py-1 file:text-[13px] file:font-semibold file:text-ink"
+          className="w-full text-[13px] text-muted-foreground file:mr-2.5 file:rounded-[6px] file:border file:border-input file:bg-card file:px-2.5 file:py-1 file:text-[13px] file:font-semibold file:text-foreground"
           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
         />
       </Field>

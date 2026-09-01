@@ -57,7 +57,7 @@ export function ForgetModal({ account, onClose }: { account: Account; onClose: (
       onClose={onClose}
       onSubmit={submit}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         This browser holds the only copy of {account.name}. Without the seed or a
         backup file, the funds go with it.
       </p>

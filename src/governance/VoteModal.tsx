@@ -127,7 +127,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         {trackLabel(tracks, referendum.track)}. The balance behind the vote stays locked for as long
         as the conviction says, counted from the day the referendum ends.
       </p>
@@ -135,7 +135,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
       <fieldset className="mt-3.5">
-        <legend className="mb-1.5 block text-[11px] font-bold tracking-[0.07em] text-lead uppercase">
+        <legend className="mb-1.5 block text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase">
           Vote
         </legend>
         <div className="flex flex-wrap gap-x-3.5 gap-y-1.5">
@@ -146,7 +146,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
                 name="side"
                 value={option.id}
                 checked={side === option.id}
-                className="accent-accent"
+                className="accent-primary"
                 onChange={() => setSide(option.id)}
               />
               {option.label}
@@ -238,7 +238,7 @@ export function RemoveVoteModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         The vote stops counting. What it locked stays locked until the conviction runs out, and
         then has to be released on its own.
       </p>
@@ -251,8 +251,8 @@ export function RemoveVoteModal({
 const CHOICES = [
   { value: 'skip', label: 'Skip', tone: 'text-dim', mark: null },
   { value: 'aye', label: 'Aye', tone: 'text-good', mark: <CheckIcon /> },
-  { value: 'nay', label: 'Nay', tone: 'text-bad', mark: <CrossIcon /> },
-  { value: 'abstain', label: 'Abstain', tone: 'text-accent', mark: <MinusIcon /> },
+  { value: 'nay', label: 'Nay', tone: 'text-destructive', mark: <CrossIcon /> },
+  { value: 'abstain', label: 'Abstain', tone: 'text-primary', mark: <MinusIcon /> },
 ] as const
 
 type Choice = (typeof CHOICES)[number]
@@ -371,7 +371,7 @@ export function VoteManyModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         The chain takes the largest vote across every track as the lock rather than the sum, so
         voting the same amount on all of these locks it once. It stays locked for as long as the
         conviction says, counted from the day each referendum ends.
@@ -379,14 +379,14 @@ export function VoteManyModal({
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
-      <ul className="mt-3.5 rounded-[6px] border border-line">
+      <ul className="mt-3.5 rounded-[6px] border border-border">
         {referenda.map((referendum) => {
           const choice = choiceFor(sides[referendum.index])
 
           return (
             <li
               key={referendum.index}
-              className="flex items-center gap-2.5 border-t border-line px-2.5 py-1.5 first:border-t-0"
+              className="flex items-center gap-2.5 border-t border-border px-2.5 py-1.5 first:border-t-0"
             >
               <span className="font-mono text-[12.5px] font-bold text-dim">#{referendum.index}</span>
               <span className="min-w-0 flex-1 truncate text-[13px]">
@@ -402,7 +402,7 @@ export function VoteManyModal({
                 }
                 options={CHOICE_OPTIONS}
                 label={`Vote on referendum ${referendum.index}`}
-                className={`w-[120px] justify-between rounded-[4px] border border-line-strong bg-recess px-2.5 py-1 text-[13px] ${choice.tone}`}
+                className={`w-[120px] justify-between rounded-[4px] border border-input bg-muted px-2.5 py-1 text-[13px] ${choice.tone}`}
               >
                 {marked(choice)}
               </Select>

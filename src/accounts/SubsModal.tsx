@@ -124,14 +124,14 @@ export function SubsModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         Each of these reads as this account's name over its own, and passes the identity standard
         on this account's record. The whole list goes up in one call, so nothing changes until it
         is signed.
       </p>
 
       {!standing?.own && (
-        <p className="mt-2.5 text-[12.5px] text-bad">
+        <p className="mt-2.5 text-[12.5px] text-destructive">
           This account has no identity of its own yet, and a sub has nothing to hang off without
           one.
         </p>
@@ -142,10 +142,10 @@ export function SubsModal({
           {subs.map((sub) => (
             <div
               key={sub.address}
-              className="flex items-center gap-2 rounded-[4px] border border-line bg-recess px-2.5 py-1.5"
+              className="flex items-center gap-2 rounded-[4px] border border-border bg-muted px-2.5 py-1.5"
             >
               <span className="text-[13px] font-semibold">{sub.name || 'unnamed'}</span>
-              <span className="font-mono text-[12.5px] text-lead">{shorten(sub.address)}</span>
+              <span className="font-mono text-[12.5px] text-muted-foreground">{shorten(sub.address)}</span>
               <span className="flex-1" />
               <IconButton
                 type="button"
@@ -243,7 +243,7 @@ export function QuitSubModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         <em>{account.name}</em> rejects <em>{named || shorten(parent?.parent ?? '')}</em>'s
         identity and takes their {facts && formatAmount(facts.subAccountDeposit, { precision: 2 })}{' '}
         {symbol} deposit as the penalty for it.

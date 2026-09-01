@@ -56,7 +56,7 @@ export function TrackField({
 
   return (
     <fieldset className="mt-3.5">
-      <legend className="mb-1.5 block text-[11px] font-bold tracking-[0.07em] text-lead uppercase">
+      <legend className="mb-1.5 block text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase">
         Tracks
       </legend>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
@@ -64,7 +64,7 @@ export function TrackField({
           <label key={track.id} className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
             <input
               type="checkbox"
-              className="accent-accent"
+              className="accent-primary"
               checked={chosen.includes(track.id)}
               onChange={(event) =>
                 onChange(
@@ -262,7 +262,7 @@ export function UndelegateModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         The votes come back to {account.name}. The balance behind them stays locked for as long as
         the conviction it was delegated under.
       </p>

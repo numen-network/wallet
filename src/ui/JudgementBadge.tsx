@@ -10,7 +10,7 @@ const MARKS: Record<Verdict, { fill: string; mark: string }> = {
   unjudged: { fill: 'var(--color-dim)', mark: QUESTION },
   pending: { fill: 'var(--color-dim)', mark: QUESTION },
   stale: { fill: 'var(--color-warn)', mark: BANG },
-  bad: { fill: 'var(--color-bad)', mark: CROSS },
+  bad: { fill: 'var(--color-destructive)', mark: CROSS },
 }
 
 export function MarkDisc({

@@ -15,7 +15,7 @@ import { BLANK, owed, payments, rowProblem, type Row } from './payments'
 import { needsPassword } from './types'
 import type { SendManyProps } from './SendModal'
 
-const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-lead uppercase'
+const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase'
 
 /**
  * One account paying several in one signature. The chain takes it as a single
@@ -208,7 +208,7 @@ export function SendMany({
         </Button>
         <span className="ml-auto text-[12.5px] text-dim">
           {rows.length === 1 ? '1 payment' : `${rows.length} payments`}, adding up to{' '}
-          <b className="font-mono font-semibold text-ink">
+          <b className="font-mono font-semibold text-foreground">
             {formatAmount(total)} {symbol}
           </b>
         </span>

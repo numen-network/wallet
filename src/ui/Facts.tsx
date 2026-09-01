@@ -21,8 +21,8 @@ export function Facts({ rows }: { rows: Fact[] }) {
       {rows.map((row, index) => (
         // Indexed, since two rows may share a name and neither is the odd one
         <Fragment key={index}>
-          <dt className={row.bad ? 'text-bad' : 'text-dim'}>{row.name}</dt>
-          <dd className={`font-mono break-all ${row.bad ? 'text-bad' : 'text-lead'}`}>
+          <dt className={row.bad ? 'text-destructive' : 'text-dim'}>{row.name}</dt>
+          <dd className={`font-mono break-all ${row.bad ? 'text-destructive' : 'text-muted-foreground'}`}>
             {row.value}
           </dd>
         </Fragment>

@@ -5,8 +5,8 @@ import { Button } from '@/ui/Button'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<ReturnType<typeof spendState>, string>> = {
-  ready: 'border-accent text-accent',
-  expired: 'border-bad text-bad',
+  ready: 'border-primary text-primary',
+  expired: 'border-destructive text-destructive',
 }
 
 interface CardProps {
@@ -26,7 +26,7 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
   const state = spendState(spend, height)
 
   return (
-    <article className="rounded-[6px] border border-line bg-panel p-3.5 shadow-card">
+    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{spend.index}</span>
         <span className="text-[13px] font-semibold">
@@ -34,7 +34,7 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
         </span>
         <span
           className={`rounded-full border px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase ${
-            TONE[state] ?? 'border-line-strong text-dim'
+            TONE[state] ?? 'border-input text-dim'
           }`}
         >
           {SPEND_LABELS[state]}

@@ -62,29 +62,54 @@
   */
   --warn-deep: #a35c00;
   --overlay: rgba(20, 24, 33, 0.45);
+  /*
+    Four and six are the only two corners this wallet draws. Six here puts the
+    md step on four, so a generated component lands on the radius the
+    handwritten ones already use.
+  */
+  --radius: 6px;
   --shadow-card: 0 1px 2px rgb(20 24 33 / 0.04);
   --shadow-hover: 0 3px 10px rgb(20 24 33 / 0.08);
   --shadow-lift: 0 18px 42px rgb(20 24 33 / 0.22);
 }
 
 @theme inline {
-  --color-ground: var(--ground);
-  --color-panel: var(--panel);
-  --color-recess: var(--recess);
-  --color-hover: var(--hover);
-  --color-ink: var(--ink);
-  --color-lead: var(--lead);
+  /*
+    Two layers below. shadcn writes the first set of names into the components
+    it generates, so those names have to mean what it thinks they mean. An
+    accent is its hover wash, not our teal. The rest belong to the wallet and
+    survive because shadcn has no word for them.
+  */
+  --color-background: var(--ground);
+  --color-foreground: var(--ink);
+  --color-card: var(--panel);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--panel);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-ink);
+  --color-secondary: var(--recess);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--recess);
+  --color-muted-foreground: var(--lead);
+  --color-accent: var(--hover);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--bad);
+  --color-destructive-foreground: var(--bad-ink);
+  --color-border: var(--line);
+  --color-input: var(--line-strong);
+  --color-ring: var(--accent);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-primary-hover: var(--accent-hover);
+  --color-primary-soft: var(--accent-soft);
   --color-dim: var(--dim);
   --color-hint: var(--hint);
   --color-faint: var(--faint);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-ink: var(--accent-ink);
-  --color-accent-soft: var(--accent-soft);
-  --color-bad: var(--bad);
-  --color-bad-ink: var(--bad-ink);
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-warn-deep: var(--warn-deep);

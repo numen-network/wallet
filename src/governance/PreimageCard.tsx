@@ -21,7 +21,7 @@ export function PreimageCard({
   const symbol = useSymbol()
 
   return (
-    <article className="rounded-[6px] border border-line bg-panel p-3.5 shadow-card">
+    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">
           {preimage.hash.slice(0, 12)}…
@@ -32,11 +32,11 @@ export function PreimageCard({
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]">
-        <span className="text-lead">Preimage deposit</span>
+        <span className="text-muted-foreground">Preimage deposit</span>
         <span className="font-mono font-semibold">
           {formatAmount(preimage.amount, { precision: 2 })} {symbol}
         </span>
-        <span className="text-lead">from</span>
+        <span className="text-muted-foreground">from</span>
         <Beneficiary address={preimage.who} />
         {canSign && (
           <Button type="button" onClick={() => onClear(preimage)}>

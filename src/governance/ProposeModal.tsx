@@ -39,7 +39,7 @@ interface PayoutDraft {
 
 const BLANK: PayoutDraft = { to: '', amount: '', on: '' }
 
-const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-lead uppercase'
+const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase'
 const COLUMNS = 'grid grid-cols-[1fr_9rem_9rem_28px] gap-x-2'
 
 const stamp = (on: Date) => format(on, 'yyyy-MM-dd')
@@ -236,7 +236,7 @@ export function ProposeModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         A referendum here asks the treasury to pay somebody, in one go or against milestones. Which
         track it runs on follows from the whole ask, and the bigger the ask the longer it runs and
         the more it costs to start deciding.
@@ -275,7 +275,7 @@ export function ProposeModal({
         />
 
         {!qualified && (
-          <p className="mt-2.5 text-[12.5px] text-bad">
+          <p className="mt-2.5 text-[12.5px] text-destructive">
             Only an account whose identity a registrar has checked may open one.{' '}
             {shortfall(standing ?? null)}.
           </p>
@@ -469,7 +469,7 @@ export function EditTextModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         This referendum is still running, so the account that opened it may swap what it says.
         What it pays and whom it pays are settled and stay settled. This rewrites the pitch and
         nothing else.
@@ -573,7 +573,7 @@ export function PreimageModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         {preimage.len.toLocaleString('en-US')} bytes are on chain at this account's expense. Clearing
         them takes the bytes off and gives the deposit back, and only the account that put them
         there may ask, so this one signs.
@@ -659,7 +659,7 @@ export function RefundModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         Referendum {poll} is over and the chain is still holding this. It goes back to the account
         that put it down whoever asks for it, so signing costs the fee and nothing else.
       </p>
@@ -727,7 +727,7 @@ export function PayoutModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         The referendum booked this and left the money where it was. Whoever signs pays only the fee,
         the amount comes out of the treasury and goes to the beneficiary either way.
       </p>
@@ -802,7 +802,7 @@ export function DepositModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         Nothing is counted until the decision deposit is down. The track sets what it costs, so
         there is no amount to pick here. It is held for the length of the referendum and returned
         afterwards, and it need not come from whoever opened it.

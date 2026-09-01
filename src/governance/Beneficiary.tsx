@@ -34,7 +34,7 @@ export function Beneficiary({ address }: { address: string }) {
         target="_blank"
         rel="noopener"
         title={behind?.join('\n')}
-        className={`break-all text-accent hover:underline ${name ? 'font-semibold' : 'font-mono'}`}
+        className={`break-all text-primary hover:underline ${name ? 'font-semibold' : 'font-mono'}`}
       >
         {name || address}
       </a>

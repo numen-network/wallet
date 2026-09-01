@@ -58,14 +58,14 @@ function MnemonicNotice({
       onSubmit={onDone}
       onClose={onClose}
     >
-      <p className="text-[13.5px] text-lead">
+      <p className="text-[13.5px] text-muted-foreground">
         The secret seed value for this account. Ensure that you keep this in a safe place, with
         access to the seed you can re-create the account.
       </p>
 
       <p className={LEGEND}>Mnemonic seed</p>
       {/* Ordered, because the words in another order open another account */}
-      <ol className="mt-1 grid grid-cols-4 gap-x-2 gap-y-2.5 rounded-[6px] border border-line bg-recess p-3.5">
+      <ol className="mt-1 grid grid-cols-4 gap-x-2 gap-y-2.5 rounded-[6px] border border-border bg-muted p-3.5">
         {mnemonic.split(' ').map((word, place) => (
           <li key={place} className="text-center text-[15px] font-semibold">
             {word}
@@ -74,7 +74,7 @@ function MnemonicNotice({
       </ol>
 
       <p className={LEGEND}>Raw seed</p>
-      <p className="mt-1 rounded-[6px] border border-line bg-recess p-3 font-mono text-[12.5px] break-all">
+      <p className="mt-1 rounded-[6px] border border-border bg-muted p-3 font-mono text-[12.5px] break-all">
         {seed}
       </p>
 
@@ -82,7 +82,7 @@ function MnemonicNotice({
         <input
           type="checkbox"
           checked={saved}
-          className="accent-accent"
+          className="accent-primary"
           onChange={(event) => setSaved(event.target.checked)}
         />
         I have written the seed down somewhere safe
@@ -251,7 +251,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
       onSubmit={submit}
     >
       <fieldset>
-        <legend className="mb-1.5 text-[11px] font-bold tracking-[0.07em] text-lead uppercase">
+        <legend className="mb-1.5 text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase">
           Source
         </legend>
         <div className="flex flex-wrap gap-x-3.5 gap-y-1.5">
@@ -265,7 +265,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
                 name="kind"
                 value={option.id}
                 checked={kind === option.id}
-                className="accent-accent"
+                className="accent-primary"
                 onChange={() => setKind(option.id)}
               />
               {option.label}
@@ -275,7 +275,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
       </fieldset>
 
       {kind === 'extension' && (
-        <p className="mt-3.5 text-[13.5px] text-lead">
+        <p className="mt-3.5 text-[13.5px] text-muted-foreground">
           Your extension holds the keys and signs every transfer. The wallet only ever sees the
           addresses it hands over.
         </p>
@@ -284,7 +284,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
       {kind === 'create' && (
         <>
           {nameField}
-          <div className="mt-3.5 flex items-center gap-2.5 rounded-[6px] border border-line bg-recess p-2.5">
+          <div className="mt-3.5 flex items-center gap-2.5 rounded-[6px] border border-border bg-muted p-2.5">
             <Identicon address={draftAddress} />
             <span className="min-w-0 flex-1 font-mono text-[12.5px] break-all">{draftAddress}</span>
             <Button type="button" onClick={() => setDraft(newMnemonic())}>

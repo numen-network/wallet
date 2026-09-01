@@ -25,12 +25,12 @@ const TRIGGER = 'inline-flex cursor-pointer items-center gap-1.5 outline-none'
 
 /** For a select that sits in a band of the page rather than in a form. */
 export const PILL =
-  'rounded-full border border-line bg-panel py-[3px] pr-2 pl-2.5 text-[11.5px] font-semibold text-lead hover:bg-hover'
+  'rounded-full border border-border bg-card py-[3px] pr-2 pl-2.5 text-[11.5px] font-semibold text-muted-foreground hover:bg-accent'
 
 const SCROLLER = 'flex h-4 cursor-default items-center justify-center text-dim'
 
 const ITEM =
-  'flex cursor-pointer items-center gap-2 rounded-[6px] py-[7px] pr-2.5 pl-2 text-[13.5px] outline-none select-none data-highlighted:bg-hover'
+  'flex cursor-pointer items-center gap-2 rounded-[6px] py-[7px] pr-2.5 pl-2 text-[13.5px] outline-none select-none data-highlighted:bg-accent'
 
 /** What stands in for the tick where a value brings a mark of its own. */
 const PICKED = 'data-[state=checked]:font-semibold'
@@ -81,7 +81,7 @@ export function Select({
         <RadixSelect.Content
           position="popper"
           sideOffset={6}
-          className="z-95 flex max-h-[min(280px,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] flex-col rounded-[6px] border border-line bg-panel p-1.5 shadow-lift"
+          className="z-95 flex max-h-[min(280px,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] flex-col rounded-[6px] border border-border bg-card p-1.5 shadow-lift"
         >
           {/* Radix hides the scrollbar, so these are the only sign of more below */}
           <RadixSelect.ScrollUpButton className={SCROLLER}>
@@ -101,7 +101,7 @@ export function Select({
                 <span className="w-3.5 shrink-0">
                   {option.icon ?? (
                     <RadixSelect.ItemIndicator>
-                      <CheckIcon className="size-3.5 text-accent" />
+                      <CheckIcon className="size-3.5 text-primary" />
                     </RadixSelect.ItemIndicator>
                   )}
                 </span>

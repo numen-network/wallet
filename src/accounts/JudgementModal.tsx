@@ -93,20 +93,20 @@ export function JudgementModal({
       onSubmit={form}
     >
       {pending !== null ? (
-        <p className="text-[13.5px] text-lead">
+        <p className="text-[13.5px] text-muted-foreground">
           Registrar {pending} is being paid to check this identity. Withdrawing takes the fee back
           and leaves the identity as it is.
         </p>
       ) : (
         <>
-          <p className="text-[13.5px] text-lead">
+          <p className="text-[13.5px] text-muted-foreground">
             The registrar checks that the handles on this identity are yours, then records that on
             chain. The fee is reserved with this signature and only handed over when the judgement
             lands.
           </p>
 
           {claimed.length === 0 ? (
-            <p className="mt-2.5 text-[12.5px] text-bad">
+            <p className="mt-2.5 text-[12.5px] text-destructive">
               This identity claims no X, Telegram or Discord handle, so there is nothing to check.
             </p>
           ) : (
@@ -124,7 +124,7 @@ export function JudgementModal({
           {askable && registrar ? (
             <RegistrarField registrars={askable} value={registrar.index} onChange={setChosen} />
           ) : (
-            <p className="mt-2.5 text-[12.5px] text-bad">
+            <p className="mt-2.5 text-[12.5px] text-destructive">
               No registrar takes a manual request on this chain, so there is nobody to ask here.
             </p>
           )}

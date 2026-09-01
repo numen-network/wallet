@@ -107,7 +107,7 @@ export function BringInModal({
   if (metaMask() === null) {
     return (
       <Modal title="Bring in from MetaMask" submitLabel="Done" cancelLabel={null} onClose={onClose}>
-        <p className="text-[13.5px] text-lead">
+        <p className="text-[13.5px] text-muted-foreground">
           No MetaMask on this browser. It holds the key to the EVM address, so nothing here can
           move those funds without it.
         </p>
@@ -136,7 +136,7 @@ export function BringInModal({
 
       <AddressField label="Into" value={to} onChange={setTo} accounts={accounts} readOnly />
       {itself && (
-        <p className="mt-1.5 text-[12.5px] text-bad">
+        <p className="mt-1.5 text-[12.5px] text-destructive">
           This account is that EVM address, so its balance is already here
         </p>
       )}
@@ -154,7 +154,7 @@ export function BringInModal({
           <span className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-[7px]">
             <button
               type="button"
-              className="rounded-[4px] bg-accent-soft px-2 py-[3px] text-[11px] font-bold text-accent"
+              className="rounded-[4px] bg-primary-soft px-2 py-[3px] text-[11px] font-bold text-primary"
               disabled={sendable === 0n}
               onClick={() =>
                 setAmount(formatAmount(sendable, { precision: DECIMALS, grouped: false, pad: false }))
