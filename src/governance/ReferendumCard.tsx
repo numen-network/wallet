@@ -99,9 +99,12 @@ interface CardProps {
   issuance: bigint | undefined
   /** Nothing here is worth offering when no account on this page can sign. */
   canSign: boolean
+  /** This page's own addresses, which is who may edit what a referendum says. */
+  mine: string[]
   onVote: (referendum: Referendum) => void
   onRemoveVote: (referendum: Referendum) => void
   onDeposit: (referendum: Referendum) => void
+  onEdit: (referendum: Referendum) => void
 }
 
 export function ReferendumCard({
@@ -110,9 +113,11 @@ export function ReferendumCard({
   height,
   issuance,
   canSign,
+  mine,
   onVote,
   onRemoveVote,
   onDeposit,
+  onEdit,
 }: CardProps) {
   const { network } = useChain()
   const symbol = useSymbol()
@@ -190,6 +195,11 @@ export function ReferendumCard({
           {referendum.decisionDeposit === null && (
             <Button type="button" onClick={() => onDeposit(referendum)}>
               Place decision deposit
+            </Button>
+          )}
+          {mine.includes(referendum.submitter) && (
+            <Button type="button" onClick={() => onEdit(referendum)}>
+              Edit the text
             </Button>
           )}
         </div>

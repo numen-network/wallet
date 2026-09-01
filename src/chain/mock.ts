@@ -96,6 +96,9 @@ const FACTS: ChainFacts = {
   undecidingTimeout: (14 * 24 * 3600) / 10,
   submissionDeposit: 100n * UNIT,
   payoutPeriod: (30 * 24 * 3600) / 10,
+  preimageBaseDeposit: 5n * UNIT,
+  preimageByteDeposit: UNIT / 100n,
+  preimageMaxSize: 16 * 1024,
   treasury: palletAccount(stringToU8a('py/trsry')),
   proxyDepositBase: 5n * UNIT,
   proxyDepositFactor: (37n * UNIT) / 100n,
@@ -268,6 +271,8 @@ const SEEDED: Referendum[] = [
     title: 'Pay for the runtime security audit',
     description:
       'Two firms quoted for a full pass over the runtime and the node. This covers the cheaper of the two, with the report published either way.',
+    submitter: TEAM,
+    metadataHash: receipt('meta 3'),
     state: 'confirming',
     // Past both curves, which is the only way one gets to be confirming
     tally: { ayes: 7_800_000n * UNIT, nays: 200_000n * UNIT, support: 5_200_000n * UNIT },
@@ -281,6 +286,8 @@ const SEEDED: Referendum[] = [
     track: 0,
     title: 'Top up the testnet faucet',
     description: 'The faucet runs dry about once a month and somebody has to notice.',
+    submitter: PAYOUTS,
+    metadataHash: receipt('meta 2'),
     state: 'queued',
     tally: { ayes: 0n, nays: 0n, support: 0n },
     proposal: { kind: 'spend', spends: [{ amount: 5_000n * UNIT, beneficiary: PAYOUTS, validFrom: null }] },
@@ -294,6 +301,8 @@ const SEEDED: Referendum[] = [
     title: 'Fund the block explorer for a year',
     description:
       'Hosting, the indexer and one person to keep it running. Twelve months, paid a quarter at a time, and the code stays open whatever happens after that.',
+    submitter: TEAM,
+    metadataHash: receipt('meta 1'),
     state: 'deciding',
     tally: { ayes: 4_100_000n * UNIT, nays: 900_000n * UNIT, support: 2_600_000n * UNIT },
     // Four quarters off one referendum, which is what a batch of spends buys
@@ -316,6 +325,8 @@ const SEEDED: Referendum[] = [
     track: 0,
     title: null,
     description: null,
+    submitter: PAYOUTS,
+    metadataHash: null,
     state: 'preparing',
     tally: { ayes: 0n, nays: 0n, support: 0n },
     proposal: {
@@ -753,6 +764,13 @@ export function createMockRepository(): ChainRepository {
         write(account.address, read(account.address).free + PREIMAGE_DEPOSIT)
         return
       }
+      case 'editMetadata': {
+        const entry = poll(operation.poll)
+        if (!entry) throw new Error('Referenda: NotOngoing')
+        if (entry.submitter !== account.address) throw new Error('Referenda: NoPermission')
+        Object.assign(entry, readMeta(metadataDump(operation.title, operation.description)))
+        return
+      }
       case 'proposeBounty': {
         rewards.unshift({
           index: rewards.length,
@@ -984,6 +1002,8 @@ export function createMockRepository(): ChainRepository {
           index: polls.length,
           track: operation.track,
           ...readMeta(metadataDump(operation.title, operation.description)),
+          submitter: account.address,
+          metadataHash: receipt(`meta ${polls.length}`),
           state: 'preparing',
           tally: { ayes: 0n, nays: 0n, support: 0n },
           proposal: {

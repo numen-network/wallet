@@ -4,6 +4,7 @@ import type { Spender } from './types'
 import {
   approval,
   countdown,
+  dumpBytes,
   hasRefund,
   metadataDump,
   readMeta,
@@ -172,6 +173,10 @@ describe('what a referendum carries as metadata', () => {
     expect(readMeta(long).title).toHaveLength(TITLE_MAX)
     expect(readMeta(metadataDump(long, long)).title).toHaveLength(TITLE_MAX)
     expect(readMeta(metadataDump(long, long)).description).toHaveLength(TITLE_MAX + 50)
+  })
+
+  it('prices a dump in bytes rather than characters', () => {
+    expect(dumpBytes('概要')).toBe(6)
   })
 })
 

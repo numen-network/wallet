@@ -12,6 +12,7 @@ const status = (over: {
   track: 0,
   proposal: { type: 'Inline', value: new Uint8Array() },
   submitted: 100,
+  submission_deposit: { who: 'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg', amount: 100n },
   tally: { ayes: 0n, nays: 0n, support: 0n },
   in_queue: false,
   ...over,

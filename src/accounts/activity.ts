@@ -65,6 +65,7 @@ export const SETTLED: Record<Operation['kind'], string> = {
   unassignChildCurator: 'Child curator stood down',
   closeChild: 'Child bounty closed',
   propose: 'Referendum opened',
+  editMetadata: 'Referendum text updated',
   batch: 'All of it went through',
 }
 
@@ -372,6 +373,11 @@ export function describe(
         }),
       }
     }
+    case 'editMetadata':
+      return {
+        title: `Edit the text of referendum ${operation.poll}`,
+        fields: row({ title: operation.title }),
+      }
     case 'batch': {
       // Every call is written out, since a count says nothing about where the
       // money went. A title carries what its own fields leave out, such as

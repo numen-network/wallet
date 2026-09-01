@@ -238,6 +238,20 @@ export type Operation =
   /** Clears the bytes and hands back what they cost, which only the noter may do. */
   | { kind: 'unnotePreimage'; hash: string }
   /**
+   * Swaps what a running referendum says about itself, which only its opener
+   * may do. The new text goes up as its own preimage before the metadata is
+   * pointed at it, and the old bytes come off in the same breath when the
+   * signer paid for them.
+   */
+  | {
+      kind: 'editMetadata'
+      poll: number
+      title: string
+      description: string
+      /** Preimage the metadata leaves behind, cleared along the way when set. */
+      clear: string | null
+    }
+  /**
    * One signature towards a multisig call. The call rides along every time
    * rather than only on the last approval, so no signatory has to be handed the
    * bytes out of band to finish what another one started.
@@ -389,6 +403,12 @@ export interface ChainFacts {
   submissionDeposit: bigint
   /** Blocks a booked spend stays claimable for, after which it goes back to the treasury. */
   payoutPeriod: number
+  /** Held while a noted preimage stays on chain, returned once it is cleared. */
+  preimageBaseDeposit: bigint
+  /** Held for each noted byte on top of the base, returned with it. */
+  preimageByteDeposit: bigint
+  /** The most bytes one noted preimage may hold. */
+  preimageMaxSize: number
   /**
    * The treasury's own account, derived from its pallet id. Nobody holds a key
    * to it, so money sent there goes out only on a referendum.

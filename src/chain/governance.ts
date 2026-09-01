@@ -90,6 +90,10 @@ export interface Referendum {
   title: string | null
   /** The long version, from the same dump the title comes out of. */
   description: string | null
+  /** Who opened it, which is who may rewrite what it says. */
+  submitter: string
+  /** Preimage the metadata points at, null when nobody set any. */
+  metadataHash: string | null
   state: ReferendumState
   tally: Tally
   proposal: Proposal
@@ -135,6 +139,11 @@ export function metadataDump(title: string, description: string): string {
   const headline = title.replace(/[\r\n]+/g, ' ').trim().slice(0, TITLE_MAX)
   const body = description.trim()
   return body ? `${headline}\n\n${body}` : headline
+}
+
+/** UTF-8 length of a dump, which is what the chain prices and caps. */
+export function dumpBytes(dump: string): number {
+  return new TextEncoder().encode(dump).length
 }
 
 /**

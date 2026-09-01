@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { CallModal, SignerField } from '@/accounts/Authorize'
 import {
+  dumpBytes,
+  metadataDump,
   shutsTooSoon,
   trackFor,
   trackLabel,
@@ -118,6 +120,11 @@ export function ProposeModal({
   const depositLine = facts
     ? `${formatAmount(facts.submissionDeposit, { precision: 0 })} ${symbol}`
     : '…'
+  // What the whole dump weighs and what it holds until the bytes are cleared
+  const bytes = dumpBytes(metadataDump(title, description))
+  const textCost = facts
+    ? `${bytes.toLocaleString('en-US')} bytes · holds ${formatAmount(BigInt(bytes) * facts.preimageByteDeposit, { precision: 2 })} ${symbol}`
+    : null
   // How long the referendum itself can take before the spends are booked
   const runsFor = running
     ? running.preparePeriod + running.decisionPeriod + running.confirmPeriod + running.minEnactmentPeriod
@@ -148,6 +155,11 @@ export function ProposeModal({
 
     if (title.trim() === '') {
       setError('Give it a title, since that is what the list shows')
+      return false
+    }
+
+    if (bytes > facts.preimageMaxSize) {
+      setError(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
       return false
     }
 
@@ -247,11 +259,11 @@ export function ProposeModal({
           />
         </Field>
 
-        <Field label="Description">
+        <Field label="Description" aside={textCost}>
           <Textarea
             value={description}
             rows={6}
-            placeholder="The case for it"
+            placeholder="A short summary of the case"
             onChange={(event) => patch({ description: event.target.value })}
           />
         </Field>
@@ -353,6 +365,151 @@ export function ProposeModal({
           claims stays in the treasury.
         </p>
       )}
+    </CallModal>
+  )
+}
+
+/**
+ * A running referendum's text is its opener's to swap, and the call it runs is
+ * beyond anybody's reach, so this rewrites the pitch and nothing else.
+ */
+export function EditTextModal({
+  referendum,
+  preimages,
+  accounts,
+  onClose,
+}: {
+  referendum: Referendum
+  preimages: NotedPreimage[]
+  accounts: Voters
+  onClose: () => void
+}) {
+  const symbol = useSymbol()
+  const { data: facts } = useFacts()
+  const [title, setTitle] = useState(referendum.title ?? '')
+  const [description, setDescription] = useState(referendum.description ?? '')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  // set_metadata answers only to whoever opened it, so there is nobody to pick
+  const voter = useVoter(accounts, referendum.submitter)
+  // The old bytes are only this signature's to clear when this account noted them
+  const clear =
+    preimages.find(
+      (held) => held.hash === referendum.metadataHash && held.who === referendum.submitter,
+    )?.hash ?? null
+  const operation = {
+    kind: 'editMetadata',
+    poll: referendum.index,
+    title,
+    description,
+    clear,
+  } as const
+
+  const bytes = dumpBytes(metadataDump(title, description))
+  const textCost = facts
+    ? `${bytes.toLocaleString('en-US')} bytes · holds ${formatAmount(BigInt(bytes) * facts.preimageByteDeposit, { precision: 2 })} ${symbol}`
+    : null
+  const oldBytes = clear
+    ? 'The old bytes come off in the same signature and their deposit comes back.'
+    : referendum.metadataHash
+      ? 'The old bytes stay up, since only the account that noted them may clear them.'
+      : null
+
+  const form = () => {
+    setError('')
+
+    if (title.trim() === '') {
+      setError('Give it a title, since that is what the list shows')
+      return false
+    }
+
+    if (facts && bytes > facts.preimageMaxSize) {
+      setError(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
+      return false
+    }
+
+    // The chain refuses to note the very same bytes twice, and there is
+    // nothing to change anyway
+    if (metadataDump(title, description) === metadataDump(referendum.title ?? '', referendum.description ?? '')) {
+      setError('It already says exactly that')
+      return false
+    }
+
+    void send()
+    return false
+  }
+
+  const send = async () => {
+    setBusy(true)
+    try {
+      await voter.submit(operation, password)
+      toast('Sent')
+      onClose()
+    } catch (problem) {
+      if (problem instanceof VaultError) setError(problem.message)
+      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <CallModal
+      title={`Edit the text of referendum ${referendum.index}`}
+      submitLabel={busy ? 'Signing…' : 'Sign and send'}
+      disabled={busy || !facts}
+      from={voter.signer.address}
+      needsPassword={voter.needsPassword}
+      operation={voter.wrap(operation)}
+      password={password}
+      onPassword={setPassword}
+      error={error}
+      onClose={onClose}
+      onSubmit={form}
+    >
+      <p className="text-[13.5px] text-lead">
+        This referendum is still running, so the account that opened it may swap what it says.
+        What it pays and whom it pays are settled and stay settled. This rewrites the pitch and
+        nothing else.
+      </p>
+
+      <p className="mt-2.5 text-[12.5px] text-dim">
+        The new text holds its own deposit by the byte.
+        {oldBytes && ` ${oldBytes}`}
+      </p>
+
+      <div className="mt-3.5">
+        <Field label="Title">
+          <Textarea
+            value={title}
+            rows={2}
+            maxLength={TITLE_MAX}
+            className="resize-none"
+            placeholder="What it asks for"
+            onKeyDown={(event) => event.key === 'Enter' && event.preventDefault()}
+            onChange={(event) => setTitle(event.target.value.replace(/[\r\n]+/g, ' '))}
+          />
+        </Field>
+
+        <Field label="Description" aside={textCost}>
+          <Textarea
+            value={description}
+            rows={6}
+            placeholder="A short summary of the case"
+            onChange={(event) => setDescription(event.target.value)}
+          />
+        </Field>
+      </div>
+
+      {/* No account to pick, the chain named one. Who signs for it is still open */}
+      <SignerField
+        account={voter.account}
+        signer={voter.signer}
+        bench={voter.bench}
+        onChange={voter.choose}
+      />
     </CallModal>
   )
 }

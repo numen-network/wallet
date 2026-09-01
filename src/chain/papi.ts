@@ -176,6 +176,7 @@ interface ReferendumStatus {
   track: number
   proposal: { type: string; value: Uint8Array | { hash: string; len: number } }
   submitted: number
+  submission_deposit: { who: string; amount: bigint }
   decision_deposit?: { amount: bigint }
   deciding?: { since: number; confirming?: number }
   tally: Tally
@@ -424,7 +425,12 @@ interface UnsafeApi {
       ByteDeposit(): Promise<bigint>
       SubAccountDeposit(): Promise<bigint>
     }
-    Origins: { SpendCaps(): Promise<[number, { type: string }, bigint][]> }
+    Origins: {
+      SpendCaps(): Promise<[number, { type: string }, bigint][]>
+      PreimageBaseDeposit(): Promise<bigint>
+      PreimageByteDeposit(): Promise<bigint>
+      PreimageMaxSize(): Promise<number>
+    }
     Precompiles: { BalancesErc20(): Promise<string> }
     Proxy: {
       ProxyDepositBase(): Promise<bigint>
@@ -857,16 +863,17 @@ export function createPapiRepository(network: Network): ChainRepository {
    * means no metadata, which is the same answer as a referendum nobody wrote
    * any for.
    */
-  const readMetaOf = async (index: number): Promise<Metadata> => {
+  const readMetaOf = async (index: number): Promise<Metadata & { metadataHash: string | null }> => {
     const hash = await api.query.Referenda.MetadataOf.getValue(index, BEST)
-    if (!hash) return NO_METADATA
+    if (!hash) return { ...NO_METADATA, metadataHash: null }
 
     const status = await api.query.Preimage.RequestStatusFor.getValue(hash, BEST)
     const len = status?.type === 'Unrequested' ? status.value.len : status?.value.maybe_len
-    if (len === undefined) return NO_METADATA
+    if (len === undefined) return { ...NO_METADATA, metadataHash: hash }
 
     const bytes = await api.query.Preimage.PreimageFor.getValue([hash, len], BEST)
-    return bytes ? readMeta(new TextDecoder().decode(bytes)) : NO_METADATA
+    const meta = bytes ? readMeta(new TextDecoder().decode(bytes)) : NO_METADATA
+    return { ...meta, metadataHash: hash }
   }
 
   const readRegistration = async (address: string): Promise<Registration | null> => {
@@ -909,6 +916,9 @@ export function createPapiRepository(network: Network): ChainRepository {
       subAccountDeposit,
       minVestedTransfer,
       caps,
+      preimageBaseDeposit,
+      preimageByteDeposit,
+      preimageMaxSize,
       balancesErc20,
       evmChainId,
       treasuryPalletId,
@@ -928,6 +938,9 @@ export function createPapiRepository(network: Network): ChainRepository {
       api.constants.Identity.SubAccountDeposit(),
       api.constants.Vesting.MinVestedTransfer(),
       api.constants.Origins.SpendCaps(),
+      api.constants.Origins.PreimageBaseDeposit(),
+      api.constants.Origins.PreimageByteDeposit(),
+      api.constants.Origins.PreimageMaxSize(),
       api.constants.Precompiles.BalancesErc20(),
       api.query.EVMChainId.ChainId.getValue(),
       api.constants.Treasury.PalletId(),
@@ -963,6 +976,9 @@ export function createPapiRepository(network: Network): ChainRepository {
       undecidingTimeout,
       submissionDeposit,
       payoutPeriod,
+      preimageBaseDeposit,
+      preimageByteDeposit,
+      preimageMaxSize,
       treasury: palletAccount(hexToU8a(treasuryPalletId)),
       proxyDepositBase,
       proxyDepositFactor,
@@ -1038,6 +1054,20 @@ export function createPapiRepository(network: Network): ChainRepository {
 
       const calls = [note.decodedCall, submit.decodedCall, name.decodedCall]
       if (!inline) calls.unshift(api.tx.Preimage.note_preimage({ bytes: encoded }).decodedCall)
+      return api.tx.Utility.batch_all({ calls })
+    }
+
+    if (operation.kind === 'editMetadata') {
+      const dump = new TextEncoder().encode(metadataDump(operation.title, operation.description))
+      const note = api.tx.Preimage.note_preimage({ bytes: dump })
+      const name = api.tx.Referenda.set_metadata({
+        index: operation.poll,
+        maybe_hash: blake2AsHex(dump, 256),
+      })
+      const calls = [note.decodedCall, name.decodedCall]
+      if (operation.clear) {
+        calls.push(api.tx.Preimage.unnote_preimage({ hash: operation.clear }).decodedCall)
+      }
       return api.tx.Utility.batch_all({ calls })
     }
 
@@ -1130,6 +1160,7 @@ export function createPapiRepository(network: Network): ChainRepository {
     operation: Exclude<
       Operation,
       | { kind: 'propose' }
+      | { kind: 'editMetadata' }
       | { kind: 'provideJudgement' }
       | { kind: 'multisigApprove' }
       | { kind: 'multisigApproveData' }
@@ -1554,6 +1585,7 @@ export function createPapiRepository(network: Network): ChainRepository {
         index,
         track: status.track,
         ...(await readMetaOf(index)),
+        submitter: status.submission_deposit.who,
         state: toState(status),
         tally: status.tally,
         proposal: await readProposal(status.proposal),

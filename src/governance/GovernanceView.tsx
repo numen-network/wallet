@@ -34,6 +34,7 @@ import { ToolButton, ToolLink } from '@/ui/ToolButton'
 import { voters } from './Voter'
 import {
   DepositModal,
+  EditTextModal,
   PayoutModal,
   PreimageModal,
   ProposeModal,
@@ -53,6 +54,7 @@ type Modal =
   | { kind: 'vote'; referendum: Referendum }
   | { kind: 'removeVote'; referendum: Referendum }
   | { kind: 'deposit'; referendum: Referendum }
+  | { kind: 'editText'; referendum: Referendum }
   | { kind: 'payout'; spend: Spend }
   | { kind: 'refund'; poll: number; held: Held; call: 'refundSubmission' | 'refundDecision' }
   | { kind: 'preimage'; preimage: NotedPreimage }
@@ -87,11 +89,12 @@ export function GovernanceView({
   balances: Record<string, AccountBalance>
 }) {
   const { network } = useChain()
+  const mine = accounts.map((account) => account.address)
   const { data: referenda, isPending } = useReferenda()
   const { data: tracks } = useTracks()
   const { data: spends } = useSpends()
   const { data: settled } = useSettled()
-  const { data: preimages } = usePreimages(accounts.map((account) => account.address))
+  const { data: preimages } = usePreimages(mine)
   const { data: bounties } = useBounties()
   const { data: children } = useChildBounties()
   const { data: issuance } = useActiveIssuance()
@@ -126,6 +129,7 @@ export function GovernanceView({
     onVote: (referendum: Referendum) => setModal({ kind: 'vote', referendum }),
     onRemoveVote: (referendum: Referendum) => setModal({ kind: 'removeVote', referendum }),
     onDeposit: (referendum: Referendum) => setModal({ kind: 'deposit', referendum }),
+    onEdit: (referendum: Referendum) => setModal({ kind: 'editText', referendum }),
   }
 
   // The row keeps every button whatever the tab shows, so idle carries the
@@ -207,6 +211,7 @@ export function GovernanceView({
                   height={head?.number ?? 0}
                   issuance={issuance}
                   canSign={canSign}
+                  mine={mine}
                   {...actions}
                 />
               ))}
@@ -313,6 +318,15 @@ export function GovernanceView({
 
       {signers && modal?.kind === 'deposit' && (
         <DepositModal referendum={modal.referendum} accounts={signers} onClose={close} />
+      )}
+
+      {signers && modal?.kind === 'editText' && (
+        <EditTextModal
+          referendum={modal.referendum}
+          preimages={preimages ?? []}
+          accounts={signers}
+          onClose={close}
+        />
       )}
 
       {signers && modal?.kind === 'refund' && (
