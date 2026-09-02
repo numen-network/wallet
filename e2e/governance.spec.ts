@@ -146,6 +146,9 @@ test('the list is read nearest a decision first, or newest first', async ({ page
 
   await page.getByRole('combobox', { name: 'Sort' }).click()
   await page.getByRole('option', { name: 'Newest first' }).click()
+  // Read once the list has gone. While it fades out, Radix keeps the rest of
+  // the page out of the accessibility tree, and a hidden region has no articles
+  await expect(page.getByRole('option')).toHaveCount(0)
   expect(await order()).toEqual(['3', '2', '1', '0'])
 })
 

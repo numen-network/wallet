@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from 'react'
-import { Popover } from 'radix-ui'
-import { Command } from 'cmdk'
 import { useBalances, useStanding, useSymbol } from '@/chain/queries'
 import { labelOf } from '@/chain/identity'
 import { resolveAddress, shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Identicon } from '@/ui/Identicon'
 import { ChevronIcon } from '@/ui/icons'
 import { BOX } from '@/ui/Modal'
@@ -22,9 +22,6 @@ export interface Pickable {
 }
 
 const WIDE = 'w-full'
-
-const ROW =
-  'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] select-none data-[selected=true]:bg-accent'
 
 /**
  * What the chain says about the address, over the address itself. The name the
@@ -134,8 +131,8 @@ export function AddressField<T extends Pickable>({
   const offers = !readOnly || choices.length > 0
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
         type="button"
         aria-label={label}
         disabled={!offers}
@@ -174,72 +171,63 @@ export function AddressField<T extends Pickable>({
 
         {/* Kept in place rather than dropped, so a column of these lines up */}
         <ChevronIcon className={`size-4 shrink-0 text-dim ${offers ? '' : 'invisible'}`} />
-      </Popover.Trigger>
+      </PopoverTrigger>
 
-      {/* Over the dialog layer, since a dialog overlay swallows whatever is under it */}
-      <Popover.Portal>
-        <Popover.Content
-          align="start"
-          sideOffset={6}
-          collisionPadding={8}
-          className="z-95 w-[var(--radix-popover-trigger-width)] rounded-lg border border-border bg-card p-1.5 shadow-lift"
+      <PopoverContent
+        align="start"
+        sideOffset={6}
+        collisionPadding={8}
+        className="w-(--radix-popover-trigger-width) p-1.5"
+      >
+        <Command
+          // The list is names and addresses, and neither is worth fuzzy matching
+          shouldFilter={!readOnly ? false : true}
+          filter={(candidate, search) =>
+            candidate.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+          }
         >
-          <Command
-            // The list is names and addresses, and neither is worth fuzzy matching
-            shouldFilter={!readOnly ? false : true}
-            filter={(candidate, search) =>
-              candidate.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-            }
-          >
-            {!readOnly && (
-              <Command.Input
-                value={typed}
-                onValueChange={setTyped}
-                placeholder={placeholder}
-                className="w-full bg-transparent px-3 py-2 font-mono text-[15px] placeholder:text-hint focus:outline-none"
-              />
+          {!readOnly && (
+            <CommandInput
+              value={typed}
+              onValueChange={setTyped}
+              placeholder={placeholder}
+            />
+          )}
+
+          <CommandList>
+            {!readOnly && typed !== '' && !resolveAddress(typed) && (
+              <p className="px-3 py-2.5 text-[13.5px] text-destructive">Not a Numen or EVM address</p>
+            )}
+            {!readOnly && resolveAddress(typed) && (
+              <CommandItem value={typed} onSelect={() => take(typed)}>
+                <Identicon address={resolveAddress(typed)!} size={26} />
+                Use this address
+                <span className="ml-auto pl-4 font-mono text-[13px] text-dim">
+                  {shorten(resolveAddress(typed)!)}
+                </span>
+              </CommandItem>
             )}
 
-            <Command.List className="max-h-[280px] overflow-y-auto">
-              {!readOnly && typed !== '' && !resolveAddress(typed) && (
-                <p className="px-3 py-2.5 text-[13.5px] text-destructive">Not a Numen or EVM address</p>
-              )}
-              {!readOnly && resolveAddress(typed) && (
-                <Command.Item value={typed} onSelect={() => take(typed)} className={ROW}>
-                  <Identicon address={resolveAddress(typed)!} size={26} />
-                  Use this address
-                  <span className="ml-auto pl-4 font-mono text-[13px] text-dim">
-                    {shorten(resolveAddress(typed)!)}
-                  </span>
-                </Command.Item>
-              )}
-
-              {filed(choices, groups).map((section) => (
-                <Command.Group
-                  key={section.name}
-                  heading={section.name || undefined}
-                  className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[10.5px] [&_[cmdk-group-heading]]:font-bold [&_[cmdk-group-heading]]:tracking-[0.07em] [&_[cmdk-group-heading]]:text-dim [&_[cmdk-group-heading]]:uppercase"
-                >
-                  {section.items.map((entry) => (
-                    <Command.Item
-                      key={entry.address}
-                      value={`${entry.name} ${entry.address}`}
-                      onSelect={() => (onPick ? (onPick(entry), setOpen(false)) : take(entry.address))}
-                      className={ROW}
-                    >
-                      {/* An EVM address has a face too, the one its Numen
-                          account wears, which is the account being picked */}
-                      <Identicon address={resolveAddress(entry.address) ?? ''} size={26} />
-                      <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                      <Chain address={resolveAddress(entry.address) ?? ''} shown={entry.address} />
-                    </Command.Item>
-                  ))}
-                </Command.Group>
-              ))}
-            </Command.List>
-          </Command>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+            {filed(choices, groups).map((section) => (
+              <CommandGroup key={section.name} heading={section.name || undefined}>
+                {section.items.map((entry) => (
+                  <CommandItem
+                    key={entry.address}
+                    value={`${entry.name} ${entry.address}`}
+                    onSelect={() => (onPick ? (onPick(entry), setOpen(false)) : take(entry.address))}
+                  >
+                    {/* An EVM address has a face too, the one its Numen
+                        account wears, which is the account being picked */}
+                    <Identicon address={resolveAddress(entry.address) ?? ''} size={26} />
+                    <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+                    <Chain address={resolveAddress(entry.address) ?? ''} shown={entry.address} />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
