@@ -2,7 +2,7 @@ import type { NotedPreimage } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/ui/Card'
+import { Card } from '@/components/ui/card'
 import { Beneficiary } from './Beneficiary'
 
 /**

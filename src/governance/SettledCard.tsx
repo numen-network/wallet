@@ -8,7 +8,7 @@ import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/ui/Card'
+import { Card } from '@/components/ui/card'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<Settled['outcome'], BadgeVariant>> = {

@@ -13,7 +13,7 @@ import { metaMask } from '@/evm/metamask'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/ui/Card'
+import { Card } from '@/components/ui/card'
 import { CopyButton } from '@/ui/CopyButton'
 import { DECIMALS, explorerAccount } from '@/chain/config'
 import {

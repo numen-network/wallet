@@ -18,7 +18,7 @@ import { formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/ui/Card'
+import { Card } from '@/components/ui/card'
 import { ExplorerIcon } from '@/ui/icons'
 
 /** One colour a state, in the order a referendum passes through them. */
