@@ -2,6 +2,8 @@ import { explorerAccount, explorerExtrinsic } from '@/chain/config'
 import { useChain } from '@/chain/provider'
 import { useSymbol } from '@/chain/queries'
 import { shorten } from '@/lib/address'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/ui/Card'
 import { CopyButton } from '@/ui/CopyButton'
 import { Empty } from '@/ui/Empty'
 import { Facts, type Fact } from '@/ui/Facts'
@@ -57,20 +59,14 @@ function Row({
   }
 
   return (
-    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
+    <Card>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13.5px] font-semibold">{title}</span>
-        <span
-          className={`rounded-full border px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase ${
-            entry.error
-              ? 'border-destructive text-destructive'
-              : entry.stage === 'finalized'
-                ? 'border-primary text-primary'
-                : 'border-input text-dim'
-          }`}
+        <Badge
+          variant={entry.error ? 'destructive' : entry.stage === 'finalized' ? 'primary' : 'default'}
         >
           {state}
-        </span>
+        </Badge>
         <span className="flex-1" />
         <a
           href={explorerAccount(network, entry.address)}
@@ -86,7 +82,7 @@ function Row({
       </div>
 
       <Facts rows={rows} />
-    </article>
+    </Card>
   )
 }
 

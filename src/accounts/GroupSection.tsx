@@ -5,7 +5,9 @@ import { useSymbol } from '@/chain/queries'
 import type { AccountBalance } from '@/chain/types'
 import { totalOf } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
+import { cn } from '@/lib/cn'
 import { IconButton } from '@/ui/Button'
+import { Empty } from '@/ui/Empty'
 import { ChevronIcon, PencilIcon, TrashIcon } from '@/ui/icons'
 import { Menu, type MenuSection } from '@/ui/Menu'
 import { AccountCard, type CardActions } from './AccountCard'
@@ -136,13 +138,14 @@ export function GroupSection({
             ))}
 
             {accounts.length === 0 && (
-              <p
-                className={`col-span-full rounded-lg border-[1.5px] border-dashed p-6 text-center text-[13px] ${
-                  dropTarget ? 'border-primary text-primary' : 'border-input text-dim'
-                }`}
+              <Empty
+                className={cn(
+                  'col-span-full mt-0 p-6 text-[13px]',
+                  dropTarget ? 'border-primary text-primary' : 'text-dim',
+                )}
               >
                 {system ? 'New accounts land here' : 'Drop accounts here'}
-              </p>
+              </Empty>
             )}
           </div>
         </SortableContext>

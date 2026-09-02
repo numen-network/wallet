@@ -8,7 +8,9 @@ import { quality, type Quality } from '@/chain/reach'
 import { lockedOf, totalOf } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
 import { formatAmount } from '@/lib/balance'
+import { Badge } from '@/components/ui/badge'
 import { Button, IconButton } from '@/ui/Button'
+import { Empty } from '@/ui/Empty'
 import { Footer } from '@/ui/Footer'
 import { MetaMaskIcon, PlusIcon, SignalIcon, SignatureIcon, SyncIcon } from '@/ui/icons'
 import { ConfirmModal, PromptModal } from '@/ui/PromptModal'
@@ -125,12 +127,9 @@ function EndpointPicker({ onAdd }: { onAdd: () => void }) {
       </IconButton>
 
       {usingMock && (
-        <span
-          title="No node is attached. Every balance on this page is made up"
-          className="rounded-full border border-destructive px-2 py-[2px] text-[10px] font-bold tracking-[0.06em] text-destructive uppercase"
-        >
+        <Badge variant="destructive" title="No node is attached. Every balance on this page is made up">
           mock data
-        </span>
+        </Badge>
       )}
     </>
   )
@@ -337,8 +336,8 @@ export function App() {
       <main className={`${SHELL} grow pt-1.5 pb-16`}>
         {/* A group the user just made has to show up, even with nothing in it */}
         {accounts.length === 0 && store.layout.groups.length === 1 ? (
-          <div className="mt-6 rounded-lg border-[1.5px] border-dashed border-input p-12 text-center">
-            <p className="text-sm text-muted-foreground">No accounts yet.</p>
+          <Empty>
+            <p>No accounts yet.</p>
             <p className="mx-auto mt-1 max-w-[420px] text-[13px] text-dim">
               Create a key here, import one you already have, connect a browser extension, or just
               watch an address without holding its key.
@@ -352,7 +351,7 @@ export function App() {
               <PlusIcon />
               Add account
             </Button>
-          </div>
+          </Empty>
         ) : (
           <AccountBoard
             groups={groups}

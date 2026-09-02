@@ -12,12 +12,14 @@ import {
 } from '@/chain/bounties'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
+import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/ui/Button'
+import { Card } from '@/ui/Card'
 import { Beneficiary } from './Beneficiary'
 
-const TONE: Partial<Record<Bounty['state'], string>> = {
-  active: 'border-input text-muted-foreground',
-  pendingPayout: 'border-primary text-primary',
+const TONE: Partial<Record<Bounty['state'], BadgeVariant>> = {
+  active: 'muted',
+  pendingPayout: 'primary',
 }
 
 export type BountyAct = 'accept' | 'award' | 'claim' | 'unassign' | 'extend' | 'addChild'
@@ -130,17 +132,11 @@ export function BountyCard({
   const amount = (planck: bigint) => `${formatAmount(planck, { precision: 0 })} ${symbol}`
 
   return (
-    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
+    <Card>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{bounty.index}</span>
         <span className="text-[13px] font-semibold">{bounty.description || 'unnamed'}</span>
-        <span
-          className={`rounded-full border px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase ${
-            TONE[bounty.state] ?? 'border-input text-dim'
-          }`}
-        >
-          {BOUNTY_LABELS[bounty.state]}
-        </span>
+        <Badge variant={TONE[bounty.state] ?? 'default'}>{BOUNTY_LABELS[bounty.state]}</Badge>
       </div>
 
       <div className="mt-2 text-[13.5px]">
@@ -220,6 +216,6 @@ export function BountyCard({
           ))}
         </div>
       )}
-    </article>
+    </Card>
   )
 }

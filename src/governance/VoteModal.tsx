@@ -135,7 +135,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
       <fieldset className="mt-3.5">
-        <legend className="mb-1.5 block text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase">
+        <legend className="caption mb-1.5 block">
           Vote
         </legend>
         <div className="flex flex-wrap gap-x-3.5 gap-y-1.5">

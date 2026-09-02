@@ -30,8 +30,6 @@ import { RegistrarField } from './RegistrarField'
 import type { Account } from './types'
 import { VerifyIdentity } from './VerifyIdentity'
 
-const HEADING = 'mt-4 text-[11px] font-bold tracking-[0.07em] text-faint uppercase'
-
 type Mode = 'verify' | 'manual'
 
 const MODES: TabOption<Mode>[] = [
@@ -237,7 +235,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
       )}
       {registrar && askable && (
         <>
-          <p className={HEADING}>Checking</p>
+          <p className="caption mt-4">Checking</p>
           <RegistrarField
             registrars={askable}
             value={registrar.index}

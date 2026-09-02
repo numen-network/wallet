@@ -39,7 +39,6 @@ interface PayoutDraft {
 
 const BLANK: PayoutDraft = { to: '', amount: '', on: '' }
 
-const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase'
 const COLUMNS = 'grid grid-cols-[1fr_9rem_9rem_28px] gap-x-2'
 
 const stamp = (on: Date) => format(on, 'yyyy-MM-dd')
@@ -282,9 +281,9 @@ export function ProposeModal({
         )}
 
         <div className={`mt-4 ${COLUMNS}`}>
-          <span className={HEADING}>Address</span>
-          <span className={HEADING}>Amount</span>
-          <span className={HEADING}>Release</span>
+          <span className="caption">Address</span>
+          <span className="caption">Amount</span>
+          <span className="caption">Release</span>
           <span />
         </div>
 

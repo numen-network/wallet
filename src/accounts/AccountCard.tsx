@@ -10,7 +10,10 @@ import { shorten, shortenEvm } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { useChain } from '@/chain/provider'
 import { metaMask } from '@/evm/metamask'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/cn'
 import { Button } from '@/ui/Button'
+import { Card } from '@/ui/Card'
 import { CopyButton } from '@/ui/CopyButton'
 import { DECIMALS, explorerAccount } from '@/chain/config'
 import {
@@ -80,19 +83,6 @@ const BADGES: Partial<Record<Account['source'], { icon: ReactNode; label: string
   multisig: { icon: <MultisigIcon className="size-3" />, label: 'multisig' },
   proxied: { icon: <ProxiedIcon className="size-3" />, label: 'proxied' },
   watch: WATCHING,
-}
-
-/** One pill on the name row, saying where the account came from. */
-function Badge({ icon, label, title }: { icon: ReactNode; label: string; title?: string | undefined }) {
-  return (
-    <span
-      title={title}
-      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-input px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] text-muted-foreground uppercase"
-    >
-      {icon}
-      {label}
-    </span>
-  )
 }
 
 const CANNOT_SEND: Partial<Record<Account['source'], string>> = {
@@ -418,8 +408,18 @@ function CardBody({
             <span data-nodrag className={`truncate text-[15px] font-semibold ${PICKABLE}`}>
               {account.name}
             </span>
-            {badge && <Badge {...badge} />}
-            {watched && <Badge {...WATCHING} title={CANNOT_SEND[account.source]} />}
+            {badge && (
+              <Badge variant="muted">
+                {badge.icon}
+                {badge.label}
+              </Badge>
+            )}
+            {watched && (
+              <Badge variant="muted" title={CANNOT_SEND[account.source]}>
+                {WATCHING.icon}
+                {WATCHING.label}
+              </Badge>
+            )}
           </div>
 
           <AddressRow
@@ -488,8 +488,7 @@ function CardBody({
  */
 export const AccountCardBody = memo(CardBody)
 
-const CARD =
-  'flex flex-col rounded-lg border border-border bg-card p-3.5 shadow-card transition-colors select-none touch-pan-y'
+const CARD = 'flex flex-col transition-colors select-none touch-pan-y'
 
 export function AccountCard(props: CardProps) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -498,24 +497,26 @@ export function AccountCard(props: CardProps) {
   })
 
   return (
-    <article
+    <Card
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       {...listeners}
-      className={`${CARD} cursor-grab hover:border-input hover:shadow-hover ${
-        isDragging ? 'opacity-35 outline-[1.5px] outline-dashed outline-primary -outline-offset-2' : ''
-      }`}
+      className={cn(
+        CARD,
+        'cursor-grab hover:border-input hover:shadow-hover',
+        isDragging && 'opacity-35 outline-[1.5px] outline-dashed outline-primary -outline-offset-2',
+      )}
     >
       <AccountCardBody {...props} />
-    </article>
+    </Card>
   )
 }
 
 /** What follows the pointer during a drag. */
 export function AccountCardGhost(props: CardProps) {
   return (
-    <article className={`${CARD} cursor-grabbing shadow-lift`}>
+    <Card className={cn(CARD, 'cursor-grabbing shadow-lift')}>
       <AccountCardBody {...props} />
-    </article>
+    </Card>
   )
 }

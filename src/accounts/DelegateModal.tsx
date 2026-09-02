@@ -56,7 +56,7 @@ export function TrackField({
 
   return (
     <fieldset className="mt-3.5">
-      <legend className="mb-1.5 block text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase">
+      <legend className="caption mb-1.5 block">
         Tracks
       </legend>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">

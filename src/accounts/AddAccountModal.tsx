@@ -21,9 +21,6 @@ const KINDS: Array<{ id: Kind; label: string }> = [
   { id: 'watch', label: 'Watch only' },
 ]
 
-/** What each of the two boxes below holds, since one is not the other. */
-const LEGEND = 'mt-3 text-[11.5px] font-semibold tracking-[0.06em] text-dim uppercase'
-
 interface AddAccountModalProps {
   connectExtension: () => Promise<number>
   onClose: () => void
@@ -63,7 +60,7 @@ function MnemonicNotice({
         access to the seed you can re-create the account.
       </p>
 
-      <p className={LEGEND}>Mnemonic seed</p>
+      <p className="caption mt-3">Mnemonic seed</p>
       {/* Ordered, because the words in another order open another account */}
       <ol className="mt-1 grid grid-cols-4 gap-x-2 gap-y-2.5 rounded-lg border border-border bg-muted p-3.5">
         {mnemonic.split(' ').map((word, place) => (
@@ -73,7 +70,7 @@ function MnemonicNotice({
         ))}
       </ol>
 
-      <p className={LEGEND}>Raw seed</p>
+      <p className="caption mt-3">Raw seed</p>
       <p className="mt-1 rounded-lg border border-border bg-muted p-3 font-mono text-[12.5px] break-all">
         {seed}
       </p>
@@ -251,7 +248,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
       onSubmit={submit}
     >
       <fieldset>
-        <legend className="mb-1.5 text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase">
+        <legend className="caption mb-1.5">
           Source
         </legend>
         <div className="flex flex-wrap gap-x-3.5 gap-y-1.5">

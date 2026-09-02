@@ -1,12 +1,14 @@
 import { SPEND_LABELS, spendState, type Spend } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
+import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/ui/Button'
+import { Card } from '@/ui/Card'
 import { Beneficiary } from './Beneficiary'
 
-const TONE: Partial<Record<ReturnType<typeof spendState>, string>> = {
-  ready: 'border-primary text-primary',
-  expired: 'border-destructive text-destructive',
+const TONE: Partial<Record<ReturnType<typeof spendState>, BadgeVariant>> = {
+  ready: 'primary',
+  expired: 'destructive',
 }
 
 interface CardProps {
@@ -26,19 +28,13 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
   const state = spendState(spend, height)
 
   return (
-    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
+    <Card>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{spend.index}</span>
         <span className="text-[13px] font-semibold">
           {formatAmount(spend.amount, { precision: 2 })} {symbol}
         </span>
-        <span
-          className={`rounded-full border px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase ${
-            TONE[state] ?? 'border-input text-dim'
-          }`}
-        >
-          {SPEND_LABELS[state]}
-        </span>
+        <Badge variant={TONE[state] ?? 'default'}>{SPEND_LABELS[state]}</Badge>
       </div>
 
       <div className="mt-2 text-[13.5px]">
@@ -62,6 +58,6 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
           </Button>
         </div>
       )}
-    </article>
+    </Card>
   )
 }

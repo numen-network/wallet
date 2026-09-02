@@ -6,12 +6,14 @@ import {
 } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
+import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/ui/Button'
+import { Card } from '@/ui/Card'
 import { Beneficiary } from './Beneficiary'
 
-const TONE: Partial<Record<Settled['outcome'], string>> = {
-  approved: 'border-primary text-primary',
-  rejected: 'border-destructive text-destructive',
+const TONE: Partial<Record<Settled['outcome'], BadgeVariant>> = {
+  approved: 'primary',
+  rejected: 'destructive',
 }
 
 function Line({
@@ -59,16 +61,10 @@ export function SettledCard({
   const back = refundsSubmission(settled)
 
   return (
-    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
+    <Card>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{settled.index}</span>
-        <span
-          className={`rounded-full border px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase ${
-            TONE[settled.outcome] ?? 'border-input text-dim'
-          }`}
-        >
-          {OUTCOME_LABELS[settled.outcome]}
-        </span>
+        <Badge variant={TONE[settled.outcome] ?? 'default'}>{OUTCOME_LABELS[settled.outcome]}</Badge>
       </div>
 
       {settled.decision && (
@@ -104,6 +100,6 @@ export function SettledCard({
           }
         />
       )}
-    </article>
+    </Card>
   )
 }

@@ -15,8 +15,6 @@ import { BLANK, owed, payments, rowProblem, type Row } from './payments'
 import { needsPassword } from './types'
 import type { SendManyProps } from './SendModal'
 
-const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase'
-
 /**
  * One account paying several in one signature. The chain takes it as a single
  * call over a list of transfers, so it costs one fee and either all of it lands
@@ -148,8 +146,8 @@ export function SendMany({
       )}
 
       <div className="mt-4 grid grid-cols-[1fr_200px_28px] gap-x-2">
-        <span className={HEADING}>Address</span>
-        <span className={HEADING}>Amount</span>
+        <span className="caption">Address</span>
+        <span className="caption">Amount</span>
         <span />
       </div>
 

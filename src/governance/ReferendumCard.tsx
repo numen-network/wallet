@@ -16,15 +16,17 @@ import {
 import { Beneficiary } from './Beneficiary'
 import { formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
+import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/ui/Button'
+import { Card } from '@/ui/Card'
 import { ExplorerIcon } from '@/ui/icons'
 
 /** One colour a state, in the order a referendum passes through them. */
-const TONE: Record<Referendum['state'], string> = {
-  preparing: 'border-input text-dim',
-  queued: 'border-warn-deep text-warn-deep',
-  deciding: 'border-primary text-primary',
-  confirming: 'border-destructive text-destructive',
+const TONE: Record<Referendum['state'], BadgeVariant> = {
+  preparing: 'default',
+  queued: 'warn',
+  deciding: 'primary',
+  confirming: 'destructive',
 }
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
@@ -127,7 +129,7 @@ export function ReferendumCard({
   const needs = thresholds(referendum, tracks, height)
 
   return (
-    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
+    <Card>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{referendum.index}</span>
         {/* The track names it while its metadata does not, which is all a
@@ -141,11 +143,7 @@ export function ReferendumCard({
           {referendum.title ?? trackLabel(tracks, referendum.track)}
           <ExplorerIcon className="size-3" />
         </a>
-        <span
-          className={`rounded-full border px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] uppercase ${TONE[referendum.state]}`}
-        >
-          {STATE_LABELS[referendum.state]}
-        </span>
+        <Badge variant={TONE[referendum.state]}>{STATE_LABELS[referendum.state]}</Badge>
       </div>
 
       {/* What the proposer wrote, which the chain has been carrying all along
@@ -204,6 +202,6 @@ export function ReferendumCard({
           )}
         </div>
       )}
-    </article>
+    </Card>
   )
 }

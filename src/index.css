@@ -91,8 +91,6 @@
     are the absence of it, and darkening them made an empty field look filled.
   */
   --hint: #aab0bb;
-  /* The small uppercase captions that head a group of fields. */
-  --faint: #9a9a9a;
   --line: #e8eaef;
   --line-strong: #d7dbe3;
   --accent: #0891b2;
@@ -146,7 +144,6 @@
   --color-primary-soft: var(--accent-soft);
   --color-dim: var(--dim);
   --color-hint: var(--hint);
-  --color-faint: var(--faint);
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-warn-deep: var(--warn-deep);
@@ -173,6 +170,15 @@
   /* Addresses and balances stay marked as machine text, but they render in the
      same face as everything else. Point this at a real mono to change that. */
   --font-mono: var(--sans);
+}
+
+/* The small uppercase caption that heads a group of fields. */
+@utility caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
 }
 
 /*

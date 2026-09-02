@@ -2,6 +2,7 @@ import type { NotedPreimage } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Button } from '@/ui/Button'
+import { Card } from '@/ui/Card'
 import { Beneficiary } from './Beneficiary'
 
 /**
@@ -21,7 +22,7 @@ export function PreimageCard({
   const symbol = useSymbol()
 
   return (
-    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
+    <Card>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">
           {preimage.hash.slice(0, 12)}…
@@ -44,6 +45,6 @@ export function PreimageCard({
           </Button>
         )}
       </div>
-    </article>
+    </Card>
   )
 }

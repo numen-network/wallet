@@ -11,8 +11,6 @@ import { deriveMultisig } from './multisig'
 import { useAccountsStore } from './store'
 import type { Account } from './types'
 
-const HEADING = 'text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase'
-
 /** The floor for a multisig, so the rows never fall below what one needs. */
 const LEAST = 2
 
@@ -65,7 +63,7 @@ export function MultisigModal({ accounts, onClose }: { accounts: Account[]; onCl
 
       {/* One box per signatory, since a set of addresses is a list rather than a
           paragraph, and each one is worth an identicon and a name */}
-      <p className={`mt-4 ${HEADING}`}>Signatories</p>
+      <p className="caption mt-4">Signatories</p>
 
       {rows.map((row, index) => (
         <div key={index} className="mt-1.5 grid grid-cols-[1fr_28px] items-start gap-x-2">
