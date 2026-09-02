@@ -7,6 +7,7 @@ import { batched, CONVICTIONS, totalOf, type AccountBalance, type Conviction } f
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Field, Input, INSIDE } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
@@ -62,13 +63,11 @@ export function TrackField({
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
         {(tracks ?? []).map((track) => (
           <label key={track.id} className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
-            <input
-              type="checkbox"
-              className="accent-primary"
+            <Checkbox
               checked={chosen.includes(track.id)}
-              onChange={(event) =>
+              onCheckedChange={(checked) =>
                 onChange(
-                  event.target.checked
+                  checked === true
                     ? [...chosen, track.id].sort((one, other) => one - other)
                     : chosen.filter((id) => id !== track.id),
                 )

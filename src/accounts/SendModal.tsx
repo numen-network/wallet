@@ -5,6 +5,7 @@ import { totalOf, type AccountBalance, type Operation } from '@/chain/types'
 import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldError, Input } from '@/ui/Modal'
 import { Identicon } from '@/ui/Identicon'
 import { toast } from '@/ui/Toast'
@@ -265,11 +266,9 @@ function SendOne({
       <FieldError>{amountError}</FieldError>
 
       <label className="mt-2.5 flex cursor-pointer items-center gap-2 text-[13px]">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={everything}
-          className="accent-primary"
-          onChange={(event) => setEverything(event.target.checked)}
+          onCheckedChange={(checked) => setEverything(checked === true)}
         />
         Send the full balance, closing this account
       </label>

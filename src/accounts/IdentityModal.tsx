@@ -21,6 +21,7 @@ import {
 import type { Checks } from '@/chain/verify'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useDraft } from '@/ui/draft'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { toast } from '@/ui/Toast'
@@ -242,11 +243,10 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
             onChange={(next) => patch({ chosen: next })}
           />
           <label className="mt-2 flex cursor-pointer items-start gap-2 text-[13px]">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={asking}
-              className="mt-0.5 accent-primary"
-              onChange={(event) => patch({ ask: event.target.checked })}
+              className="mt-0.5"
+              onCheckedChange={(checked) => patch({ ask: checked === true })}
             />
             <span>Ask this registrar to check it in the same signature</span>
           </label>

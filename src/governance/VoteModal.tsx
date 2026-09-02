@@ -14,6 +14,7 @@ import {
 } from '@/chain/types'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CheckIcon, CrossIcon, MinusIcon } from '@/ui/icons'
 import { Field, Input, INSIDE } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
@@ -138,21 +139,18 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
         <legend className="caption mb-1.5 block">
           Vote
         </legend>
-        <div className="flex flex-wrap gap-x-3.5 gap-y-1.5">
+        <RadioGroup
+          value={side}
+          onValueChange={(value) => setSide(value as Side)}
+          className="flex flex-wrap gap-x-3.5 gap-y-1.5"
+        >
           {SIDES.map((option) => (
             <label key={option.id} className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
-              <input
-                type="radio"
-                name="side"
-                value={option.id}
-                checked={side === option.id}
-                className="accent-primary"
-                onChange={() => setSide(option.id)}
-              />
+              <RadioGroupItem value={option.id} />
               {option.label}
             </label>
           ))}
-        </div>
+        </RadioGroup>
       </fieldset>
 
       {/* An abstain carries no conviction, so there is nothing to choose */}

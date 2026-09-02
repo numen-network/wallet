@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { evmToSubstrate, isEvmAddress, isSubstrateAddress, toNumenAddress } from '@/lib/address'
 import { addressOf, newMnemonic, seedOf } from '@/signing/vault'
+import { Checkbox } from '@/components/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/ui/Button'
 import { SyncIcon } from '@/ui/icons'
 import { Identicon } from '@/ui/Identicon'
@@ -76,12 +78,7 @@ function MnemonicNotice({
       </p>
 
       <label className="mt-3.5 flex cursor-pointer items-center gap-2 text-[13.5px]">
-        <input
-          type="checkbox"
-          checked={saved}
-          className="accent-primary"
-          onChange={(event) => setSaved(event.target.checked)}
-        />
+        <Checkbox checked={saved} onCheckedChange={(checked) => setSaved(checked === true)} />
         I have written the seed down somewhere safe
       </label>
     </Modal>
@@ -251,24 +248,21 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
         <legend className="caption mb-1.5">
           Source
         </legend>
-        <div className="flex flex-wrap gap-x-3.5 gap-y-1.5">
+        <RadioGroup
+          value={kind}
+          onValueChange={(value) => setKind(value as Kind)}
+          className="flex flex-wrap gap-x-3.5 gap-y-1.5"
+        >
           {KINDS.map((option) => (
             <label
               key={option.id}
               className="flex cursor-pointer items-center gap-1.5 text-[13.5px]"
             >
-              <input
-                type="radio"
-                name="kind"
-                value={option.id}
-                checked={kind === option.id}
-                className="accent-primary"
-                onChange={() => setKind(option.id)}
-              />
+              <RadioGroupItem value={option.id} />
               {option.label}
             </label>
           ))}
-        </div>
+        </RadioGroup>
       </fieldset>
 
       {kind === 'extension' && (
