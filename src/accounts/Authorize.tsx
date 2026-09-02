@@ -22,7 +22,15 @@ import type { Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import type { WalletAccount } from '@/signing/types'
 import { unlockKey } from '@/signing/vault'
-import { Field, FieldError, Input, Modal, type ModalProps } from '@/ui/Modal'
+import {
+  Field,
+  FieldError,
+  Input,
+  ModalFrame,
+  ModalPage,
+  type ModalPageProps,
+  type ModalProps,
+} from '@/ui/Modal'
 import { toast, toastProblem, toastSettled, toastWorking } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { describe, SETTLED, WORKING } from './activity'
@@ -60,22 +68,7 @@ export function AccountPassword({
   )
 }
 
-/**
- * A dialog that ends in a signature. Only the form differs between them, so the
- * password, the refusal and the fee live here rather than at the foot of every
- * one.
- */
-export function CallModal({
-  from,
-  needsPassword,
-  operation,
-  password,
-  onPassword,
-  note = 'Unlocks this account for one signature',
-  error,
-  children,
-  ...modal
-}: {
+interface CallProps {
   /** Whoever puts their name to it, which is who pays the fee. */
   from: string
   needsPassword: boolean
@@ -86,10 +79,36 @@ export function CallModal({
   /** What this particular password is about to unlock. */
   note?: string
   error: string
-} & Omit<ModalProps, 'footer' | 'fee'>) {
+}
+
+/**
+ * A dialog that ends in a signature. Only the form differs between them, so the
+ * password, the refusal and the fee live here rather than at the foot of every
+ * one.
+ */
+export function CallModal({ width, ...page }: CallProps & Omit<ModalProps, 'footer' | 'fee'>) {
   return (
-    <Modal
-      {...modal}
+    <ModalFrame width={width} onClose={page.onClose}>
+      <CallPage {...page} />
+    </ModalFrame>
+  )
+}
+
+/** One page of a CallModal, for a dialog whose tabs share a frame. */
+export function CallPage({
+  from,
+  needsPassword,
+  operation,
+  password,
+  onPassword,
+  note = 'Unlocks this account for one signature',
+  error,
+  children,
+  ...page
+}: CallProps & Omit<ModalPageProps, 'footer' | 'fee'>) {
+  return (
+    <ModalPage
+      {...page}
       footer={
         <>
           {needsPassword && <AccountPassword value={password} note={note} onChange={onPassword} />}
@@ -99,7 +118,7 @@ export function CallModal({
       fee={operation && <FeeLine from={from} operation={operation} />}
     >
       {children}
-    </Modal>
+    </ModalPage>
   )
 }
 

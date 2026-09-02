@@ -3,7 +3,7 @@ import { shorten } from '@/lib/address'
 import { signMessage, verifyMessage, type Verdict } from '@/signing/message'
 import { VaultError } from '@/signing/vault'
 import { CopyButton } from '@/ui/CopyButton'
-import { Field, FieldError, Modal, Textarea } from '@/ui/Modal'
+import { Field, FieldError, ModalFrame, ModalPage, Textarea } from '@/ui/Modal'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { useDraft } from '@/ui/draft'
 import { AddressField } from './AddressField'
@@ -40,10 +40,14 @@ export function SignModal({
     <Tabs value={draft.mode} options={MODES} onChange={(mode) => patch({ mode })} className="w-fit" />
   )
 
-  return draft.mode === 'sign' ? (
-    <Sign accounts={accounts} initial={initial} tabs={tabs} onClose={onClose} />
-  ) : (
-    <Verify accounts={accounts} tabs={tabs} onClose={onClose} />
+  return (
+    <ModalFrame onClose={onClose}>
+      {draft.mode === 'sign' ? (
+        <Sign accounts={accounts} initial={initial} tabs={tabs} onClose={onClose} />
+      ) : (
+        <Verify accounts={accounts} tabs={tabs} onClose={onClose} />
+      )}
+    </ModalFrame>
   )
 }
 
@@ -95,7 +99,7 @@ function Sign({
   }
 
   return (
-    <Modal
+    <ModalPage
       title="Sign a message"
       submitLabel={busy ? 'Signing…' : 'Sign it'}
       cancelLabel="Close"
@@ -153,7 +157,7 @@ function Sign({
           </p>
         </>
       )}
-    </Modal>
+    </ModalPage>
   )
 }
 
@@ -184,7 +188,7 @@ function Verify({
   }
 
   return (
-    <Modal
+    <ModalPage
       title="Verify a message"
       submitLabel="Check it"
       cancelLabel="Close"
@@ -239,6 +243,6 @@ function Verify({
             : 'That address did not sign that message'}
         </p>
       )}
-    </Modal>
+    </ModalPage>
   )
 }

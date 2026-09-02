@@ -23,9 +23,10 @@ import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useDraft } from '@/ui/draft'
+import { ModalFrame } from '@/ui/Modal'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { toast } from '@/ui/Toast'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { CallModal, CallPage, SignerField, useSigning } from './Authorize'
 import { IdentityLine } from './IdentityLine'
 import { RegistrarField } from './RegistrarField'
 import type { Account } from './types'
@@ -92,7 +93,13 @@ export function IdentityModal({
   )
 
   const parts = { account, signers, tabs, draft, patch, sent, onClose }
-  return draft.mode === 'verify' ? <VerifyIdentity {...parts} /> : <EditIdentity {...parts} />
+  const manual = draft.mode === 'manual'
+
+  return (
+    <ModalFrame width={manual ? 640 : 580} onClose={onClose}>
+      {manual ? <EditIdentity {...parts} /> : <VerifyIdentity {...parts} />}
+    </ModalFrame>
+  )
 }
 
 export interface IdentityFormProps {
@@ -196,11 +203,10 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
   )
 
   return (
-    <CallModal
+    <CallPage
       title="On chain identity"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
-      width={640}
       aside={tabs}
       footNote={
         facts &&
@@ -275,7 +281,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-    </CallModal>
+    </CallPage>
   )
 }
 

@@ -10,7 +10,7 @@ import { PlusIcon, TrashIcon } from '@/ui/icons'
 import { BOX, FieldError, Input } from '@/ui/Modal'
 import { AddressField } from './AddressField'
 import { toast } from '@/ui/Toast'
-import { CallModal, through, useSubmit } from './Authorize'
+import { CallPage, through, useSubmit } from './Authorize'
 import { BLANK, owed, payments, rowProblem, type Row } from './payments'
 import { needsPassword } from './types'
 import type { SendManyProps } from './SendModal'
@@ -105,11 +105,10 @@ export function SendMany({
   }
 
   return (
-    <CallModal
+    <CallPage
       title="Batch send"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
-      width={650}
       aside={tabs}
       footNote={
         account.multisig &&
@@ -213,6 +212,6 @@ export function SendMany({
           </b>
         </span>
       </div>
-    </CallModal>
+    </CallPage>
   )
 }

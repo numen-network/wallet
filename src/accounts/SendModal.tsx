@@ -6,13 +6,13 @@ import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldError, Input } from '@/ui/Modal'
+import { Field, FieldError, Input, ModalFrame } from '@/ui/Modal'
 import { Identicon } from '@/ui/Identicon'
 import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'
-import { CallModal, through, useSubmit } from './Authorize'
+import { CallPage, through, useSubmit } from './Authorize'
 import { BLANK, type Row } from './payments'
 import { SendMany } from './SendManyModal'
 import { needsPassword, type Account } from './types'
@@ -62,10 +62,16 @@ export function SendModal(props: SendModalProps) {
     <Tabs value={draft.mode} options={MODES} onChange={(mode) => patch({ mode })} className="w-fit" />
   )
 
-  return draft.mode === 'one' ? (
-    <SendOne {...props} tabs={tabs} />
-  ) : (
-    <SendMany {...props} tabs={tabs} draft={draft} patch={patch} sent={sent} />
+  const many = draft.mode === 'many'
+
+  return (
+    <ModalFrame width={many ? 650 : 580} onClose={props.onClose}>
+      {many ? (
+        <SendMany {...props} tabs={tabs} draft={draft} patch={patch} sent={sent} />
+      ) : (
+        <SendOne {...props} tabs={tabs} />
+      )}
+    </ModalFrame>
   )
 }
 
@@ -181,9 +187,8 @@ function SendOne({
   }
 
   return (
-    <CallModal
+    <CallPage
       title={`Send ${symbol}`}
-      width={580}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
       aside={tabs}
@@ -272,6 +277,6 @@ function SendOne({
         />
         Send the full balance, closing this account
       </label>
-    </CallModal>
+    </CallPage>
   )
 }

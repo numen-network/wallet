@@ -31,7 +31,7 @@ import { Facts, type Fact } from '@/ui/Facts'
 import { TrashIcon } from '@/ui/icons'
 import { FieldError } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { CallPage, SignerField, useSigning } from './Authorize'
 import type { IdentityFormProps } from './IdentityModal'
 import { IdentityLine } from './IdentityLine'
 
@@ -239,7 +239,7 @@ export function VerifyIdentity({
   }
 
   return (
-    <CallModal
+    <CallPage
       title="On chain identity"
       submitLabel={signable ? (busy === 'signing' ? 'Signing…' : 'Sign and send') : null}
       cancelLabel="Close"
@@ -348,6 +348,6 @@ export function VerifyIdentity({
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-    </CallModal>
+    </CallPage>
   )
 }

@@ -3,7 +3,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 
-export interface ModalProps {
+export interface ModalPageProps {
   title: string
   onClose: () => void
   /** Return false to keep the modal open, which is how validation reports back. */
@@ -14,7 +14,6 @@ export interface ModalProps {
   danger?: boolean
   /** Whatever the caller is waiting on before the form may be submitted. */
   disabled?: boolean
-  width?: number
   /** Sits on the right of the title row, for a switch the whole dialog answers to. */
   aside?: ReactNode
   /** The password and what a refused submit has to say, kept with the buttons. */
@@ -24,27 +23,23 @@ export interface ModalProps {
   children: ReactNode
 }
 
-export function Modal({
-  title,
-  onClose,
-  onSubmit,
-  submitLabel = 'Save',
-  cancelLabel = 'Cancel',
-  danger = false,
-  disabled = false,
-  width = 580,
-  aside,
-  footer,
-  fee,
-  footNote,
-  children,
-}: ModalProps) {
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    if (onSubmit?.() === false) return
-    onClose()
-  }
+export interface ModalProps extends ModalPageProps {
+  width?: number
+}
 
+/**
+ * The shell a dialog opens in. A tabbed dialog keeps one up and swaps pages
+ * inside it, so a tab switch never opens a second dialog.
+ */
+export function ModalFrame({
+  width = 580,
+  onClose,
+  children,
+}: {
+  width?: number | undefined
+  onClose: () => void
+  children: ReactNode
+}) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
@@ -53,41 +48,74 @@ export function Modal({
         style={{ maxWidth: width }}
         aria-describedby={undefined}
       >
-        <form onSubmit={submit} className="flex min-h-0 flex-col">
-          <div className="flex shrink-0 items-center gap-4">
-            <DialogTitle className="text-[17px] leading-normal font-bold tracking-tight">
-              {title}
-            </DialogTitle>
-            {aside && <span className="ml-auto">{aside}</span>}
-          </div>
-
-          <div className="mt-3.5 min-h-0 overflow-y-auto pb-5">{children}</div>
-
-          {/* The form scrolls, the foot holds still, so a refusal lands
-              beside the button that was pressed */}
-          <div className="shrink-0 border-t border-border">
-            <div className="mt-3.5 empty:hidden">{footer}</div>
-
-            <div className="mt-3.5 flex items-center gap-2.5">
-              <div className="flex-1 text-[11.5px] text-dim">
-                {fee}
-                {footNote && <p>{footNote}</p>}
-              </div>
-              {cancelLabel && (
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">{cancelLabel}</Button>
-                </DialogClose>
-              )}
-              {submitLabel !== null && (
-                <Button type="submit" variant={danger ? 'destructive' : 'default'} disabled={disabled}>
-                  {submitLabel}
-                </Button>
-              )}
-            </div>
-          </div>
-        </form>
+        {children}
       </DialogContent>
     </Dialog>
+  )
+}
+
+export function ModalPage({
+  title,
+  onClose,
+  onSubmit,
+  submitLabel = 'Save',
+  cancelLabel = 'Cancel',
+  danger = false,
+  disabled = false,
+  aside,
+  footer,
+  fee,
+  footNote,
+  children,
+}: ModalPageProps) {
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (onSubmit?.() === false) return
+    onClose()
+  }
+
+  return (
+    <form onSubmit={submit} className="flex min-h-0 flex-col">
+      <div className="flex shrink-0 items-center gap-4">
+        <DialogTitle className="text-[17px] leading-normal font-bold tracking-tight">
+          {title}
+        </DialogTitle>
+        {aside && <span className="ml-auto">{aside}</span>}
+      </div>
+
+      <div className="mt-3.5 min-h-0 overflow-y-auto pb-5">{children}</div>
+
+      {/* The form scrolls, the foot holds still, so a refusal lands
+          beside the button that was pressed */}
+      <div className="shrink-0 border-t border-border">
+        <div className="mt-3.5 empty:hidden">{footer}</div>
+
+        <div className="mt-3.5 flex items-center gap-2.5">
+          <div className="flex-1 text-[11.5px] text-dim">
+            {fee}
+            {footNote && <p>{footNote}</p>}
+          </div>
+          {cancelLabel && (
+            <DialogClose asChild>
+              <Button type="button" variant="outline">{cancelLabel}</Button>
+            </DialogClose>
+          )}
+          {submitLabel !== null && (
+            <Button type="submit" variant={danger ? 'destructive' : 'default'} disabled={disabled}>
+              {submitLabel}
+            </Button>
+          )}
+        </div>
+      </div>
+    </form>
+  )
+}
+
+export function Modal({ width, ...page }: ModalProps) {
+  return (
+    <ModalFrame width={width} onClose={page.onClose}>
+      <ModalPage {...page} />
+    </ModalFrame>
   )
 }
 

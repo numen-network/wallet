@@ -16,12 +16,12 @@ import { waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
 import { Figure } from '@/ui/Figure'
-import { Field, Input } from '@/ui/Modal'
+import { Field, Input, ModalFrame } from '@/ui/Modal'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
 import { AddressField } from './AddressField'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { CallPage, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
 
 interface VestingModalProps {
@@ -50,10 +50,10 @@ export function VestingModal(props: VestingModalProps) {
     <Tabs value={draft.mode} options={MODES} onChange={(mode) => patch({ mode })} className="w-fit" />
   )
 
-  return draft.mode === 'release' ? (
-    <Release {...props} tabs={tabs} />
-  ) : (
-    <Grant {...props} tabs={tabs} />
+  return (
+    <ModalFrame onClose={props.onClose}>
+      {draft.mode === 'release' ? <Release {...props} tabs={tabs} /> : <Grant {...props} tabs={tabs} />}
+    </ModalFrame>
   )
 }
 
@@ -112,7 +112,7 @@ function Release({
   }
 
   return (
-    <CallModal
+    <CallPage
       title="Vesting"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy || free === 0n}
@@ -165,7 +165,7 @@ function Release({
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-    </CallModal>
+    </CallPage>
   )
 }
 
@@ -260,7 +260,7 @@ function Grant({
   }
 
   return (
-    <CallModal
+    <CallPage
       title="Grant a vesting schedule"
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
@@ -336,6 +336,6 @@ function Grant({
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
-    </CallModal>
+    </CallPage>
   )
 }
