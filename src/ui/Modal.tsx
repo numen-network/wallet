@@ -1,4 +1,4 @@
-import * as Dialog from '@radix-ui/react-dialog'
+import { Dialog } from 'radix-ui'
 import type { FormEvent, ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { Button } from './Button'
@@ -52,7 +52,7 @@ export function Modal({
           <Dialog.Content
             // The overlay row grows with its content, so the cap is the viewport
             // itself, less the padding the overlay keeps around the dialog
-            className="flex max-h-[calc(100dvh-40px)] w-full flex-col rounded-[6px] border border-border bg-card px-[22px] py-5 shadow-lift"
+            className="flex max-h-[calc(100dvh-40px)] w-full flex-col rounded-lg border border-border bg-card px-[22px] py-5 shadow-lift"
             style={{ maxWidth: width }}
             aria-describedby={undefined}
           >
@@ -100,7 +100,7 @@ export function Modal({
  * too, so a column of boxes comes out one height without anyone measuring.
  */
 export const BOX =
-  'rounded-[4px] border border-input bg-muted focus-within:border-primary'
+  'rounded-md border border-input bg-muted focus-within:border-primary'
 
 /** What a control wears inside a box, which is nothing of its own. */
 export const INSIDE = 'w-full justify-between bg-transparent text-[15px]'

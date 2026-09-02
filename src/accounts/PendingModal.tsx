@@ -217,7 +217,7 @@ function WaitingCall({
   const enough = call.approvals.length + (signed ? 0 : 1) >= threshold
 
   return (
-    <div className="rounded-[6px] border border-border bg-muted p-3">
+    <div className="rounded-lg border border-border bg-muted p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13px] font-semibold">
           {call.approvals.length} of {threshold} signed
@@ -315,7 +315,7 @@ function WaitingCall({
             text={known.hex}
             label="Copy the call data"
             spelled
-            className="rounded-[4px] border border-input px-2.5 py-1.5"
+            className="rounded-md border border-input px-2.5 py-1.5"
           />
         )}
         {mine && (

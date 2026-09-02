@@ -65,7 +65,7 @@ function MnemonicNotice({
 
       <p className={LEGEND}>Mnemonic seed</p>
       {/* Ordered, because the words in another order open another account */}
-      <ol className="mt-1 grid grid-cols-4 gap-x-2 gap-y-2.5 rounded-[6px] border border-border bg-muted p-3.5">
+      <ol className="mt-1 grid grid-cols-4 gap-x-2 gap-y-2.5 rounded-lg border border-border bg-muted p-3.5">
         {mnemonic.split(' ').map((word, place) => (
           <li key={place} className="text-center text-[15px] font-semibold">
             {word}
@@ -74,7 +74,7 @@ function MnemonicNotice({
       </ol>
 
       <p className={LEGEND}>Raw seed</p>
-      <p className="mt-1 rounded-[6px] border border-border bg-muted p-3 font-mono text-[12.5px] break-all">
+      <p className="mt-1 rounded-lg border border-border bg-muted p-3 font-mono text-[12.5px] break-all">
         {seed}
       </p>
 
@@ -284,7 +284,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
       {kind === 'create' && (
         <>
           {nameField}
-          <div className="mt-3.5 flex items-center gap-2.5 rounded-[6px] border border-border bg-muted p-2.5">
+          <div className="mt-3.5 flex items-center gap-2.5 rounded-lg border border-border bg-muted p-2.5">
             <Identicon address={draftAddress} />
             <span className="min-w-0 flex-1 font-mono text-[12.5px] break-all">{draftAddress}</span>
             <Button type="button" onClick={() => setDraft(newMnemonic())}>

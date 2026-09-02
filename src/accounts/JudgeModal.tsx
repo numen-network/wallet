@@ -122,7 +122,7 @@ export function JudgeModal({
       {/* Exactly what is being vouched for. The chain hashes these fields and
           turns the call down if they have moved since this was read */}
       {target && (
-        <div className="mt-2.5 rounded-[4px] border border-border bg-muted px-2.5 py-2">
+        <div className="mt-2.5 rounded-md border border-border bg-muted px-2.5 py-2">
           {registration === null ? (
             <p className="text-[12.5px] text-dim">
               Nothing on chain for this account, so there is nothing to judge.

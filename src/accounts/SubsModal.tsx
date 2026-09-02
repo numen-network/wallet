@@ -142,7 +142,7 @@ export function SubsModal({
           {subs.map((sub) => (
             <div
               key={sub.address}
-              className="flex items-center gap-2 rounded-[4px] border border-border bg-muted px-2.5 py-1.5"
+              className="flex items-center gap-2 rounded-md border border-border bg-muted px-2.5 py-1.5"
             >
               <span className="text-[13px] font-semibold">{sub.name || 'unnamed'}</span>
               <span className="font-mono text-[12.5px] text-muted-foreground">{shorten(sub.address)}</span>

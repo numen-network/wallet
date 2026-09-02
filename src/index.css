@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 /*
   Test files name classes to prove which of two wins. A scanner that reads them
@@ -6,6 +7,46 @@
 */
 @source not "./**/*.test.ts";
 @source not "./**/*.test.tsx";
+
+/*
+  Generated components ship dark variants of their own, and the default one
+  follows the operating system. Bound to a class the wallet never sets, they
+  stay inert and the palette below stays the only one.
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  The variants shadcn's own stylesheet defines, copied here so a generated
+  component works without that package. Radix writes its state into data-state,
+  and these read it back under the names the components are written with.
+*/
+@custom-variant data-open {
+  &:where([data-state='open']),
+  &:where([data-open]:not([data-open='false'])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+  &:where([data-state='closed']),
+  &:where([data-closed]:not([data-closed='false'])) {
+    @slot;
+  }
+}
+
+@custom-variant data-checked {
+  &:where([data-state='checked']),
+  &:where([data-checked]:not([data-checked='false'])) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+  &:where([data-disabled='true']),
+  &:where([data-disabled]:not([data-disabled='false'])) {
+    @slot;
+  }
+}
 
 /*
   One palette and one typeface, both taken from the explorer so the two read as
@@ -69,12 +110,6 @@
   */
   --warn-deep: #a35c00;
   --overlay: rgba(20, 24, 33, 0.45);
-  /*
-    Four and six are the only two corners this wallet draws. Six here puts the
-    md step on four, so a generated component lands on the radius the
-    handwritten ones already use.
-  */
-  --radius: 6px;
   --shadow-card: 0 1px 2px rgb(20 24 33 / 0.04);
   --shadow-hover: 0 3px 10px rgb(20 24 33 / 0.08);
   --shadow-lift: 0 18px 42px rgb(20 24 33 / 0.22);
@@ -107,11 +142,6 @@
   --color-input: var(--line-strong);
   --color-ring: var(--accent);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-
   --color-primary-hover: var(--accent-hover);
   --color-primary-soft: var(--accent-soft);
   --color-dim: var(--dim);
@@ -122,6 +152,19 @@
   --color-warn-deep: var(--warn-deep);
   --color-overlay: var(--overlay);
 
+  /*
+    md and lg are the wallet's two corners, four on a control and six on a
+    panel. The steps around them keep whatever else a generated component asks
+    for in proportion.
+  */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
+  --radius-4xl: 24px;
+
   --shadow-card: var(--shadow-card);
   --shadow-hover: var(--shadow-hover);
   --shadow-lift: var(--shadow-lift);
@@ -130,6 +173,21 @@
   /* Addresses and balances stay marked as machine text, but they render in the
      same face as everything else. Point this at a real mono to change that. */
   --font-mono: var(--sans);
+}
+
+/*
+  Tailwind leaves a bare border at currentColor, which reads as the text colour.
+  Generated components write the width and leave the palette to supply the rest,
+  so the line colour is the default here.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
 }
 
 /* A column so the footer sits at the bottom of a page with little on it */

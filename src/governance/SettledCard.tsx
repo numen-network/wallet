@@ -59,7 +59,7 @@ export function SettledCard({
   const back = refundsSubmission(settled)
 
   return (
-    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
+    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{settled.index}</span>
         <span

@@ -112,7 +112,7 @@ export function UnlockModal({
         <p className="text-[13.5px] text-muted-foreground">{account.name} has nothing locked behind a vote.</p>
       ) : (
         <>
-          <ul className="rounded-[6px] border border-border bg-muted">
+          <ul className="rounded-lg border border-border bg-muted">
             {held.map((lock) => {
               const blocking = why(lock)
               return (

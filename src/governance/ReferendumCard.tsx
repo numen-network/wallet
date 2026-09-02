@@ -127,7 +127,7 @@ export function ReferendumCard({
   const needs = thresholds(referendum, tracks, height)
 
   return (
-    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
+    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{referendum.index}</span>
         {/* The track names it while its metadata does not, which is all a

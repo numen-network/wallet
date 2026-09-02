@@ -87,7 +87,7 @@ export function GroupSection({
         <header
           ref={setActivatorNodeRef}
           {...listeners}
-          className="flex touch-pan-y cursor-grab items-center gap-2 rounded-[6px] border border-border bg-card px-2.5 py-2.5 select-none"
+          className="flex touch-pan-y cursor-grab items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2.5 select-none"
         >
           <IconButton
             type="button"
@@ -122,7 +122,7 @@ export function GroupSection({
       {!group.collapsed && (
         <SortableContext items={accounts.map((account) => account.address)} strategy={settled}>
           <div
-            className={`mt-0.5 grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-0.5 rounded-[6px] ${
+            className={`mt-0.5 grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-0.5 rounded-lg ${
               dropTarget ? 'outline-[1.5px] outline-dashed outline-primary outline-offset-2' : ''
             }`}
           >
@@ -137,7 +137,7 @@ export function GroupSection({
 
             {accounts.length === 0 && (
               <p
-                className={`col-span-full rounded-[6px] border-[1.5px] border-dashed p-6 text-center text-[13px] ${
+                className={`col-span-full rounded-lg border-[1.5px] border-dashed p-6 text-center text-[13px] ${
                   dropTarget ? 'border-primary text-primary' : 'border-input text-dim'
                 }`}
               >

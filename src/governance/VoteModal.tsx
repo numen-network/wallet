@@ -379,7 +379,7 @@ export function VoteManyModal({
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
-      <ul className="mt-3.5 rounded-[6px] border border-border">
+      <ul className="mt-3.5 rounded-lg border border-border">
         {referenda.map((referendum) => {
           const choice = choiceFor(sides[referendum.index])
 
@@ -402,7 +402,7 @@ export function VoteManyModal({
                 }
                 options={CHOICE_OPTIONS}
                 label={`Vote on referendum ${referendum.index}`}
-                className={`w-[120px] justify-between rounded-[4px] border border-input bg-muted px-2.5 py-1 text-[13px] ${choice.tone}`}
+                className={`w-[120px] justify-between rounded-md border border-input bg-muted px-2.5 py-1 text-[13px] ${choice.tone}`}
               >
                 {marked(choice)}
               </Select>

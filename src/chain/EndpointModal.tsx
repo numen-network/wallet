@@ -65,7 +65,7 @@ export function EndpointModal({ onClose }: { onClose: () => void }) {
       <FieldError>{error}</FieldError>
 
       {added.length > 0 && (
-        <ul className="mt-3.5 rounded-[6px] border border-border bg-muted">
+        <ul className="mt-3.5 rounded-lg border border-border bg-muted">
           {added.map((network) => (
             <li
               key={network.id}

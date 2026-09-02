@@ -48,7 +48,7 @@ export function toastSettled(key: string): void {
  * second width would only race this one.
  */
 const TOAST =
-  'flex w-fit inset-x-0 mx-auto items-center gap-2 rounded-[4px] px-4 py-2.5 text-[13.5px] font-semibold shadow-lift'
+  'flex w-fit inset-x-0 mx-auto items-center gap-2 rounded-md px-4 py-2.5 text-[13.5px] font-semibold shadow-lift'
 
 export function ToastHost() {
   return (
@@ -81,7 +81,7 @@ export function ToastHost() {
           // A width of its own keeps the box still while the words underneath
           // it change length
           loading:
-            'min-w-[188px] items-start gap-2.5 rounded-[6px] border border-border bg-card text-foreground',
+            'min-w-[188px] items-start gap-2.5 rounded-lg border border-border bg-card text-foreground',
         },
       }}
     />

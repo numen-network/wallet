@@ -140,7 +140,7 @@ function Release({
 
           <div className="mt-2.5 grid gap-1.5">
             {held.map((schedule, index) => (
-              <div key={index} className="rounded-[4px] border border-border bg-muted px-2.5 py-2">
+              <div key={index} className="rounded-md border border-border bg-muted px-2.5 py-2">
                 <Facts
                   rows={[
                     {
@@ -322,7 +322,7 @@ function Grant({
       {/* The same three facts the Release tab lists for a schedule already on
           the chain, so what is signed for reads as what shows up */}
       {schedule && (
-        <div className="mt-2.5 rounded-[4px] border border-border bg-muted px-2.5 py-2">
+        <div className="mt-2.5 rounded-md border border-border bg-muted px-2.5 py-2">
           <Facts
             rows={[
               { name: 'starts', value: at(from) },

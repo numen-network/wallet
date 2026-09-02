@@ -26,7 +26,7 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
   const state = spendState(spend, height)
 
   return (
-    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
+    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{spend.index}</span>
         <span className="text-[13px] font-semibold">

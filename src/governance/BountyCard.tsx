@@ -58,7 +58,7 @@ function Child({
   const asked = mine.some((address) => awaitsChildCurator(child, address))
 
   return (
-    <div className="rounded-[4px] border border-border bg-muted px-2.5 py-2">
+    <div className="rounded-md border border-border bg-muted px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[12.5px] font-bold text-dim">
           #{child.parent}.{child.index}
@@ -130,7 +130,7 @@ export function BountyCard({
   const amount = (planck: bigint) => `${formatAmount(planck, { precision: 0 })} ${symbol}`
 
   return (
-    <article className="rounded-[6px] border border-border bg-card p-3.5 shadow-card">
+    <article className="rounded-lg border border-border bg-card p-3.5 shadow-card">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[13px] font-bold text-dim">#{bounty.index}</span>
         <span className="text-[13px] font-semibold">{bounty.description || 'unnamed'}</span>

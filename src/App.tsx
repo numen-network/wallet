@@ -280,7 +280,7 @@ export function App() {
 
       {facts.isError && (
         <main className={`${SHELL} grow pt-20`}>
-          <div className="mx-auto max-w-md rounded-[6px] border-[1.5px] border-input p-10 text-center">
+          <div className="mx-auto max-w-md rounded-lg border-[1.5px] border-input p-10 text-center">
             <p className="text-sm font-bold text-muted-foreground">This endpoint answers for a different chain.</p>
             <p className="mt-2 text-[13px] text-dim">{(facts.error as Error).message}</p>
             <p className="mt-2 text-[13px] text-dim">Pick another endpoint from the header.</p>
@@ -337,7 +337,7 @@ export function App() {
       <main className={`${SHELL} grow pt-1.5 pb-16`}>
         {/* A group the user just made has to show up, even with nothing in it */}
         {accounts.length === 0 && store.layout.groups.length === 1 ? (
-          <div className="mt-6 rounded-[6px] border-[1.5px] border-dashed border-input p-12 text-center">
+          <div className="mt-6 rounded-lg border-[1.5px] border-dashed border-input p-12 text-center">
             <p className="text-sm text-muted-foreground">No accounts yet.</p>
             <p className="mx-auto mt-1 max-w-[420px] text-[13px] text-dim">
               Create a key here, import one you already have, connect a browser extension, or just

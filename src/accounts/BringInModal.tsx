@@ -154,7 +154,7 @@ export function BringInModal({
           <span className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-[7px]">
             <button
               type="button"
-              className="rounded-[4px] bg-primary-soft px-2 py-[3px] text-[11px] font-bold text-primary"
+              className="rounded-md bg-primary-soft px-2 py-[3px] text-[11px] font-bold text-primary"
               disabled={sendable === 0n}
               onClick={() =>
                 setAmount(formatAmount(sendable, { precision: DECIMALS, grouped: false, pad: false }))

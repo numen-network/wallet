@@ -1,4 +1,4 @@
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { DropdownMenu } from 'radix-ui'
 import { Fragment, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { IconButton } from './Button'
@@ -24,7 +24,7 @@ export interface MenuSection {
 }
 
 const ITEM =
-  'flex cursor-pointer items-center gap-2 rounded-[6px] px-2.5 py-[7px] text-[13.5px] outline-none select-none data-highlighted:bg-accent'
+  'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13.5px] outline-none select-none data-highlighted:bg-accent'
 
 export function Menu({
   label,
@@ -68,7 +68,7 @@ export function Menu({
           sideOffset={6}
           collisionPadding={8}
           className={cn(
-            'z-95 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-[6px] border border-border bg-card p-1.5 shadow-lift',
+            'z-95 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-lift',
             className,
           )}
         >

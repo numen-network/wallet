@@ -33,7 +33,7 @@ export function CopyButton({ text, label, spelled = false, className }: CopyButt
       title={label}
       aria-label={label}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded p-0.5',
+        'inline-flex items-center gap-1.5 rounded-md p-0.5',
         spelled ? 'text-[12.5px]' : 'grid place-items-center',
         copied ? 'text-primary' : 'text-dim hover:text-foreground',
         className,

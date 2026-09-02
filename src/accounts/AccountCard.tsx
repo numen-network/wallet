@@ -172,7 +172,7 @@ function AddressRow({
           rel="noopener"
           title="View on the explorer"
           aria-label="View on the explorer"
-          className="grid place-items-center rounded p-0.5 text-dim hover:text-foreground"
+          className="grid place-items-center rounded-md p-0.5 text-dim hover:text-foreground"
         >
           <ExplorerIcon />
         </a>
@@ -489,7 +489,7 @@ function CardBody({
 export const AccountCardBody = memo(CardBody)
 
 const CARD =
-  'flex flex-col rounded-[6px] border border-border bg-card p-3.5 shadow-card transition-colors select-none touch-pan-y'
+  'flex flex-col rounded-lg border border-border bg-card p-3.5 shadow-card transition-colors select-none touch-pan-y'
 
 export function AccountCard(props: CardProps) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({

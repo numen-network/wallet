@@ -5,7 +5,7 @@ type Variant = 'primary' | 'secondary' | 'danger'
 
 // No border colour here, the variants own it.
 const BASE =
-  'inline-flex items-center justify-center gap-[7px] rounded-[4px] border px-3.5 py-[7px] text-[13.5px] font-semibold leading-tight whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-45'
+  'inline-flex items-center justify-center gap-[7px] rounded-md border px-3.5 py-[7px] text-[13.5px] font-semibold leading-tight whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-45'
 
 const VARIANTS: Record<Variant, string> = {
   primary: 'border-transparent bg-primary text-primary-foreground hover:not-disabled:bg-primary-hover',
@@ -27,7 +27,7 @@ export function IconButton({ className, ...props }: ButtonHTMLAttributes<HTMLBut
     <button
       {...props}
       className={cn(
-        'relative grid size-7 shrink-0 place-items-center rounded-[6px] text-muted-foreground hover:bg-accent hover:text-foreground',
+        'relative grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground',
         className,
       )}
     />

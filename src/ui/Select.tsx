@@ -1,4 +1,4 @@
-import * as RadixSelect from '@radix-ui/react-select'
+import { Select as RadixSelect } from 'radix-ui'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { CheckIcon, ChevronIcon } from './icons'
@@ -31,7 +31,7 @@ export const PILL =
 const SCROLLER = 'flex h-4 cursor-default items-center justify-center text-dim'
 
 const ITEM =
-  'flex cursor-pointer items-center gap-2 rounded-[6px] py-[7px] pr-2.5 pl-2 text-[13.5px] outline-none select-none data-highlighted:bg-accent'
+  'flex cursor-pointer items-center gap-2 rounded-lg py-[7px] pr-2.5 pl-2 text-[13.5px] outline-none select-none data-highlighted:bg-accent'
 
 /** What stands in for the tick where a value brings a mark of its own. */
 const PICKED = 'data-[state=checked]:font-semibold'
@@ -82,7 +82,7 @@ export function Select({
         <RadixSelect.Content
           position="popper"
           sideOffset={6}
-          className="z-95 flex max-h-[min(280px,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] flex-col rounded-[6px] border border-border bg-card p-1.5 shadow-lift"
+          className="z-95 flex max-h-[min(280px,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] flex-col rounded-lg border border-border bg-card p-1.5 shadow-lift"
         >
           {/* Radix hides the scrollbar, so these are the only sign of more below */}
           <RadixSelect.ScrollUpButton className={SCROLLER}>

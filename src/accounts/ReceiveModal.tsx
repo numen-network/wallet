@@ -17,7 +17,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
       <div className="text-[10.5px] font-bold tracking-[0.08em] text-dim uppercase">
         {kind} address
       </div>
-      <div className="rounded-[6px] border border-border bg-white p-2.5">
+      <div className="rounded-lg border border-border bg-white p-2.5">
         {hidden ? (
           <div
             style={{ width: QR_SIZE, height: QR_SIZE }}

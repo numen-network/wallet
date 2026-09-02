@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import * as Popover from '@radix-ui/react-popover'
+import { Popover } from 'radix-ui'
 import { Command } from 'cmdk'
 import { useBalances, useStanding, useSymbol } from '@/chain/queries'
 import { labelOf } from '@/chain/identity'
@@ -24,7 +24,7 @@ export interface Pickable {
 const WIDE = 'w-full'
 
 const ROW =
-  'flex cursor-pointer items-center gap-3 rounded-[6px] px-3 py-2.5 text-[15px] select-none data-[selected=true]:bg-accent'
+  'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] select-none data-[selected=true]:bg-accent'
 
 /**
  * What the chain says about the address, over the address itself. The name the
@@ -182,7 +182,7 @@ export function AddressField<T extends Pickable>({
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-95 w-[var(--radix-popover-trigger-width)] rounded-[6px] border border-border bg-card p-1.5 shadow-lift"
+          className="z-95 w-[var(--radix-popover-trigger-width)] rounded-lg border border-border bg-card p-1.5 shadow-lift"
         >
           <Command
             // The list is names and addresses, and neither is worth fuzzy matching
