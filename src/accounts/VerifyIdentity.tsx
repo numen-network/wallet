@@ -28,7 +28,7 @@ import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
 import { Facts, type Fact } from '@/ui/Facts'
-import { TrashIcon } from '@/ui/icons'
+import { Trash2 } from 'lucide-react'
 import { FieldError } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { CallPage, SignerField, useSigning } from './Authorize'
@@ -324,7 +324,7 @@ export function VerifyIdentity({
                   disabled={busy !== null}
                   onClick={() => remove(provider)}
                 >
-                  <TrashIcon />
+                  <Trash2 />
                 </Button>
               )}
             </li>

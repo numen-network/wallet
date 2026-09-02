@@ -1,4 +1,5 @@
 import { StrictMode } from 'react'
+import { LucideProvider } from 'lucide-react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cryptoWaitReady } from '@polkadot/util-crypto'
@@ -22,7 +23,9 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ChainProvider>
-        <App />
+        <LucideProvider size={14}>
+          <App />
+        </LucideProvider>
       </ChainProvider>
     </QueryClientProvider>
   </StrictMode>,

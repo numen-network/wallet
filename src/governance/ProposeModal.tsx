@@ -26,7 +26,7 @@ import { Figure } from '@/ui/Figure'
 import { BOX, Field, Input, Textarea } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
-import { PlusIcon, TrashIcon } from '@/ui/icons'
+import { Plus, Trash2 } from 'lucide-react'
 import { AddressField } from '@/accounts/AddressField'
 
 /** One row of the payout list, as typed rather than as the chain takes it. */
@@ -329,7 +329,7 @@ export function ProposeModal({
                 patch({ payouts: rest.length > 0 ? rest : [BLANK] })
               }}
             >
-              <TrashIcon />
+              <Trash2 />
             </Button>
 
             {/* What the date works out to, which is the block the call carries */}
@@ -343,7 +343,7 @@ export function ProposeModal({
           className="mt-2.5"
           onClick={() => patch({ payouts: [...payouts, BLANK] })}
         >
-          <PlusIcon />
+          <Plus />
           Add
         </Button>
       </div>

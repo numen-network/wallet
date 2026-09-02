@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Field, FieldError, Input, Modal } from '@/ui/Modal'
 import { Button } from '@/components/ui/button'
-import { TrashIcon } from '@/ui/icons'
+import { Trash2 } from 'lucide-react'
 import { toast } from '@/ui/Toast'
 import { customNetworks } from './custom'
 import { useChain } from './provider'
@@ -84,7 +84,7 @@ export function EndpointModal({ onClose }: { onClose: () => void }) {
                 aria-label={`Forget ${network.name}`}
                 onClick={() => forget(network.id)}
               >
-                <TrashIcon />
+                <Trash2 />
               </Button>
             </li>
           ))}

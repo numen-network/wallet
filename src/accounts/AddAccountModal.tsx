@@ -4,7 +4,7 @@ import { addressOf, newMnemonic, seedOf } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
-import { SyncIcon } from '@/ui/icons'
+import { RefreshCw } from 'lucide-react'
 import { Identicon } from '@/ui/Identicon'
 import { Field, FieldError, Input, Modal, PasswordFields } from '@/ui/Modal'
 import { toast, toastProblem } from '@/ui/Toast'
@@ -279,7 +279,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
             <Identicon address={draftAddress} />
             <span className="min-w-0 flex-1 font-mono text-[12.5px] break-all">{draftAddress}</span>
             <Button type="button" variant="outline" onClick={() => setDraft(newMnemonic())}>
-              <SyncIcon />
+              <RefreshCw />
               Reroll
             </Button>
           </div>

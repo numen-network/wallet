@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
-import { DotsIcon } from './icons'
+import { EllipsisVertical } from 'lucide-react'
 
 export interface MenuItem {
   label: string
@@ -51,7 +51,7 @@ export function Menu({
       <DropdownMenuTrigger asChild>
         {trigger ?? (
           <Button type="button" variant="ghost" size="icon" data-nodrag aria-label={label}>
-            <DotsIcon />
+            <EllipsisVertical className="size-4" />
           </Button>
         )}
       </DropdownMenuTrigger>

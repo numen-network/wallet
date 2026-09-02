@@ -19,7 +19,7 @@ import { daySpan, waitFor } from '@/lib/blocks'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { ExplorerIcon } from '@/ui/icons'
+import { ExternalLink } from 'lucide-react'
 
 /** One colour a state, in the order a referendum passes through them. */
 const TONE: Record<Referendum['state'], BadgeVariant> = {
@@ -141,7 +141,7 @@ export function ReferendumCard({
           className="flex items-center gap-1 text-[13px] font-semibold hover:text-primary"
         >
           {referendum.title ?? trackLabel(tracks, referendum.track)}
-          <ExplorerIcon className="size-3" />
+          <ExternalLink className="size-3" />
         </a>
         <Badge variant={TONE[referendum.state]}>{STATE_LABELS[referendum.state]}</Badge>
       </div>

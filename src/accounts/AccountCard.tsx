@@ -17,28 +17,28 @@ import { Card } from '@/components/ui/card'
 import { CopyButton } from '@/ui/CopyButton'
 import { DECIMALS, explorerAccount } from '@/chain/config'
 import {
-  AwardIcon,
-  BanIcon,
-  BranchIcon,
-  BringInIcon,
-  CoinsIcon,
-  DelegateIcon,
-  DriveIcon,
-  ExplorerIcon,
-  EyeIcon,
-  IdIcon,
-  KeyIcon,
-  MultisigIcon,
-  PencilIcon,
-  PiggyIcon,
-  ProxiedIcon,
-  PuzzleIcon,
-  SaveIcon,
-  SealIcon,
-  SignatureIcon,
-  TrashIcon,
-  UnlockIcon,
-} from '@/ui/icons'
+  Award,
+  Ban,
+  GitBranch,
+  HandCoins,
+  Coins,
+  Handshake,
+  HardDrive,
+  ExternalLink,
+  Eye,
+  IdCard,
+  KeyRound,
+  Users,
+  Pencil,
+  PiggyBank,
+  Waypoints,
+  Puzzle,
+  Download,
+  Stamp,
+  Signature,
+  Trash2,
+  LockOpen,
+} from 'lucide-react'
 import { Identicon } from '@/ui/Identicon'
 import { Menu, type MenuSection } from '@/ui/Menu'
 import { canSend, signsAlone, type Account } from './types'
@@ -75,13 +75,13 @@ interface CardProps extends CardActions {
 }
 
 /** What kind of account this is, when it is not simply one the wallet can sign for. */
-const WATCHING = { icon: <EyeIcon />, label: 'watch' }
+const WATCHING = { icon: <Eye className="size-3" />, label: 'watch' }
 
 const BADGES: Partial<Record<Account['source'], { icon: ReactNode; label: string }>> = {
-  keystore: { icon: <DriveIcon />, label: 'local' },
-  extension: { icon: <PuzzleIcon />, label: 'extension' },
-  multisig: { icon: <MultisigIcon className="size-3" />, label: 'multisig' },
-  proxied: { icon: <ProxiedIcon className="size-3" />, label: 'proxied' },
+  keystore: { icon: <HardDrive className="size-3" />, label: 'local' },
+  extension: { icon: <Puzzle className="size-3" />, label: 'extension' },
+  multisig: { icon: <Users className="size-3" />, label: 'multisig' },
+  proxied: { icon: <Waypoints className="size-3" />, label: 'proxied' },
   watch: WATCHING,
 }
 
@@ -164,7 +164,7 @@ function AddressRow({
           aria-label="View on the explorer"
           className="grid place-items-center rounded-md p-0.5 text-dim hover:text-foreground"
         >
-          <ExplorerIcon />
+          <ExternalLink />
         </a>
       )}
     </div>
@@ -226,7 +226,7 @@ function CardBody({
       ? [
           {
             label: identity ? 'Edit the on chain identity' : 'Set an on chain identity',
-            icon: <IdIcon />,
+            icon: <IdCard />,
             onSelect: () => onIdentity(account),
           },
         ]
@@ -235,17 +235,17 @@ function CardBody({
       ? [
           {
             label: asked ? 'Withdraw the request' : 'Ask a registrar',
-            icon: <SealIcon className="size-3.5" />,
+            icon: <Stamp className="size-3.5" />,
             onSelect: () => onJudgement(account),
           },
           {
             label: 'Sub accounts',
-            icon: <AwardIcon />,
+            icon: <Award />,
             onSelect: () => onSubs(account),
           },
           {
             label: 'Clear on chain identity',
-            icon: <TrashIcon />,
+            icon: <Trash2 />,
             onSelect: () => onClearIdentity(account),
           },
         ]
@@ -256,7 +256,7 @@ function CardBody({
       ? [
           {
             label: 'Reject the parent identity',
-            icon: <BanIcon />,
+            icon: <Ban />,
             onSelect: () => onQuitSub(account),
           },
         ]
@@ -269,12 +269,12 @@ function CardBody({
     ? [
         {
           label: 'Judge an identity',
-          icon: <SealIcon className="size-3.5" />,
+          icon: <Stamp className="size-3.5" />,
           onSelect: () => onJudge(account),
         },
         {
           label: 'Set the judgement fee',
-          icon: <CoinsIcon />,
+          icon: <Coins />,
           onSelect: () => onSetFee(account),
         },
       ]
@@ -285,12 +285,12 @@ function CardBody({
       label: 'Account',
       // What gets done over and over sits above the set-once key admin
       items: [
-        { label: 'Rename this account', icon: <PencilIcon />, onSelect: () => onRename(account) },
+        { label: 'Rename this account', icon: <Pencil />, onSelect: () => onRename(account) },
         ...(account.multisig
           ? [
               {
                 label: 'Multisig approvals',
-                icon: <MultisigIcon className="size-3.5" />,
+                icon: <Users className="size-3.5" />,
                 onSelect: () => onPending(account),
               },
             ]
@@ -299,7 +299,7 @@ function CardBody({
           ? [
               {
                 label: 'Vesting',
-                icon: <PiggyIcon />,
+                icon: <PiggyBank />,
                 onSelect: () => onVesting(account),
               },
             ]
@@ -310,7 +310,7 @@ function CardBody({
           ? [
               {
                 label: 'Sign a message',
-                icon: <SignatureIcon />,
+                icon: <Signature />,
                 onSelect: () => onSign(account),
               },
             ]
@@ -319,17 +319,17 @@ function CardBody({
           ? [
               {
                 label: 'Change password',
-                icon: <KeyIcon className="size-3.5" />,
+                icon: <KeyRound className="size-3.5" />,
                 onSelect: () => onChangePassword(account),
               },
               {
                 label: 'Create a backup file',
-                icon: <SaveIcon />,
+                icon: <Download />,
                 onSelect: () => onBackup(account),
               },
               {
                 label: 'Derive an account',
-                icon: <BranchIcon />,
+                icon: <GitBranch />,
                 onSelect: () => onDerive(account),
               },
             ]
@@ -343,7 +343,7 @@ function CardBody({
             items: [
               {
                 label: 'Bring in from MetaMask',
-                icon: <BringInIcon />,
+                icon: <HandCoins />,
                 onSelect: () => onBringIn(account),
               },
             ],
@@ -359,27 +359,27 @@ function CardBody({
             items: [
               {
                 label: 'Delegate votes',
-                icon: <DelegateIcon />,
+                icon: <Handshake />,
                 onSelect: () => onDelegate(account),
               },
               {
                 label: 'Take a delegation back',
-                icon: <DelegateIcon />,
+                icon: <Handshake />,
                 onSelect: () => onUndelegate(account),
               },
               {
                 label: 'Add proxy',
-                icon: <ProxiedIcon />,
+                icon: <Waypoints />,
                 onSelect: () => onAddProxy(account),
               },
               {
                 label: 'Remove proxy',
-                icon: <ProxiedIcon />,
+                icon: <Waypoints />,
                 onSelect: () => onRemoveProxy(account),
               },
               {
                 label: 'Release vote locks',
-                icon: <UnlockIcon />,
+                icon: <LockOpen />,
                 onSelect: () => onUnlock(account),
               },
             ],
@@ -390,7 +390,7 @@ function CardBody({
       items: [
         {
           label: 'Forget this account',
-          icon: <TrashIcon />,
+          icon: <Trash2 />,
           danger: true,
           onSelect: () => onForget(account),
         },

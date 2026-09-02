@@ -5,7 +5,7 @@ import { isSubstrateAddress, shorten, toNumenAddress } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
-import { PlusIcon, TrashIcon } from '@/ui/icons'
+import { Plus, Trash2 } from 'lucide-react'
 import { Field, Input } from '@/ui/Modal'
 import { toast, toastProblem } from '@/ui/Toast'
 import { CallModal, SignerField, useSigning } from './Authorize'
@@ -154,7 +154,7 @@ export function SubsModal({
                 aria-label={`Remove ${sub.name || sub.address}`}
                 onClick={() => setEdited(subs.filter((entry) => entry.address !== sub.address))}
               >
-                <TrashIcon />
+                <Trash2 />
               </Button>
             </div>
           ))}
@@ -174,7 +174,7 @@ export function SubsModal({
       </Field>
 
       <Button type="button" variant="outline" className="mt-2.5" onClick={add}>
-        <PlusIcon />
+        <Plus />
         Add
       </Button>
 

@@ -1,52 +1,50 @@
+import type { CSSProperties } from 'react'
+import { CircleAlert, CircleCheck, CircleQuestionMark, CircleX, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 export type Verdict = 'verified' | 'stale' | 'pending' | 'unjudged' | 'bad'
 
-export const TICK = 'M4 7.2 6.1 9.3 10 5.2'
-export const CROSS = 'M4.6 4.6l4.8 4.8M9.4 4.6l-4.8 4.8'
-const QUESTION = 'M5.4 5.4c0-1 .7-1.7 1.6-1.7s1.6.7 1.6 1.65c0 1.3-1.6 1.35-1.6 2.65M7 10.3v.2'
-const BANG = 'M7 3.6v4.2M7 10.2v.2'
+export const TICK = CircleCheck
+export const CROSS = CircleX
 
-const MARKS: Record<Verdict, { fill: string; mark: string }> = {
+const MARKS: Record<Verdict, { fill: string; mark: LucideIcon }> = {
   verified: { fill: 'var(--color-good)', mark: TICK },
-  unjudged: { fill: 'var(--color-dim)', mark: QUESTION },
-  pending: { fill: 'var(--color-dim)', mark: QUESTION },
-  stale: { fill: 'var(--color-warn)', mark: BANG },
+  unjudged: { fill: 'var(--color-dim)', mark: CircleQuestionMark },
+  pending: { fill: 'var(--color-dim)', mark: CircleQuestionMark },
+  stale: { fill: 'var(--color-warn)', mark: CircleAlert },
   bad: { fill: 'var(--color-destructive)', mark: CROSS },
 }
 
+/**
+ * A filled disc carrying the mark in white, which is what makes it legible at
+ * the size an address line leaves for it. Lucide draws the disc as an outline,
+ * so the fill goes on its circle and the white on everything drawn over it.
+ */
 export function MarkDisc({
   fill,
-  mark,
+  mark: Mark,
   title,
   className = 'size-3.5',
 }: {
   fill: string
-  mark: string
+  mark: LucideIcon
   title?: string | undefined
   className?: string
 }) {
   return (
-    <svg viewBox="0 0 14 14" className={cn('shrink-0', className)} role="img" aria-label={title}>
+    <Mark
+      className={cn('shrink-0 [&>circle]:fill-[var(--fill)] [&>circle]:stroke-[var(--fill)] [&>:not(circle)]:stroke-white', className)}
+      style={{ '--fill': fill } as CSSProperties}
+      strokeWidth={2.6}
+      role="img"
+      aria-label={title}
+    >
       {title && <title>{title}</title>}
-      <circle cx="7" cy="7" r="7" fill={fill} />
-      <path
-        d={mark}
-        stroke="#fff"
-        strokeWidth="1.6"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    </Mark>
   )
 }
 
-/**
- * The explorer's identity badge, drawn the same way here so one judgement reads
- * the same in both. A filled disc carries the mark, which is what makes it
- * legible at the size an address line leaves for it.
- */
+/** The explorer's identity badge in the same colours, so one judgement reads alike in both. */
 export function JudgementBadge({ verdict, title }: { verdict: Verdict; title?: string }) {
   const { fill, mark } = MARKS[verdict]
 

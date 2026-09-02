@@ -8,11 +8,22 @@ import { quality, type Quality } from '@/chain/reach'
 import { lockedOf, totalOf } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
 import { formatAmount } from '@/lib/balance'
+import { cn } from '@/lib/cn'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/ui/Empty'
 import { Footer } from '@/ui/Footer'
-import { MetaMaskIcon, PlusIcon, SignalIcon, SignatureIcon, SyncIcon } from '@/ui/icons'
+import WalletMetamask from '@web3icons/react/icons/wallets/WalletMetamask'
+import {
+  type LucideIcon,
+  Plus,
+  RefreshCw,
+  Signature,
+  SignalHigh,
+  SignalLow,
+  SignalMedium,
+  SignalZero,
+} from 'lucide-react'
 import { ConfirmModal, PromptModal } from '@/ui/PromptModal'
 import { PILL, Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
@@ -84,10 +95,29 @@ type Modal =
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`
 
 /** How much of the signal is lit, in what colour, and what to call it. */
-const GRADE: Record<Quality, { bars: number; tint: string; word: string }> = {
-  good: { bars: 3, tint: 'text-good', word: 'good link' },
-  fair: { bars: 2, tint: 'text-warn', word: 'a slow link' },
-  poor: { bars: 1, tint: 'text-destructive', word: 'a bad link' },
+const GRADE: Record<Quality, { lit: LucideIcon; tint: string; word: string }> = {
+  good: { lit: SignalHigh, tint: 'text-good', word: 'good link' },
+  fair: { lit: SignalMedium, tint: 'text-warn', word: 'a slow link' },
+  poor: { lit: SignalLow, tint: 'text-destructive', word: 'a bad link' },
+}
+
+const SIGNAL_BOX = '-2.5 2 24 24'
+
+/**
+ * The lit bars over all of them faint, so what is missing reads as clearly as
+ * what is there. The box hangs off centre because the glyph does, Lucide draws
+ * the bars into the bottom left of it and centring the box would leave them low
+ * and left of whatever sits beside them.
+ */
+function SignalBars({ lit: Lit, className }: { lit: LucideIcon; className: string }) {
+  const layer = 'col-start-1 row-start-1 size-full'
+
+  return (
+    <span className={cn('grid', className)}>
+      <SignalHigh viewBox={SIGNAL_BOX} className={cn(layer, 'opacity-25')} strokeWidth={2.6} />
+      <Lit viewBox={SIGNAL_BOX} className={layer} strokeWidth={2.6} />
+    </span>
+  )
 }
 
 /** Which node the wallet talks to, whether it shipped with one or was told. */
@@ -115,15 +145,15 @@ function EndpointPicker({ onAdd }: { onAdd: () => void }) {
         title={usingMock ? 'Nothing is connected, balances are invented' : `${network.rpc}${health}`}
         className={PILL}
       >
-        <SignalIcon
-          level={grade ? GRADE[grade].bars : 0}
+        <SignalBars
+          lit={grade ? GRADE[grade].lit : SignalZero}
           className={`size-3.5 shrink-0 ${grade ? GRADE[grade].tint : 'text-dim'}`}
         />
         {reach && <span className="text-dim tabular-nums">{Math.round(reach.ms)} ms</span>}
       </Select>
 
       <Button type="button" variant="ghost" size="icon" aria-label="Add an endpoint" title="Add an endpoint" onClick={onAdd}>
-        <PlusIcon />
+        <Plus />
       </Button>
 
       {usingMock && (
@@ -155,7 +185,7 @@ function MetaMaskButton() {
       },
     )
 
-  return <ToolButton icon={<MetaMaskIcon />} label="Add to MetaMask" onClick={add} />
+  return <ToolButton icon={<WalletMetamask className="size-5" />} label="Add to MetaMask" onClick={add} />
 }
 
 type View = 'accounts' | 'governance' | 'activity'
@@ -301,32 +331,32 @@ export function App() {
 
         <div className="ml-auto flex flex-wrap gap-2 max-[560px]:ml-0">
           <ToolButton
-            icon={<PlusIcon />}
+            icon={<Plus />}
             label="Account"
             onClick={() => setModal({ kind: 'add' })}
           />
           <ToolButton
-            icon={<SyncIcon />}
+            icon={<RefreshCw />}
             label="From JSON"
             onClick={() => setModal({ kind: 'fromJson' })}
           />
           <ToolButton
-            icon={<PlusIcon />}
+            icon={<Plus />}
             label="Multisig"
             onClick={() => setModal({ kind: 'multisig' })}
           />
           <ToolButton
-            icon={<PlusIcon />}
+            icon={<Plus />}
             label="Proxied"
             onClick={() => setModal({ kind: 'proxied' })}
           />
           <ToolButton
-            icon={<SignatureIcon />}
+            icon={<Signature />}
             label="Sign/Verify"
             onClick={() => setModal({ kind: 'sign' })}
           />
           <ToolButton
-            icon={<PlusIcon />}
+            icon={<Plus />}
             label="Group"
             onClick={() => setModal({ kind: 'newGroup' })}
           />
@@ -347,7 +377,7 @@ export function App() {
               className="mt-4"
               onClick={() => setModal({ kind: 'add' })}
             >
-              <PlusIcon />
+              <Plus />
               Add account
             </Button>
           </Empty>

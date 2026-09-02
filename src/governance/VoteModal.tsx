@@ -15,7 +15,7 @@ import {
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { CheckIcon, CrossIcon, MinusIcon } from '@/ui/icons'
+import { Check, X, Minus } from 'lucide-react'
 import { Field, Input, INSIDE } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
@@ -248,9 +248,9 @@ export function RemoveVoteModal({
 
 const CHOICES = [
   { value: 'skip', label: 'Skip', tone: 'text-dim', mark: null },
-  { value: 'aye', label: 'Aye', tone: 'text-good', mark: <CheckIcon /> },
-  { value: 'nay', label: 'Nay', tone: 'text-destructive', mark: <CrossIcon /> },
-  { value: 'abstain', label: 'Abstain', tone: 'text-primary', mark: <MinusIcon /> },
+  { value: 'aye', label: 'Aye', tone: 'text-good', mark: <Check strokeWidth={2.4} /> },
+  { value: 'nay', label: 'Nay', tone: 'text-destructive', mark: <X strokeWidth={2.4} /> },
+  { value: 'abstain', label: 'Abstain', tone: 'text-primary', mark: <Minus strokeWidth={2.4} /> },
 ] as const
 
 type Choice = (typeof CHOICES)[number]

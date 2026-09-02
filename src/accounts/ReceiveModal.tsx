@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { CopyIcon, EyeOffIcon } from '@/ui/icons'
+import { Copy, EyeOff } from 'lucide-react'
 import { Identicon } from '@/ui/Identicon'
 import { Modal } from '@/ui/Modal'
 import { Qr, QR_SIZE } from '@/ui/Qr'
@@ -23,7 +23,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
             style={{ width: QR_SIZE, height: QR_SIZE }}
             className="grid place-items-center text-dim"
           >
-            <EyeOffIcon className="size-9" />
+            <EyeOff className="size-9" />
           </div>
         ) : (
           <Qr text={address} />
@@ -36,7 +36,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
         size="sm"
         onClick={() => copyAddress(address)}
       >
-        <CopyIcon />
+        <Copy />
         Copy
       </Button>
       {/* The heading says which address this is, the label has to say it again */}

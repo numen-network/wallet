@@ -8,7 +8,7 @@ import { formatAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/ui/Empty'
-import { ChevronIcon, PencilIcon, TrashIcon } from '@/ui/icons'
+import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { Menu, type MenuSection } from '@/ui/Menu'
 import { AccountCard, type CardActions } from './AccountCard'
 import { isSystemGroup, type Group } from './layout'
@@ -59,14 +59,14 @@ export function GroupSection({
 
   const system = isSystemGroup(group)
   const menu: MenuSection[] = [
-    { items: [{ label: 'Rename group', icon: <PencilIcon />, onSelect: () => onRename(group) }] },
+    { items: [{ label: 'Rename group', icon: <Pencil />, onSelect: () => onRename(group) }] },
   ]
   if (!system) {
     menu.push({
       items: [
         {
           label: 'Delete group',
-          icon: <TrashIcon />,
+          icon: <Trash2 />,
           danger: true,
           onSelect: () => onDelete(group),
         },
@@ -100,8 +100,9 @@ export function GroupSection({
             aria-expanded={!group.collapsed}
             onClick={() => onToggle(group)}
           >
-            <ChevronIcon
+            <ChevronDown
               className={`size-4 transition-transform ${group.collapsed ? '-rotate-90' : ''}`}
+              strokeWidth={2.4}
             />
           </Button>
 

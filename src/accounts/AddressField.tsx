@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Identicon } from '@/ui/Identicon'
-import { ChevronIcon } from '@/ui/icons'
+import { ChevronDown } from 'lucide-react'
 import { BOX } from '@/ui/Modal'
 import { IdentityVerdict } from './IdentityVerdict'
 import { useAccountsStore } from './store'
@@ -170,7 +170,7 @@ export function AddressField<T extends Pickable>({
         </span>
 
         {/* Kept in place rather than dropped, so a column of these lines up */}
-        <ChevronIcon className={`size-4 shrink-0 text-dim ${offers ? '' : 'invisible'}`} />
+        <ChevronDown className={`size-4 shrink-0 text-dim ${offers ? '' : 'invisible'}`} strokeWidth={2.4} />
       </PopoverTrigger>
 
       <PopoverContent

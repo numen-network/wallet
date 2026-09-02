@@ -6,7 +6,7 @@ import { amountInput, formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
 import { Identicon } from '@/ui/Identicon'
-import { PlusIcon, TrashIcon } from '@/ui/icons'
+import { Plus, Trash2 } from 'lucide-react'
 import { BOX, FieldError, Input } from '@/ui/Modal'
 import { AddressField } from './AddressField'
 import { toast } from '@/ui/Toast'
@@ -194,7 +194,7 @@ export function SendMany({
                 patch({ rows: rest.length > 0 ? rest : [BLANK] })
               }}
             >
-              <TrashIcon />
+              <Trash2 />
             </Button>
           </div>
         )
@@ -202,7 +202,7 @@ export function SendMany({
 
       <div className="mt-3 flex items-center gap-3">
         <Button type="button" variant="outline" onClick={() => patch({ rows: [...rows, BLANK] })}>
-          <PlusIcon />
+          <Plus />
           Add
         </Button>
         <span className="ml-auto text-[12.5px] text-dim">

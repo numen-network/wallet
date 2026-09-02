@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { shorten } from '@/lib/address'
 import { Button } from '@/components/ui/button'
-import { PlusIcon, TrashIcon } from '@/ui/icons'
+import { Plus, Trash2 } from 'lucide-react'
 import { Field, FieldError, Input, Modal } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
@@ -83,14 +83,14 @@ export function MultisigModal({ accounts, onClose }: { accounts: Account[]; onCl
             disabled={rows.length <= LEAST}
             onClick={() => setRows(rows.filter((_, at) => at !== index))}
           >
-            <TrashIcon />
+            <Trash2 />
           </Button>
         </div>
       ))}
 
       <div className="mt-3">
         <Button type="button" variant="outline" onClick={() => setRows([...rows, ''])}>
-          <PlusIcon />
+          <Plus />
           Add signatory
         </Button>
       </div>

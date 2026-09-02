@@ -26,7 +26,7 @@ import {
 } from '@/chain/queries'
 import type { AccountBalance } from '@/chain/types'
 import { Empty } from '@/ui/Empty'
-import { ArrowUpRightIcon, CoinsIcon, PlusIcon, UnlockIcon, VoteIcon } from '@/ui/icons'
+import { ArrowUpRight, Coins, Plus, LockOpen, Vote } from 'lucide-react'
 import { PILL, Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
 import { Tabs, type TabOption } from '@/ui/Tabs'
@@ -162,23 +162,23 @@ export function GovernanceView({
           />
         )}
         <div className="ml-auto flex flex-wrap gap-2 max-[560px]:ml-0">
-          {pill('Referendum', <PlusIcon />, { kind: 'propose' })}
-          {pill('Bounty', <PlusIcon />, { kind: 'proposeBounty' })}
+          {pill('Referendum', <Plus />, { kind: 'propose' })}
+          {pill('Bounty', <Plus />, { kind: 'proposeBounty' })}
           {pill(
             'Batch vote',
-            <VoteIcon />,
+            <Vote />,
             { kind: 'voteAll' },
             running.length > 1 ? null : 'Too few running to vote at once',
           )}
           {pill(
             'Claim every ready spend',
-            <CoinsIcon />,
+            <Coins />,
             { kind: 'claimAll' },
             ready.length > 0 ? null : 'No spend is ready to claim',
           )}
           {pill(
             'Return every deposit',
-            <UnlockIcon />,
+            <LockOpen />,
             { kind: 'returnAll' },
             owed.length > 0 ? null : 'Nothing to hand back',
           )}
@@ -186,7 +186,7 @@ export function GovernanceView({
             href={explorerGovernance(network)}
             target="_blank"
             rel="noopener"
-            icon={<ArrowUpRightIcon />}
+            icon={<ArrowUpRight />}
             label="Browse every referendum"
           />
         </div>
