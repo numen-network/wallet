@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './shadcn.css';
 
 /*
   Test files name classes to prove which of two wins. A scanner that reads them
@@ -14,45 +15,6 @@
   stay inert and the palette below stays the only one.
 */
 @custom-variant dark (&:where(.dark, .dark *));
-
-/*
-  The variants shadcn's own stylesheet defines, copied here so a generated
-  component works without that package. Radix writes its state into data-state,
-  and these read it back under the names the components are written with.
-*/
-@custom-variant data-open {
-  &:where([data-state='open']),
-  &:where([data-open]:not([data-open='false'])) {
-    @slot;
-  }
-}
-
-@custom-variant data-closed {
-  &:where([data-state='closed']),
-  &:where([data-closed]:not([data-closed='false'])) {
-    @slot;
-  }
-}
-
-@custom-variant data-checked {
-  &:where([data-state='checked']),
-  &:where([data-checked]:not([data-checked='false'])) {
-    @slot;
-  }
-}
-
-@custom-variant data-selected {
-  &:where([data-selected='true']) {
-    @slot;
-  }
-}
-
-@custom-variant data-disabled {
-  &:where([data-disabled='true']),
-  &:where([data-disabled]:not([data-disabled='false'])) {
-    @slot;
-  }
-}
 
 /*
   One palette and one typeface, both taken from the explorer so the two read as
