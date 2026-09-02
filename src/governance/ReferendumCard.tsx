@@ -17,7 +17,7 @@ import { Beneficiary } from './Beneficiary'
 import { formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/ui/Card'
 import { ExplorerIcon } from '@/ui/icons'
 
@@ -184,19 +184,19 @@ export function ReferendumCard({
 
       {canSign && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button type="button" variant="primary" onClick={() => onVote(referendum)}>
+          <Button type="button" onClick={() => onVote(referendum)}>
             Vote
           </Button>
-          <Button type="button" onClick={() => onRemoveVote(referendum)}>
+          <Button type="button" variant="outline" onClick={() => onRemoveVote(referendum)}>
             Take back
           </Button>
           {referendum.decisionDeposit === null && (
-            <Button type="button" onClick={() => onDeposit(referendum)}>
+            <Button type="button" variant="outline" onClick={() => onDeposit(referendum)}>
               Place decision deposit
             </Button>
           )}
           {mine.includes(referendum.submitter) && (
-            <Button type="button" onClick={() => onEdit(referendum)}>
+            <Button type="button" variant="outline" onClick={() => onEdit(referendum)}>
               Edit the text
             </Button>
           )}

@@ -9,7 +9,7 @@ import { lockedOf, totalOf } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
 import { formatAmount } from '@/lib/balance'
 import { Badge } from '@/components/ui/badge'
-import { Button, IconButton } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Empty } from '@/ui/Empty'
 import { Footer } from '@/ui/Footer'
 import { MetaMaskIcon, PlusIcon, SignalIcon, SignatureIcon, SyncIcon } from '@/ui/icons'
@@ -122,9 +122,9 @@ function EndpointPicker({ onAdd }: { onAdd: () => void }) {
         {reach && <span className="text-dim tabular-nums">{Math.round(reach.ms)} ms</span>}
       </Select>
 
-      <IconButton type="button" aria-label="Add an endpoint" title="Add an endpoint" onClick={onAdd}>
+      <Button type="button" variant="ghost" size="icon" aria-label="Add an endpoint" title="Add an endpoint" onClick={onAdd}>
         <PlusIcon />
-      </IconButton>
+      </Button>
 
       {usingMock && (
         <Badge variant="destructive" title="No node is attached. Every balance on this page is made up">
@@ -344,7 +344,6 @@ export function App() {
             </p>
             <Button
               type="button"
-              variant="primary"
               className="mt-4"
               onClick={() => setModal({ kind: 'add' })}
             >

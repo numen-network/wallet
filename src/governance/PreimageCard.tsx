@@ -1,7 +1,7 @@
 import type { NotedPreimage } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/ui/Card'
 import { Beneficiary } from './Beneficiary'
 
@@ -40,7 +40,7 @@ export function PreimageCard({
         <span className="text-muted-foreground">from</span>
         <Beneficiary address={preimage.who} />
         {canSign && (
-          <Button type="button" onClick={() => onClear(preimage)}>
+          <Button type="button" variant="outline" onClick={() => onClear(preimage)}>
             Clear it
           </Button>
         )}

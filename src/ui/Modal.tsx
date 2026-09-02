@@ -1,7 +1,7 @@
 import type { FormEvent, ReactNode } from 'react'
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
-import { Button } from './Button'
 
 export interface ModalProps {
   title: string
@@ -75,11 +75,11 @@ export function Modal({
               </div>
               {cancelLabel && (
                 <DialogClose asChild>
-                  <Button type="button">{cancelLabel}</Button>
+                  <Button type="button" variant="outline">{cancelLabel}</Button>
                 </DialogClose>
               )}
               {submitLabel !== null && (
-                <Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={disabled}>
+                <Button type="submit" variant={danger ? 'destructive' : 'default'} disabled={disabled}>
                   {submitLabel}
                 </Button>
               )}

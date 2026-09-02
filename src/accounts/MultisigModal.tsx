@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { shorten } from '@/lib/address'
-import { Button, IconButton } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { PlusIcon, TrashIcon } from '@/ui/icons'
 import { Field, FieldError, Input, Modal } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
@@ -75,19 +75,21 @@ export function MultisigModal({ accounts, onClose }: { accounts: Account[]; onCl
             className="w-full"
             labelled={false}
           />
-          <IconButton
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             aria-label={`Remove signatory ${index + 1}`}
             disabled={rows.length <= LEAST}
             onClick={() => setRows(rows.filter((_, at) => at !== index))}
           >
             <TrashIcon />
-          </IconButton>
+          </Button>
         </div>
       ))}
 
       <div className="mt-3">
-        <Button type="button" onClick={() => setRows([...rows, ''])}>
+        <Button type="button" variant="outline" onClick={() => setRows([...rows, ''])}>
           <PlusIcon />
           Add signatory
         </Button>

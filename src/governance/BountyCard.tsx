@@ -13,7 +13,7 @@ import {
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/ui/Card'
 import { Beneficiary } from './Beneficiary'
 
@@ -77,32 +77,32 @@ function Child({
       {canSign && (
         <div className="mt-2 flex flex-wrap gap-2">
           {asked && (
-            <Button type="button" onClick={() => onAct(child, 'accept')}>
+            <Button type="button" variant="outline" onClick={() => onAct(child, 'accept')}>
               Take it on
             </Button>
           )}
           {held && (
-            <Button type="button" onClick={() => onAct(child, 'award')}>
+            <Button type="button" variant="outline" onClick={() => onAct(child, 'award')}>
               Award it
             </Button>
           )}
           {parentCurator && child.state === 'added' && (
-            <Button type="button" onClick={() => onAct(child, 'propose')}>
+            <Button type="button" variant="outline" onClick={() => onAct(child, 'propose')}>
               Name a curator
             </Button>
           )}
           {(held || asked) && (
-            <Button type="button" onClick={() => onAct(child, 'unassign')}>
+            <Button type="button" variant="outline" onClick={() => onAct(child, 'unassign')}>
               Stand down
             </Button>
           )}
           {parentCurator && child.state !== 'pendingPayout' && (
-            <Button type="button" onClick={() => onAct(child, 'close')}>
+            <Button type="button" variant="outline" onClick={() => onAct(child, 'close')}>
               Close it
             </Button>
           )}
           {childClaimable(child, height) && (
-            <Button type="button" variant="primary" onClick={() => onAct(child, 'claim')}>
+            <Button type="button" onClick={() => onAct(child, 'claim')}>
               Pay it out
             </Button>
           )}
@@ -169,32 +169,32 @@ export function BountyCard({
       {canSign && (
         <div className="mt-3 flex flex-wrap gap-2">
           {asked.length > 0 && (
-            <Button type="button" variant="primary" onClick={() => onAct(bounty, 'accept')}>
+            <Button type="button" onClick={() => onAct(bounty, 'accept')}>
               Take it on
             </Button>
           )}
           {held.length > 0 && (
             <>
-              <Button type="button" variant="primary" onClick={() => onAct(bounty, 'award')}>
+              <Button type="button" onClick={() => onAct(bounty, 'award')}>
                 Award it
               </Button>
-              <Button type="button" onClick={() => onAct(bounty, 'extend')}>
+              <Button type="button" variant="outline" onClick={() => onAct(bounty, 'extend')}>
                 Extend it
               </Button>
             </>
           )}
           {(held.length > 0 || asked.length > 0) && (
-            <Button type="button" onClick={() => onAct(bounty, 'unassign')}>
+            <Button type="button" variant="outline" onClick={() => onAct(bounty, 'unassign')}>
               Stand down
             </Button>
           )}
           {held.length > 0 && (
-            <Button type="button" onClick={() => onAct(bounty, 'addChild')}>
+            <Button type="button" variant="outline" onClick={() => onAct(bounty, 'addChild')}>
               Split off a piece
             </Button>
           )}
           {claimable(bounty, height) && (
-            <Button type="button" variant="primary" onClick={() => onAct(bounty, 'claim')}>
+            <Button type="button" onClick={() => onAct(bounty, 'claim')}>
               Pay it out
             </Button>
           )}

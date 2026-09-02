@@ -4,7 +4,7 @@ import { batched, type Operation } from '@/chain/types'
 import { shorten } from '@/lib/address'
 import { amountInput, formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Button, IconButton } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Identicon } from '@/ui/Identicon'
 import { PlusIcon, TrashIcon } from '@/ui/icons'
 import { BOX, FieldError, Input } from '@/ui/Modal'
@@ -183,8 +183,10 @@ export function SendMany({
               </span>
             </span>
 
-            <IconButton
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               aria-label={`Remove row ${index + 1}`}
               onClick={() => {
                 // Removing the only row leaves a blank one, so the form never
@@ -194,13 +196,13 @@ export function SendMany({
               }}
             >
               <TrashIcon />
-            </IconButton>
+            </Button>
           </div>
         )
       })}
 
       <div className="mt-3 flex items-center gap-3">
-        <Button type="button" onClick={() => patch({ rows: [...rows, BLANK] })}>
+        <Button type="button" variant="outline" onClick={() => patch({ rows: [...rows, BLANK] })}>
           <PlusIcon />
           Add
         </Button>

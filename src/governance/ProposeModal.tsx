@@ -20,7 +20,7 @@ import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
-import { Button, IconButton } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { useDraft } from '@/ui/draft'
 import { Figure } from '@/ui/Figure'
 import { BOX, Field, Input, Textarea } from '@/ui/Modal'
@@ -317,8 +317,10 @@ export function ProposeModal({
               onChange={(event) => editPayout(index, { on: event.target.value })}
             />
 
-            <IconButton
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               aria-label={`Remove payout ${index + 1}`}
               className="mt-1"
               onClick={() => {
@@ -328,7 +330,7 @@ export function ProposeModal({
               }}
             >
               <TrashIcon />
-            </IconButton>
+            </Button>
 
             {/* What the date works out to, which is the block the call carries */}
             <span className="col-span-3 text-right text-[11.5px] text-dim">{untilOf(row)}</span>
@@ -337,6 +339,7 @@ export function ProposeModal({
 
         <Button
           type="button"
+          variant="outline"
           className="mt-2.5"
           onClick={() => patch({ payouts: [...payouts, BLANK] })}
         >

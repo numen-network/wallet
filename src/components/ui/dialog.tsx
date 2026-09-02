@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 
 import { cn } from '@/lib/cn'
-import { IconButton } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { CrossIcon } from '@/ui/icons'
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -64,10 +64,10 @@ function DialogContent({
           {children}
           {showCloseButton && (
             <DialogPrimitive.Close data-slot="dialog-close" asChild>
-              <IconButton type="button" className="absolute top-2 right-2">
+              <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2">
                 <CrossIcon />
                 <span className="sr-only">Close</span>
-              </IconButton>
+              </Button>
             </DialogPrimitive.Close>
           )}
         </DialogPrimitive.Content>

@@ -26,7 +26,7 @@ import {
 } from '@/chain/verify'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Button, IconButton } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Facts, type Fact } from '@/ui/Facts'
 import { TrashIcon } from '@/ui/icons'
 import { FieldError } from '@/ui/Modal'
@@ -302,7 +302,7 @@ export function VerifyIdentity({
               {/* Half the row apiece, so the states line up in a column */}
               <Button
                 type="button"
-                variant={riding ? 'secondary' : 'primary'}
+                variant={riding ? 'outline' : 'default'}
                 className="w-1/2 shrink-0"
                 disabled={busy !== null}
                 onClick={() => void run(provider)}
@@ -316,14 +316,16 @@ export function VerifyIdentity({
                 <p className={trouble ? 'text-destructive' : 'truncate text-dim'}>{trouble ?? state}</p>
               </div>
               {riding && (
-                <IconButton
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   aria-label={`Remove ${name}`}
                   disabled={busy !== null}
                   onClick={() => remove(provider)}
                 >
                   <TrashIcon />
-                </IconButton>
+                </Button>
               )}
             </li>
           )

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Field, FieldError, Input, Modal } from '@/ui/Modal'
-import { IconButton } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { TrashIcon } from '@/ui/icons'
 import { toast } from '@/ui/Toast'
 import { customNetworks } from './custom'
@@ -77,13 +77,15 @@ export function EndpointModal({ onClose }: { onClose: () => void }) {
                   {network.rpc}
                 </span>
               </span>
-              <IconButton
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 aria-label={`Forget ${network.name}`}
                 onClick={() => forget(network.id)}
               >
                 <TrashIcon />
-              </IconButton>
+              </Button>
             </li>
           ))}
         </ul>

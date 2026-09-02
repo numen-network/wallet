@@ -3,7 +3,7 @@ import { evmToSubstrate, isEvmAddress, isSubstrateAddress, toNumenAddress } from
 import { addressOf, newMnemonic, seedOf } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { SyncIcon } from '@/ui/icons'
 import { Identicon } from '@/ui/Identicon'
 import { Field, FieldError, Input, Modal, PasswordFields } from '@/ui/Modal'
@@ -278,7 +278,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
           <div className="mt-3.5 flex items-center gap-2.5 rounded-lg border border-border bg-muted p-2.5">
             <Identicon address={draftAddress} />
             <span className="min-w-0 flex-1 font-mono text-[12.5px] break-all">{draftAddress}</span>
-            <Button type="button" onClick={() => setDraft(newMnemonic())}>
+            <Button type="button" variant="outline" onClick={() => setDraft(newMnemonic())}>
               <SyncIcon />
               Reroll
             </Button>

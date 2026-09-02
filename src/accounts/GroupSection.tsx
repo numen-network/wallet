@@ -6,7 +6,7 @@ import type { AccountBalance } from '@/chain/types'
 import { totalOf } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
-import { IconButton } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Empty } from '@/ui/Empty'
 import { ChevronIcon, PencilIcon, TrashIcon } from '@/ui/icons'
 import { Menu, type MenuSection } from '@/ui/Menu'
@@ -91,8 +91,10 @@ export function GroupSection({
           {...listeners}
           className="flex touch-pan-y cursor-grab items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2.5 select-none"
         >
-          <IconButton
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             data-nodrag
             aria-label={group.collapsed ? 'Expand group' : 'Collapse group'}
             aria-expanded={!group.collapsed}
@@ -101,7 +103,7 @@ export function GroupSection({
             <ChevronIcon
               className={`size-4 transition-transform ${group.collapsed ? '-rotate-90' : ''}`}
             />
-          </IconButton>
+          </Button>
 
           <h2
             className={`text-[12.5px] font-bold tracking-[0.08em] uppercase ${

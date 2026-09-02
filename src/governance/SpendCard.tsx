@@ -2,7 +2,7 @@ import { SPEND_LABELS, spendState, type Spend } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/ui/Card'
 import { Beneficiary } from './Beneficiary'
 
@@ -53,7 +53,7 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
 
       {canSign && state === 'ready' && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button type="button" variant="primary" onClick={() => onPayout(spend)}>
+          <Button type="button" onClick={() => onPayout(spend)}>
             Pay out
           </Button>
         </div>

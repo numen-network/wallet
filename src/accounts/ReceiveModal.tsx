@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { CopyIcon, EyeOffIcon } from '@/ui/icons'
 import { Identicon } from '@/ui/Identicon'
 import { Modal } from '@/ui/Modal'
@@ -32,7 +32,8 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
       <div className="font-mono text-[11px] leading-relaxed break-all text-muted-foreground">{address}</div>
       <Button
         type="button"
-        className="px-2.5 py-1 text-[12.5px]"
+        variant="outline"
+        size="sm"
         onClick={() => copyAddress(address)}
       >
         <CopyIcon />

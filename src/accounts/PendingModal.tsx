@@ -5,7 +5,7 @@ import type { Pending, ReadCall } from '@/chain/types'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/ui/CopyButton'
 import { Facts } from '@/ui/Facts'
 import { Field, Input } from '@/ui/Modal'
@@ -283,6 +283,7 @@ function WaitingCall({
           </Field>
           <Button
             type="button"
+            variant="outline"
             className="mt-2"
             disabled={reading || typed.trim() === ''}
             onClick={() => void check(typed.trim(), true)}
@@ -298,7 +299,6 @@ function WaitingCall({
         {known && (!signed || call.approvals.length >= threshold) && (
           <Button
             type="button"
-            variant="primary"
             disabled={busy}
             onClick={() => onSign(known.hex, said ? said.title : known.read.label)}
           >
@@ -319,7 +319,7 @@ function WaitingCall({
           />
         )}
         {mine && (
-          <Button type="button" disabled={busy} onClick={onCancel}>
+          <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
             Call it off
           </Button>
         )}

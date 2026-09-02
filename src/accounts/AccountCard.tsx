@@ -12,7 +12,7 @@ import { useChain } from '@/chain/provider'
 import { metaMask } from '@/evm/metamask'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/cn'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/ui/Card'
 import { CopyButton } from '@/ui/CopyButton'
 import { DECIMALS, explorerAccount } from '@/chain/config'
@@ -465,7 +465,6 @@ function CardBody({
         <Button
           type="button"
           data-nodrag
-          variant="primary"
           className="flex-1"
           disabled={!canSend(account)}
           title={canSend(account) ? undefined : CANNOT_SEND[account.source]}
@@ -473,7 +472,7 @@ function CardBody({
         >
           Send
         </Button>
-        <Button type="button" data-nodrag className="flex-1" onClick={() => onReceive(account)}>
+        <Button type="button" variant="outline" data-nodrag className="flex-1" onClick={() => onReceive(account)}>
           Receive
         </Button>
       </div>

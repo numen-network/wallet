@@ -7,7 +7,7 @@ import {
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
-import { Button } from '@/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/ui/Card'
 import { Beneficiary } from './Beneficiary'
 
@@ -73,7 +73,7 @@ export function SettledCard({
           held={settled.decision}
           action={
             canSign && (
-              <Button type="button" onClick={() => onRefundDecision(settled)}>
+              <Button type="button" variant="outline" onClick={() => onRefundDecision(settled)}>
                 Return it
               </Button>
             )
@@ -88,7 +88,7 @@ export function SettledCard({
           action={
             back ? (
               canSign && (
-                <Button type="button" onClick={() => onRefundSubmission(settled)}>
+                <Button type="button" variant="outline" onClick={() => onRefundSubmission(settled)}>
                   Return it
                 </Button>
               )

@@ -8,8 +8,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
-import { IconButton } from './Button'
 import { DotsIcon } from './icons'
 
 export interface MenuItem {
@@ -50,9 +50,9 @@ export function Menu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         {trigger ?? (
-          <IconButton type="button" data-nodrag aria-label={label}>
+          <Button type="button" variant="ghost" size="icon" data-nodrag aria-label={label}>
             <DotsIcon />
-          </IconButton>
+          </Button>
         )}
       </DropdownMenuTrigger>
 
