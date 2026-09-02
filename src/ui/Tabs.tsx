@@ -1,3 +1,4 @@
+import { cn } from '@/lib/cn'
 import { CONTROL } from './shell'
 
 export interface TabOption<T extends string> {
@@ -12,7 +13,7 @@ export function Tabs<T extends string>({
   value,
   options,
   onChange,
-  className = '',
+  className,
 }: {
   value: T
   options: readonly TabOption<T>[]
@@ -21,7 +22,11 @@ export function Tabs<T extends string>({
 }) {
   return (
     <div
-      className={`flex ${CONTROL} items-stretch gap-1 rounded-full border border-border bg-muted p-[3px] ${className}`}
+      className={cn(
+        'flex items-stretch gap-1 rounded-full border border-border bg-muted p-[3px]',
+        CONTROL,
+        className,
+      )}
     >
       {options.map((option) => (
         <button
@@ -29,9 +34,12 @@ export function Tabs<T extends string>({
           type="button"
           aria-current={value === option.id}
           onClick={() => onChange(option.id)}
-          className={`flex items-center rounded-full px-3 text-[12px] font-semibold transition-colors ${
-            value === option.id ? 'bg-card text-foreground shadow-card' : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className={cn(
+            'flex items-center rounded-full px-3 text-[12px] font-semibold transition-colors',
+            value === option.id
+              ? 'bg-card text-foreground shadow-card'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
         >
           {option.label}
           {option.count ? <span className="pl-1.5 opacity-55">{option.count}</span> : null}

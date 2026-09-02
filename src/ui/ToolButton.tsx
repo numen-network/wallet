@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 import { CONTROL } from './shell'
 
 const PILL =
@@ -16,9 +17,9 @@ interface ToolButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /** A pill for something to do, its glyph on a disc. */
-export function ToolButton({ icon, label, className = '', ...props }: ToolButtonProps) {
+export function ToolButton({ icon, label, className, ...props }: ToolButtonProps) {
   return (
-    <button type="button" {...props} className={`${PILL} ${className}`}>
+    <button type="button" {...props} className={cn(PILL, className)}>
       <Disc icon={icon} />
       {label}
     </button>
@@ -31,9 +32,9 @@ interface ToolLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
 }
 
 /** The same pill for somewhere to go rather than something to do. */
-export function ToolLink({ icon, label, className = '', ...props }: ToolLinkProps) {
+export function ToolLink({ icon, label, className, ...props }: ToolLinkProps) {
   return (
-    <a {...props} className={`${PILL} ${className}`}>
+    <a {...props} className={cn(PILL, className)}>
       <Disc icon={icon} />
       {label}
     </a>

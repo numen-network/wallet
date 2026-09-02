@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { cn } from '@/lib/cn'
 import { CheckIcon, CopyIcon } from './icons'
 import { copyAddress } from './clipboard'
 
@@ -10,7 +11,7 @@ interface CopyButtonProps {
   className?: string
 }
 
-export function CopyButton({ text, label, spelled = false, className = '' }: CopyButtonProps) {
+export function CopyButton({ text, label, spelled = false, className }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -31,9 +32,12 @@ export function CopyButton({ text, label, spelled = false, className = '' }: Cop
       onClick={copy}
       title={label}
       aria-label={label}
-      className={`inline-flex items-center gap-1.5 rounded p-0.5 ${
-        spelled ? 'text-[12.5px]' : 'grid place-items-center'
-      } ${copied ? 'text-primary' : 'text-dim hover:text-foreground'} ${className}`}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded p-0.5',
+        spelled ? 'text-[12.5px]' : 'grid place-items-center',
+        copied ? 'text-primary' : 'text-dim hover:text-foreground',
+        className,
+      )}
     >
       {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
       {spelled && (copied ? 'Copied' : label)}

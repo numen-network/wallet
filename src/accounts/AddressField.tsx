@@ -5,6 +5,7 @@ import { useBalances, useStanding, useSymbol } from '@/chain/queries'
 import { labelOf } from '@/chain/identity'
 import { resolveAddress, shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
+import { cn } from '@/lib/cn'
 import { Identicon } from '@/ui/Identicon'
 import { ChevronIcon } from '@/ui/icons'
 import { BOX } from '@/ui/Modal'
@@ -138,9 +139,13 @@ export function AddressField<T extends Pickable>({
         type="button"
         aria-label={label}
         disabled={!offers}
-        className={`flex min-w-[350px] items-center gap-3 py-2 pr-2 pl-3 text-left ${BOX} ${
-          labelled ? 'mt-2.5 first:mt-0' : ''
-        } ${className} data-[state=open]:border-primary`}
+        className={cn(
+          'flex min-w-[350px] items-center gap-3 py-2 pr-2 pl-3 text-left',
+          BOX,
+          labelled && 'mt-2.5 first:mt-0',
+          className,
+          'data-[state=open]:border-primary',
+        )}
       >
         <Identicon address={resolved ?? ''} size={labelled ? 34 : 22} />
 

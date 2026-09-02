@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import type { FormEvent, ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 import { Button } from './Button'
 
 export interface ModalProps {
@@ -136,15 +137,15 @@ export function PasswordFields({ children }: { children: ReactNode }) {
 
 const INPUT = 'w-full bg-transparent text-[15px] placeholder:text-hint focus:outline-none'
 
-export function Input({ className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`${INPUT} ${className}`} />
+export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={cn(INPUT, className)} />
 }
 
 export function Textarea({
-  className = '',
+  className,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={`${INPUT} ${className}`} />
+  return <textarea {...props} className={cn(INPUT, className)} />
 }
 
 export function FieldError({ children }: { children: ReactNode }) {

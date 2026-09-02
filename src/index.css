@@ -1,6 +1,13 @@
 @import 'tailwindcss';
 
 /*
+  Test files name classes to prove which of two wins. A scanner that reads them
+  ships utilities no page ever renders.
+*/
+@source not "./**/*.test.ts";
+@source not "./**/*.test.tsx";
+
+/*
   One palette and one typeface, both taken from the explorer so the two read as
   one product. There is no dark variant on purpose, a wallet that repaints
   itself with the operating system is a wallet whose screenshots never match

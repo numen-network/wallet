@@ -1,3 +1,5 @@
+import { cn } from '@/lib/cn'
+
 export type Verdict = 'verified' | 'stale' | 'pending' | 'unjudged' | 'bad'
 
 export const TICK = 'M4 7.2 6.1 9.3 10 5.2'
@@ -25,7 +27,7 @@ export function MarkDisc({
   className?: string
 }) {
   return (
-    <svg viewBox="0 0 14 14" className={`shrink-0 ${className}`} role="img" aria-label={title}>
+    <svg viewBox="0 0 14 14" className={cn('shrink-0', className)} role="img" aria-label={title}>
       {title && <title>{title}</title>}
       <circle cx="7" cy="7" r="7" fill={fill} />
       <path

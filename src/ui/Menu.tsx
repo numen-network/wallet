@@ -1,5 +1,6 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { Fragment, type ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 import { IconButton } from './Button'
 import { DotsIcon } from './icons'
 
@@ -66,7 +67,10 @@ export function Menu({
           align="end"
           sideOffset={6}
           collisionPadding={8}
-          className={`z-95 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-[6px] border border-border bg-card p-1.5 shadow-lift ${className}`}
+          className={cn(
+            'z-95 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-[6px] border border-border bg-card p-1.5 shadow-lift',
+            className,
+          )}
         >
           {sections.map((section, index) => (
             <Fragment key={section.label ?? index}>

@@ -1,5 +1,6 @@
 import * as RadixSelect from '@radix-ui/react-select'
 import type { ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 import { CheckIcon, ChevronIcon } from './icons'
 
 export interface SelectOption {
@@ -46,7 +47,7 @@ export function Select({
   options,
   label,
   title,
-  className = '',
+  className,
   children,
 }: SelectProps) {
   // Told rather than inferred. Radix works the text out from the items it has
@@ -63,7 +64,7 @@ export function Select({
         if (options.some((option) => option.value === next)) onValueChange(next)
       }}
     >
-      <RadixSelect.Trigger className={`${TRIGGER} ${className}`} aria-label={label} title={title}>
+      <RadixSelect.Trigger className={cn(TRIGGER, className)} aria-label={label} title={title}>
         {/* One item, so a mark ahead of the value travels with it instead of
             being pushed away from its own label */}
         <span className="flex items-center gap-1.5">
