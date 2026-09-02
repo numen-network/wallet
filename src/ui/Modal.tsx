@@ -1,5 +1,5 @@
-import { Dialog } from 'radix-ui'
 import type { FormEvent, ReactNode } from 'react'
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/cn'
 import { Button } from './Button'
 
@@ -46,51 +46,48 @@ export function Modal({
   }
 
   return (
-    <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-90 grid place-items-center bg-overlay p-5">
-          <Dialog.Content
-            // The overlay row grows with its content, so the cap is the viewport
-            // itself, less the padding the overlay keeps around the dialog
-            className="flex max-h-[calc(100dvh-40px)] w-full flex-col rounded-lg border border-border bg-card px-[22px] py-5 shadow-lift"
-            style={{ maxWidth: width }}
-            aria-describedby={undefined}
-          >
-            <form onSubmit={submit} className="flex min-h-0 flex-col">
-              <div className="flex shrink-0 items-center gap-4">
-                <Dialog.Title className="text-[17px] font-bold tracking-tight">{title}</Dialog.Title>
-                {aside && <span className="ml-auto">{aside}</span>}
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="gap-0 px-[22px] py-5"
+        style={{ maxWidth: width }}
+        aria-describedby={undefined}
+      >
+        <form onSubmit={submit} className="flex min-h-0 flex-col">
+          <div className="flex shrink-0 items-center gap-4">
+            <DialogTitle className="text-[17px] leading-normal font-bold tracking-tight">
+              {title}
+            </DialogTitle>
+            {aside && <span className="ml-auto">{aside}</span>}
+          </div>
+
+          <div className="mt-3.5 min-h-0 overflow-y-auto pb-5">{children}</div>
+
+          {/* The form scrolls, the foot holds still, so a refusal lands
+              beside the button that was pressed */}
+          <div className="shrink-0 border-t border-border">
+            <div className="mt-3.5 empty:hidden">{footer}</div>
+
+            <div className="mt-3.5 flex items-center gap-2.5">
+              <div className="flex-1 text-[11.5px] text-dim">
+                {fee}
+                {footNote && <p>{footNote}</p>}
               </div>
-
-              <div className="mt-3.5 min-h-0 overflow-y-auto pb-5">{children}</div>
-
-              {/* The form scrolls, the foot holds still, so a refusal lands
-                  beside the button that was pressed */}
-              <div className="shrink-0 border-t border-border">
-                <div className="mt-3.5 empty:hidden">{footer}</div>
-
-                <div className="mt-3.5 flex items-center gap-2.5">
-                  <div className="flex-1 text-[11.5px] text-dim">
-                    {fee}
-                    {footNote && <p>{footNote}</p>}
-                  </div>
-                  {cancelLabel && (
-                    <Dialog.Close asChild>
-                      <Button type="button">{cancelLabel}</Button>
-                    </Dialog.Close>
-                  )}
-                  {submitLabel !== null && (
-                    <Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={disabled}>
-                      {submitLabel}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </form>
-          </Dialog.Content>
-        </Dialog.Overlay>
-      </Dialog.Portal>
-    </Dialog.Root>
+              {cancelLabel && (
+                <DialogClose asChild>
+                  <Button type="button">{cancelLabel}</Button>
+                </DialogClose>
+              )}
+              {submitLabel !== null && (
+                <Button type="submit" variant={danger ? 'danger' : 'primary'} disabled={disabled}>
+                  {submitLabel}
+                </Button>
+              )}
+            </div>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

@@ -492,6 +492,9 @@ test('one QR code goes behind a cover without moving the other', async ({ page }
   const evm = dialog.getByRole('img', { name: `QR code for ${BRIDGE_EVM}` })
   await expect(numen).toBeVisible()
 
+  // Read once the dialog has finished scaling in. A box measured mid-animation
+  // is the scaled one, and nothing after it would line up
+  await expect(dialog).toHaveCSS('transform', 'none')
   const before = await dialog.boundingBox()
   const evmBefore = await evm.boundingBox()
   await dialog.getByRole('button', { name: 'Hide the Numen QR code' }).click()

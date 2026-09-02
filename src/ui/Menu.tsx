@@ -1,5 +1,13 @@
-import { DropdownMenu } from 'radix-ui'
 import { Fragment, type ReactNode } from 'react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/cn'
 import { IconButton } from './Button'
 import { DotsIcon } from './icons'
@@ -23,8 +31,7 @@ export interface MenuSection {
   items: MenuItem[]
 }
 
-const ITEM =
-  'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-[7px] text-[13.5px] outline-none select-none data-highlighted:bg-accent'
+const ITEM = 'cursor-pointer gap-2 rounded-lg px-2.5 py-[7px] text-[13.5px]'
 
 export function Menu({
   label,
@@ -40,69 +47,57 @@ export function Menu({
   className?: string
 }) {
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         {trigger ?? (
           <IconButton type="button" data-nodrag aria-label={label}>
             <DotsIcon />
           </IconButton>
         )}
-      </DropdownMenu.Trigger>
+      </DropdownMenuTrigger>
 
-      <DropdownMenu.Portal>
-        {/*
-          A card with everything switched on runs past the bottom of a short
-          window, and an item nobody can reach is an item that is not there.
-
-          Over the dialog layer rather than under it. A menu opened inside a
-          dialog sits beneath its overlay otherwise, which swallows every click.
-
-          data-nodrag matters here even though the menu is portalled out of the
-          card. React sends events up the component tree rather than the DOM
-          tree, so a press in here still reaches whatever the card listens with,
-          and dragging to read an item would pick the card up instead.
-        */}
-        <DropdownMenu.Content
-          data-nodrag
-          align="end"
-          sideOffset={6}
-          collisionPadding={8}
-          className={cn(
-            'z-95 max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto rounded-lg border border-border bg-card p-1.5 shadow-lift',
-            className,
-          )}
-        >
-          {sections.map((section, index) => (
-            <Fragment key={section.label ?? index}>
-              {index > 0 && (
-                <DropdownMenu.Separator className="mx-1 my-1.5 border-t border-border" />
+      {/*
+        data-nodrag matters here even though the menu is portalled out of the
+        card. React sends events up the component tree rather than the DOM
+        tree, so a press in here still reaches whatever the card listens with,
+        and dragging to read an item would pick the card up instead.
+      */}
+      <DropdownMenuContent
+        data-nodrag
+        align="end"
+        sideOffset={6}
+        collisionPadding={8}
+        className={cn('p-1.5', className)}
+      >
+        {sections.map((section, index) => (
+          <Fragment key={section.label ?? index}>
+            {index > 0 && <DropdownMenuSeparator className="mx-1 my-1.5" />}
+            <DropdownMenuGroup>
+              {section.label && (
+                <DropdownMenuLabel className="px-2.5 py-1 text-[10.5px] font-bold tracking-[0.07em] text-dim uppercase">
+                  {section.label}
+                </DropdownMenuLabel>
               )}
-              <DropdownMenu.Group>
-                {section.label && (
-                  <DropdownMenu.Label className="px-2.5 py-1 text-[10.5px] font-bold tracking-[0.07em] text-dim uppercase">
-                    {section.label}
-                  </DropdownMenu.Label>
-                )}
-                {section.items.map((item) => (
-                  <DropdownMenu.Item
-                    key={item.label}
-                    onSelect={item.onSelect}
-                    className={`${ITEM} ${item.danger ? 'text-destructive' : ''}`}
-                  >
-                    <span className={item.danger ? '' : 'text-muted-foreground'}>{item.icon}</span>
-                    {item.label}
-                    {item.aside && (
-                      <span className="ml-auto pl-4 font-mono text-[11.5px] text-dim">
-                        {item.aside}
-                      </span>
-                    )}
-                  </DropdownMenu.Item>
-                ))}
-              </DropdownMenu.Group>
-            </Fragment>
-          ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+              {section.items.map((item) => (
+                <DropdownMenuItem
+                  key={item.label}
+                  onSelect={item.onSelect}
+                  variant={item.danger ? 'destructive' : 'default'}
+                  className={ITEM}
+                >
+                  <span className={item.danger ? '' : 'text-muted-foreground'}>{item.icon}</span>
+                  {item.label}
+                  {item.aside && (
+                    <span className="ml-auto pl-4 font-mono text-[11.5px] text-dim">
+                      {item.aside}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuGroup>
+          </Fragment>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
