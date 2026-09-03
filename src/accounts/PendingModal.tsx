@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useChain } from '@/chain/provider'
 import { usePending, useSymbol } from '@/chain/queries'
 import type { Pending, ReadCall } from '@/chain/types'
@@ -12,10 +12,10 @@ import { Field, Input } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { describe } from './activity'
-import { CallModal, useSubmit } from './Authorize'
+import { CallModal, useSigning } from './Authorize'
 import { readAgainst, useCallsStore } from './calls'
 import { otherSignatories } from './multisig'
-import { needsPassword, type Account } from './types'
+import type { Account } from './types'
 
 /**
  * What this multisig has started and not finished.
@@ -40,13 +40,11 @@ export function PendingModal({
   const symbol = useSymbol()
   const { data: pending, isPending } = usePending([account.address])
   const calls = useCallsStore((state) => state.calls)
-  const [signing, setSigning] = useState(signers[0]?.address ?? account.address)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const signer = signers.find((entry) => entry.address === signing) ?? signers[0] ?? account
-  const submit = useSubmit(signer)
+  const { signer, choose, send: submit, needsPassword } = useSigning(account, signers)
   const threshold = account.multisig?.threshold ?? 0
   const waiting = pending ?? []
   const others = otherSignatories(account.multisig?.signatories ?? [], signer.address)
@@ -75,7 +73,7 @@ export function PendingModal({
       submitLabel={null}
       cancelLabel="Close"
       from={signer.address}
-      needsPassword={waiting.length > 0 && needsPassword(signer)}
+      needsPassword={waiting.length > 0 && needsPassword}
       operation={null}
       password={password}
       onPassword={setPassword}
@@ -141,7 +139,7 @@ export function PendingModal({
         <AddressField
           label="Signing as"
           value={signer.address}
-          onChange={setSigning}
+          onChange={choose}
           accounts={signers}
           readOnly
         />
@@ -190,26 +188,28 @@ function WaitingCall({
   const [reading, setReading] = useState(false)
   const [known, setKnown] = useState<{ hex: string; read: ReadCall } | null>(null)
 
-  const check = async (hex: string, keep: boolean) => {
-    setProblem('')
-    setReading(true)
-    try {
-      const read = await readAgainst((data) => repository.readCall(data), hex, call.callHash)
-      setKnown({ hex, read })
-      if (keep) remember(call.callHash, hex)
-    } catch (trouble) {
-      setProblem(trouble instanceof Error ? trouble.message : 'Those bytes are not a call')
-    } finally {
-      setReading(false)
-    }
-  }
+  const check = useCallback(
+    async (hex: string, keep: boolean) => {
+      setProblem('')
+      setReading(true)
+      try {
+        const read = await readAgainst((data) => repository.readCall(data), hex, call.callHash)
+        setKnown({ hex, read })
+        if (keep) remember(call.callHash, hex)
+      } catch (trouble) {
+        setProblem(trouble instanceof Error ? trouble.message : 'Those bytes are not a call')
+      } finally {
+        setReading(false)
+      }
+    },
+    [repository, call.callHash, remember],
+  )
 
   // What this wallet already holds still gets read against the hash, since it
   // may have been kept before the chain moved on
   useEffect(() => {
     if (held) void check(held, false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [held, call.callHash])
+  }, [held, check])
 
   // Whole addresses, since this is the last look anybody gets before signing
   const said =

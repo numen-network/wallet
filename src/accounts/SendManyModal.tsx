@@ -10,9 +10,8 @@ import { Plus, Trash2 } from 'lucide-react'
 import { BOX, FieldError, Input } from '@/ui/Modal'
 import { AddressField } from './AddressField'
 import { toast } from '@/ui/Toast'
-import { CallPage, through, useSubmit } from './Authorize'
+import { CallPage, useSigning } from './Authorize'
 import { BLANK, owed, payments, rowProblem, type Row } from './payments'
-import { needsPassword } from './types'
 import type { SendManyProps } from './SendModal'
 
 /**
@@ -35,16 +34,12 @@ export function SendMany({
   const { rows } = draft
   // Anywhere else the wallet knows, since paying this account from itself is a no op
   const others = accounts.filter((entry) => entry.address !== account.address)
-  const [signing, setSigning] = useState(signers[0]?.address ?? account.address)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [shown, setShown] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  const held = account.multisig || account.proxied ? signers : []
-  const signer = held.find((entry) => entry.address === signing) ?? held[0] ?? account
-  const submit = useSubmit(signer)
-  const local = needsPassword(signer)
+  const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
 
   const setRow = (at: number, next: Partial<Row>) =>
     patch({ rows: rows.map((row, index) => (index === at ? { ...row, ...next } : row)) })
@@ -56,7 +51,7 @@ export function SendMany({
     kind: 'batch',
     calls: rows.map(() => ({ kind: 'transfer', to: account.address, amount: 0n })),
   }
-  const { data: fee } = useFeeEstimate(signer.address, through(account, signer, probe))
+  const { data: fee } = useFeeEstimate(signer.address, wrap(probe))
   // A multisig or a proxied account pays out of its own balance while whoever
   // signs covers the fee, so nothing has to be held back from what it sends
   const another = Boolean(account.multisig || account.proxied)
@@ -75,7 +70,7 @@ export function SendMany({
       return false
     }
 
-    if (local && !password) {
+    if (needsPassword && !password) {
       setError('Enter the password for this account')
       return false
     }
@@ -87,7 +82,7 @@ export function SendMany({
   const send = async (operation: Operation) => {
     setBusy(true)
     try {
-      await submit(through(account, signer, operation), password)
+      await submit(operation, password)
       toast(`${rows.length === 1 ? 'Transfer' : 'Transfers'} sent`)
       sent()
       onClose()
@@ -115,8 +110,8 @@ export function SendMany({
         `Needs any ${account.multisig.threshold} of ${account.multisig.signatories.length} signatures`
       }
       from={signer.address}
-      needsPassword={local}
-      operation={through(account, signer, probe)}
+      needsPassword={needsPassword}
+      operation={wrap(probe)}
       password={password}
       onPassword={setPassword}
       error={error}
@@ -138,8 +133,8 @@ export function SendMany({
         <AddressField
           label="Signing as"
           value={signer.address}
-          onChange={setSigning}
-          accounts={held}
+          onChange={choose}
+          accounts={bench}
           readOnly
         />
       )}

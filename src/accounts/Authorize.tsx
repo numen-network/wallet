@@ -180,6 +180,8 @@ export function useSigning(account: Account, signers: Account[]) {
     /** The call as the signer makes it, which is what a fee is quoted on. */
     wrap: (call: Operation) => through(account, signer, call),
     submit: (call: Operation, password: string) => send(through(account, signer, call), password),
+    /** The call as it stands, for one that already names the multisig it goes through. */
+    send,
     /** The password belongs to whoever signs, which is rarely the account. */
     needsPassword: needsPassword(signer),
   }

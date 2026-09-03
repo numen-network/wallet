@@ -12,10 +12,10 @@ import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
 import { Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'
-import { CallPage, through, useSubmit } from './Authorize'
+import { CallPage, useSigning } from './Authorize'
 import { BLANK, type Row } from './payments'
 import { SendMany } from './SendManyModal'
-import { needsPassword, type Account } from './types'
+import type { Account } from './types'
 
 interface SendModalProps {
   account: Account
@@ -85,7 +85,6 @@ function SendOne({
   onClose,
 }: SendModalProps & { tabs: ReactNode }) {
   const symbol = useSymbol()
-  const [signing, setSigning] = useState(signers[0]?.address ?? account.address)
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
   const [everything, setEverything] = useState(false)
@@ -95,13 +94,7 @@ function SendOne({
   const [passwordError, setPasswordError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  // A multisig signs through one of its signatories and a proxied account
-  // through whoever it named. Everything else signs for itself, and either way
-  // the fee comes off whoever puts their name to it
-  const held = account.multisig || account.proxied ? signers : []
-  const signer = held.find((entry) => entry.address === signing) ?? held[0] ?? account
-  const submit = useSubmit(signer)
-  const local = needsPassword(signer)
+  const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
 
   const transferable = balance?.transferable ?? 0n
   // What the chain will make of the far end. An account it has never seen has
@@ -116,7 +109,7 @@ function SendOne({
   const probe: Operation = everything
     ? { kind: 'transferAll', to: account.address }
     : { kind: 'transfer', to: account.address, amount: transferable }
-  const { data: fee } = useFeeEstimate(signer.address, through(account, signer, probe))
+  const { data: fee } = useFeeEstimate(signer.address, wrap(probe))
   const { data: facts } = useFacts()
   // A multisig or a proxied account pays out of its own balance while whoever
   // signs covers the fee, so the deposit that keeps it alive is the only thing
@@ -164,7 +157,7 @@ function SendOne({
       operation = destination ? { kind: 'transfer', to: destination, amount: planck } : null
     }
 
-    const missing = local && !password
+    const missing = needsPassword && !password
     setPasswordError(missing ? 'Enter the password for this account' : '')
     if (!operation || missing) return false
 
@@ -175,7 +168,7 @@ function SendOne({
   const send = async (operation: Operation) => {
     setBusy(true)
     try {
-      await submit(through(account, signer, operation), password)
+      await submit(operation, password)
       toast('Transfer sent')
       onClose()
     } catch (error) {
@@ -197,7 +190,7 @@ function SendOne({
         `Needs any ${account.multisig.threshold} of ${account.multisig.signatories.length} signatures`
       }
       from={account.address}
-      needsPassword={local}
+      needsPassword={needsPassword}
       operation={probe}
       password={password}
       onPassword={setPassword}
@@ -222,8 +215,8 @@ function SendOne({
           <AddressField
           label="Signing as"
           value={signer.address}
-          onChange={setSigning}
-          accounts={held}
+          onChange={choose}
+          accounts={bench}
           readOnly
         />
           <p className="mt-1.5 text-[12.5px] text-dim">
