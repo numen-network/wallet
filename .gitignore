@@ -4,9 +4,6 @@ coverage/
 test-results/
 playwright-report/
 
-# PAPI generated descriptors, rebuilt with pnpm papi:gen
-.papi/
-
 # Wrangler local cache
 .wrangler/
 

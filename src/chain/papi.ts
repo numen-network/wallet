@@ -1,12 +1,20 @@
 import { hexToU8a } from '@polkadot/util'
 import { blake2AsHex } from '@polkadot/util-crypto'
 import {
+  IdentityData,
+  numen,
+  type ChildBountyStatus,
+  type NumenCallData,
+  type ReferendaTypesCurve,
+} from '@polkadot-api/descriptors'
+import {
   Binary,
   createClient,
   Enum,
   InvalidTxError,
   type PolkadotClient,
-  type PolkadotSigner,
+  type TxCallData,
+  type TypedApi,
 } from 'polkadot-api'
 import { getWsProvider } from 'polkadot-api/ws'
 import { palletAccount } from '@/lib/address'
@@ -36,10 +44,9 @@ import {
 } from './governance'
 
 import {
-  EMPTY_IDENTITY,
   IDENTITY_FIELDS,
+  type IdentityField,
   type IdentityInfo,
-  type Judgement,
   type Registrar,
   type Registration,
   type Standing,
@@ -64,13 +71,9 @@ import {
   type Unsubscribe,
 } from './types'
 
-/**
- * Until `pnpm papi:gen` has run against a live node there are no generated
- * descriptors, so this goes through `getUnsafeApi`. The shape below is the one
- * place that assertion lives, everything downstream is typed again. Running
- * papi:gen replaces `UnsafeApi` with the generated descriptors and the call
- * sites keep their names.
- */
+type Api = TypedApi<typeof numen>
+
+/** The three amounts of System.Account a balance is worked out from. */
 interface AccountInfo {
   data: { free: bigint; reserved: bigint; frozen: bigint }
 }
@@ -80,9 +83,8 @@ interface BalanceLock {
   amount: bigint
 }
 
-interface Subscription {
-  unsubscribe(): void
-}
+/** What every call the api builds comes back as. */
+type Tx = ReturnType<Api['tx']['Utility']['batch_all']>
 
 /** What system_health answers with, which is a legacy call and so untyped. */
 interface Health {
@@ -90,57 +92,20 @@ interface Health {
   isSyncing: boolean
 }
 
-interface TxResult {
-  ok: boolean
-  txHash: string
-  dispatchError?: { type: string; value?: { type?: string; value?: { type?: string } } }
-}
-
-/** The events PAPI emits along the way, narrowed to the ones worth reporting. */
-type TxEvent =
-  | { type: 'signed' | 'broadcasted'; txHash: string }
-  | ({ type: 'txBestBlocksState'; txHash: string } & ({ found: false } | ({ found: true } & TxResult)))
-  | ({ type: 'finalized'; txHash: string } & TxResult)
-
-interface Tx {
-  getEstimatedFees(from: string): Promise<bigint>
-  getEncodedData(): Promise<Uint8Array>
-  /** The call itself, which is what a batch carries rather than encoded bytes. */
-  decodedCall: DecodedCall
-  signSubmitAndWatch(signer: PolkadotSigner, options: { nonce: number }): {
-    subscribe(observer: {
-      next: (event: TxEvent) => void
-      error: (problem: unknown) => void
-      complete: () => void
-    }): Subscription
-  }
-}
-
-/** What a dispatch costs the block, which as_multi has to be told up front. */
-interface Weight {
-  ref_time: bigint
-  proof_size: bigint
-}
-
-/** As pallet_proxy stores it, a bounded list of definitions beside its deposit. */
-type ProxiesEntry = [{ delegate: string; proxy_type: { type: string }; delay: number }[], bigint]
-
 /**
- * pallet_identity's Data, one variant per byte length plus the hashed forms.
- * Sub account names are the last thing still wearing it.
+ * PAPI types a decoded call loosely whichever way it came in. The runtime's
+ * own metadata built it, so it is one of the runtime's calls.
  */
-type IdentityData = { type: string; value?: string | number }
+const asCall = (call: TxCallData): NumenCallData => call as NumenCallData
 
-/** pallet_identity's Judgement, where only FeePaid carries an amount. */
-type JudgementEntry =
-  | { type: Exclude<Judgement, 'FeePaid'> }
-  | { type: 'FeePaid'; value: bigint }
-
-interface RegistrationEntry {
-  judgements: [number, JudgementEntry][]
-  deposit: bigint
-  info: Record<string, Uint8Array>
-}
+type ReferendumInfo = NonNullable<
+  Awaited<ReturnType<Api['query']['Referenda']['ReferendumInfoFor']['getValue']>>
+>
+type ReferendumStatus = Extract<ReferendumInfo, { type: 'Ongoing' }>['value']
+type TrackInfo = Awaited<ReturnType<Api['constants']['Referenda']['Tracks']>>[number][1]
+type BountyStatus = Awaited<
+  ReturnType<Api['query']['Bounties']['Bounties']['getEntries']>
+>[number]['value']['status']
 
 /**
  * Governance and identity are read from the best block rather than the finalized
@@ -153,87 +118,7 @@ const BEST = { at: 'best' } as const
 /** What frame_support takes inline, past which a proposal has to be a preimage. */
 const INLINE_BOUND = 128
 
-/** A pallet_referenda Curve. The linear parts are Perbill, the rest FixedI64. */
-type CurveInfo =
-  | { type: 'LinearDecreasing'; value: { length: number; floor: number; ceil: number } }
-  | { type: 'Reciprocal'; value: { factor: bigint; x_offset: bigint; y_offset: bigint } }
-  | { type: 'SteppedDecreasing'; value: unknown }
-
-interface TrackInfo {
-  name: string
-  max_deciding: number
-  decision_deposit: bigint
-  prepare_period: number
-  decision_period: number
-  confirm_period: number
-  min_enactment_period: number
-  min_approval: CurveInfo
-  min_support: CurveInfo
-}
-
-/** As pallet_referenda stores a running referendum. */
-interface ReferendumStatus {
-  track: number
-  proposal: { type: string; value: Uint8Array | { hash: string; len: number } }
-  submitted: number
-  submission_deposit: { who: string; amount: bigint }
-  decision_deposit?: { amount: bigint }
-  deciding?: { since: number; confirming?: number }
-  tally: Tally
-  in_queue: boolean
-}
-
-interface DepositEntry {
-  who: string
-  amount: bigint
-}
-
-/** As pallet_bounties books one, with everything that varies inside the status. */
-interface BountyEntry {
-  proposer: string
-  value: bigint
-  fee: bigint
-  curator_deposit: bigint
-  bond: bigint
-  status: {
-    type: string
-    value?: { curator?: string; beneficiary?: string; update_due?: number; unlock_at?: number }
-  }
-}
-
-/** A piece of a bounty, which carries no proposer or bond of its own. */
-interface ChildBountyEntry {
-  parent_bounty: number
-  value: bigint
-  fee: bigint
-  curator_deposit: bigint
-  status: {
-    type: string
-    value?: { curator?: string; beneficiary?: string; unlock_at?: number }
-  }
-}
-
-/** As pallet_multisig holds a call that has not gathered enough signatures. */
-interface MultisigEntry {
-  when: { height: number; index: number }
-  deposit: bigint
-  depositor: string
-  approvals: string[]
-}
-
-/**
- * Every way a referendum ends carries the block it ended on and the two
- * deposits, either of which is gone once it has been refunded. Killed is the
- * exception and carries only the block.
- */
-type SettledInfo = [number, DepositEntry | undefined, DepositEntry | undefined]
-
-type ReferendumInfo =
-  | { type: 'Ongoing'; value: ReferendumStatus }
-  | { type: 'Approved' | 'Rejected' | 'TimedOut' | 'Cancelled'; value: SettledInfo }
-  | { type: string; value: unknown }
-
-const CHILD_STATES: Record<string, ChildState | undefined> = {
+const CHILD_STATES: Record<ChildBountyStatus['type'], ChildState> = {
   Added: 'added',
   CuratorProposed: 'curatorProposed',
   Active: 'active',
@@ -241,7 +126,7 @@ const CHILD_STATES: Record<string, ChildState | undefined> = {
 }
 
 /** ApprovedWithCurator reads as approved, since nothing may be done to either. */
-const BOUNTY_STATES: Record<string, BountyState | undefined> = {
+const BOUNTY_STATES: Record<BountyStatus['type'], BountyState> = {
   Proposed: 'proposed',
   Approved: 'approved',
   ApprovedWithCurator: 'approved',
@@ -251,342 +136,51 @@ const BOUNTY_STATES: Record<string, BountyState | undefined> = {
   PendingPayout: 'pendingPayout',
 }
 
+/** Who is on a bounty and the block that matters next, which only some states carry. */
+function bountyHolders(status: BountyStatus): Pick<Bounty, 'curator' | 'beneficiary' | 'until'> {
+  switch (status.type) {
+    case 'Proposed':
+    case 'Approved':
+    case 'Funded':
+      return { curator: null, beneficiary: null, until: null }
+    case 'CuratorProposed':
+    case 'ApprovedWithCurator':
+      return { curator: status.value.curator, beneficiary: null, until: null }
+    case 'Active':
+      return { curator: status.value.curator, beneficiary: null, until: status.value.update_due }
+    case 'PendingPayout':
+      return {
+        curator: status.value.curator,
+        beneficiary: status.value.beneficiary,
+        until: status.value.unlock_at,
+      }
+  }
+}
+
+function childHolders(
+  status: ChildBountyStatus,
+): Pick<ChildBounty, 'curator' | 'beneficiary' | 'until'> {
+  switch (status.type) {
+    case 'Added':
+      return { curator: null, beneficiary: null, until: null }
+    case 'CuratorProposed':
+    case 'Active':
+      return { curator: status.value.curator, beneficiary: null, until: null }
+    case 'PendingPayout':
+      return {
+        curator: status.value.curator,
+        beneficiary: status.value.beneficiary,
+        until: status.value.unlock_at,
+      }
+  }
+}
+
 /** Killed is left out, since it keeps no deposit for anybody to ask back. */
-const OUTCOMES: Record<string, Outcome | undefined> = {
+const OUTCOMES: Record<'Approved' | 'Rejected' | 'TimedOut' | 'Cancelled', Outcome> = {
   Approved: 'approved',
   Rejected: 'rejected',
   TimedOut: 'timedOut',
   Cancelled: 'cancelled',
-}
-
-/**
- * An approved spend, as pallet_treasury books it. The runtime's asset kind is
- * the unit type and its beneficiary an account, so only the amount and the two
- * block bounds carry anything.
- */
-interface SpendEntry {
-  amount: bigint
-  beneficiary: string
-  valid_from: number
-  expire_at: number
-  status: { type: 'Pending' | 'Attempted' | 'Failed' }
-}
-
-/**
- * pallet_preimage keys the bytes by hash and length together, and the length is
- * only ever written down here. An Unrequested one always knows it, a Requested
- * one knows it once the bytes have landed.
- */
-type PreimageStatus =
-  | { type: 'Unrequested'; value: { ticket: [string, bigint]; len: number } }
-  | { type: 'Requested'; value: { maybe_len?: number } }
-
-interface VotingEntry {
-  type: 'Casting' | 'Delegating'
-  value: { votes?: [number, unknown][]; prior: [number, bigint] }
-}
-
-interface DecodedCall {
-  type: string
-  value: {
-    type: string
-    value?: {
-      amount?: bigint
-      beneficiary?: string
-      /** Absent on a spend the treasury releases as soon as it is booked. */
-      valid_from?: number
-      /** A MultiAddress, which for everything the wallet builds is a plain Id. */
-      dest?: { type: string; value?: string }
-      value?: bigint
-      calls?: DecodedCall[]
-      /** Everything else the call carries, which is read rather than understood. */
-      [name: string]: unknown
-    }
-  }
-}
-
-interface UnsafeApi {
-  query: {
-    System: {
-      Account: {
-        watchValue(address: string): {
-          subscribe(next: (update: { value: AccountInfo | undefined }) => void): Subscription
-        }
-      }
-    }
-    EVMChainId: {
-      ChainId: { getValue(): Promise<bigint> }
-    }
-    Proxy: {
-      Proxies: {
-        getValue(address: string): Promise<ProxiesEntry | undefined>
-      }
-    }
-    Identity: {
-      IdentityOf: {
-        getValue(address: string, at: typeof BEST): Promise<RegistrationEntry | undefined>
-      }
-      Registrars: {
-        getValue(
-          at: typeof BEST,
-        ): Promise<({ account: string; fee: bigint } | undefined)[] | undefined>
-      }
-      SuperOf: {
-        getValue(address: string, at: typeof BEST): Promise<[string, IdentityData] | undefined>
-      }
-      SubsOf: {
-        getValue(address: string, at: typeof BEST): Promise<[bigint, string[]] | undefined>
-      }
-    }
-    Referenda: {
-      ReferendumInfoFor: {
-        getEntries(at: typeof BEST): Promise<{ keyArgs: [number]; value: ReferendumInfo }[]>
-      }
-      ReferendumCount: { getValue(at: typeof BEST): Promise<number> }
-      MetadataOf: { getValue(index: number, at: typeof BEST): Promise<string | undefined> }
-    }
-    Treasury: {
-      Spends: {
-        getEntries(at: typeof BEST): Promise<{ keyArgs: [number]; value: SpendEntry }[]>
-      }
-    }
-    Multisig: {
-      Multisigs: {
-        getValue(
-          multisig: string,
-          callHash: string,
-          at: typeof BEST,
-        ): Promise<MultisigEntry | undefined>
-        getEntries(
-          at: typeof BEST,
-        ): Promise<{ keyArgs: [string, string]; value: MultisigEntry }[]>
-      }
-    }
-    Preimage: {
-      RequestStatusFor: {
-        getValue(hash: string, at: typeof BEST): Promise<PreimageStatus | undefined>
-        getEntries(at: typeof BEST): Promise<{ keyArgs: [string]; value: PreimageStatus }[]>
-      }
-      PreimageFor: {
-        getValue(key: [string, number], at: typeof BEST): Promise<Uint8Array | undefined>
-      }
-    }
-    ConvictionVoting: {
-      VotingFor: {
-        getValue(address: string, track: number, at: typeof BEST): Promise<VotingEntry>
-      }
-      ClassLocksFor: {
-        getValue(address: string, at: typeof BEST): Promise<[number, bigint][]>
-      }
-    }
-    Bounties: {
-      Bounties: {
-        getEntries(at: typeof BEST): Promise<{ keyArgs: [number]; value: BountyEntry }[]>
-      }
-      BountyDescriptions: {
-        getValue(index: number, at: typeof BEST): Promise<Uint8Array | undefined>
-      }
-    }
-    ChildBounties: {
-      ChildBounties: {
-        getEntries(
-          at: typeof BEST,
-        ): Promise<{ keyArgs: [number, number]; value: ChildBountyEntry }[]>
-      }
-      ChildBountyDescriptionsV1: {
-        getValue(parent: number, child: number, at: typeof BEST): Promise<Uint8Array | undefined>
-      }
-    }
-    Vesting: {
-      Vesting: {
-        getValue(
-          address: string,
-          at: typeof BEST,
-        ): Promise<{ locked: bigint; per_block: bigint; starting_block: number }[] | undefined>
-      }
-    }
-    Balances: {
-      TotalIssuance: { getValue(at: typeof BEST): Promise<bigint> }
-      InactiveIssuance: { getValue(at: typeof BEST): Promise<bigint> }
-      Locks: {
-        watchValue(address: string): {
-          subscribe(next: (update: { value: BalanceLock[] | undefined }) => void): Subscription
-        }
-      }
-    }
-  }
-  constants: {
-    System: { SS58Prefix(): Promise<number> }
-    Balances: { ExistentialDeposit(): Promise<bigint> }
-    ConvictionVoting: { VoteLockingPeriod(): Promise<number> }
-    Difficulty: { TargetBlockTime(): Promise<bigint> }
-    Identity: {
-      BasicDeposit(): Promise<bigint>
-      ByteDeposit(): Promise<bigint>
-      SubAccountDeposit(): Promise<bigint>
-    }
-    Origins: {
-      SpendCaps(): Promise<[number, { type: string }, bigint][]>
-      PreimageBaseDeposit(): Promise<bigint>
-      PreimageByteDeposit(): Promise<bigint>
-      PreimageMaxSize(): Promise<number>
-    }
-    Precompiles: { BalancesErc20(): Promise<string> }
-    Proxy: {
-      ProxyDepositBase(): Promise<bigint>
-      ProxyDepositFactor(): Promise<bigint>
-      MaxProxies(): Promise<number>
-    }
-    Referenda: {
-      Tracks(): Promise<[number, TrackInfo][]>
-      UndecidingTimeout(): Promise<number>
-      SubmissionDeposit(): Promise<bigint>
-    }
-    Treasury: {
-      PayoutPeriod(): Promise<number>
-      PalletId(): Promise<string>
-    }
-    Vesting: { MinVestedTransfer(): Promise<bigint> }
-  }
-  txFromCallData(data: Uint8Array): Promise<Tx & { decodedCall: DecodedCall }>
-  apis: {
-    TransactionPaymentCallApi: {
-      query_call_info(call: unknown, len: number): Promise<{ weight: Weight }>
-    }
-  }
-  tx: {
-    Balances: {
-      transfer_keep_alive(args: { dest: { type: 'Id'; value: string }; value: bigint }): Tx
-      transfer_all(args: { dest: { type: 'Id'; value: string }; keep_alive: boolean }): Tx
-    }
-    Proxy: {
-      add_proxy(args: {
-        delegate: { type: 'Id'; value: string }
-        proxy_type: { type: string }
-        delay: number
-      }): Tx
-      remove_proxy(args: {
-        delegate: { type: 'Id'; value: string }
-        proxy_type: { type: string }
-        delay: number
-      }): Tx
-      proxy(args: {
-        real: { type: 'Id'; value: string }
-        force_proxy_type: undefined
-        call: unknown
-      }): Tx
-    }
-    ConvictionVoting: {
-      delegate(args: {
-        class: number
-        to: { type: 'Id'; value: string }
-        conviction: { type: string }
-        balance: bigint
-      }): Tx
-      undelegate(args: { class: number }): Tx
-      vote(args: { poll_index: number; vote: { type: string; value: unknown } }): Tx
-      remove_vote(args: { class: number; index: number }): Tx
-      unlock(args: { class: number; target: { type: 'Id'; value: string } }): Tx
-    }
-    Referenda: {
-      submit(args: {
-        proposal_origin: { type: string; value: unknown }
-        proposal:
-          | { type: 'Inline'; value: Uint8Array }
-          | { type: 'Lookup'; value: { hash: string; len: number } }
-        enactment_moment: { type: string; value: number }
-      }): Tx
-      place_decision_deposit(args: { index: number }): Tx
-      set_metadata(args: { index: number; maybe_hash: string | undefined }): Tx
-      refund_submission_deposit(args: { index: number }): Tx
-      refund_decision_deposit(args: { index: number }): Tx
-    }
-    Multisig: {
-      as_multi(args: {
-        threshold: number
-        other_signatories: string[]
-        maybe_timepoint: { height: number; index: number } | undefined
-        call: unknown
-        max_weight: Weight
-      }): Tx
-      cancel_as_multi(args: {
-        threshold: number
-        other_signatories: string[]
-        timepoint: { height: number; index: number }
-        call_hash: string
-      }): Tx
-    }
-    Vesting: {
-      vest(args: Record<string, never>): Tx
-      vested_transfer(args: {
-        target: { type: 'Id'; value: string }
-        schedule: { locked: bigint; per_block: bigint; starting_block: number }
-      }): Tx
-    }
-    ChildBounties: {
-      add_child_bounty(args: {
-        parent_bounty_id: number
-        value: bigint
-        description: Uint8Array
-      }): Tx
-      propose_curator(args: {
-        parent_bounty_id: number
-        child_bounty_id: number
-        curator: { type: 'Id'; value: string }
-        fee: bigint
-      }): Tx
-      accept_curator(args: { parent_bounty_id: number; child_bounty_id: number }): Tx
-      award_child_bounty(args: {
-        parent_bounty_id: number
-        child_bounty_id: number
-        beneficiary: { type: 'Id'; value: string }
-      }): Tx
-      claim_child_bounty(args: { parent_bounty_id: number; child_bounty_id: number }): Tx
-      unassign_curator(args: { parent_bounty_id: number; child_bounty_id: number }): Tx
-      close_child_bounty(args: { parent_bounty_id: number; child_bounty_id: number }): Tx
-    }
-    Bounties: {
-      propose_bounty(args: { value: bigint; description: Uint8Array }): Tx
-      accept_curator(args: { bounty_id: number }): Tx
-      award_bounty(args: { bounty_id: number; beneficiary: { type: 'Id'; value: string } }): Tx
-      claim_bounty(args: { bounty_id: number }): Tx
-      unassign_curator(args: { bounty_id: number }): Tx
-      extend_bounty_expiry(args: { bounty_id: number; remark: Uint8Array }): Tx
-    }
-    Preimage: {
-      note_preimage(args: { bytes: Uint8Array }): Tx
-      unnote_preimage(args: { hash: string }): Tx
-    }
-    Utility: {
-      batch_all(args: { calls: unknown[] }): Tx
-    }
-    Treasury: {
-      spend(args: {
-        asset_kind: undefined
-        amount: bigint
-        beneficiary: string
-        valid_from: number | undefined
-      }): Tx
-      payout(args: { index: number }): Tx
-    }
-    Identity: {
-      set_identity(args: { info: Record<string, Uint8Array> }): Tx
-      clear_identity(args: Record<string, never>): Tx
-      /** A plain account, unlike add_sub and remove_sub, which take a lookup. */
-      set_subs(args: { subs: [string, IdentityData][] }): Tx
-      quit_sub(args: Record<string, never>): Tx
-      request_judgement(args: { reg_index: number; max_fee: bigint }): Tx
-      provide_judgement(args: {
-        reg_index: number
-        target: { type: 'Id'; value: string }
-        judgement: { type: Judgement }
-        /** blake2 of the encoded info, which is what binds a verdict to one identity. */
-        identity: string
-      }): Tx
-      cancel_request(args: { reg_index: number }): Tx
-      set_fee(args: { index: number; fee: bigint }): Tx
-    }
-  }
 }
 
 const encoder = new TextEncoder()
@@ -597,8 +191,6 @@ const toHex = (bytes: Uint8Array): string =>
 
 /** How far into a call's own structure is worth writing out before it is noise. */
 const DEEP = 4
-
-const BATCH_CALLS = new Set(['batch', 'batch_all', 'force_batch'])
 
 /** How deep a proposal may nest batches before the walk gives up on it. */
 const PROPOSAL_DEPTH = 4
@@ -616,10 +208,10 @@ const asBytes = (value: unknown): Uint8Array | null => {
  * bare number and rejects hex. Only sub account names still go through here.
  */
 function toData(text: string): IdentityData {
-  if (text === '') return Enum('None')
+  if (text === '') return IdentityData.None()
   const bytes = encoder.encode(text)
-  if (bytes.length === 1) return Enum('Raw1', bytes[0]!) as IdentityData
-  return Enum(`Raw${bytes.length}`, toHex(bytes)) as IdentityData
+  if (bytes.length === 1) return IdentityData.Raw1(bytes[0]!)
+  return { type: `Raw${bytes.length}`, value: toHex(bytes) } as IdentityData
 }
 
 /** Anything the chain holds as a hash rather than as text reads back as empty. */
@@ -630,16 +222,23 @@ function fromData(data: IdentityData | undefined): string {
   return decoder.decode(Uint8Array.from(bytes, (byte) => parseInt(byte, 16)))
 }
 
-const toIdentityInfo = (info: Record<string, Uint8Array>): IdentityInfo =>
-  Object.fromEntries(
-    IDENTITY_FIELDS.map((field) => {
-      const bytes = info[field]
-      return [field, bytes ? Binary.toText(bytes) : '']
-    }),
-  ) as IdentityInfo
+/** As the runtime's IdentityInfo has it, matching the wallet's field for field. */
+type ChainIdentityInfo = Parameters<Api['tx']['Identity']['set_identity']>[0]['info']
 
-const fromIdentityInfo = (info: IdentityInfo): Record<string, Uint8Array> =>
-  Object.fromEntries(IDENTITY_FIELDS.map((field) => [field, Binary.fromText(info[field])]))
+/** Every field carried across, so a field one side lacks fails to compile. */
+const mapFields = <From, To>(
+  info: Record<IdentityField, From>,
+  read: (value: From) => To,
+): Record<IdentityField, To> =>
+  Object.fromEntries(IDENTITY_FIELDS.map((field) => [field, read(info[field])])) as Record<
+    IdentityField,
+    To
+  >
+
+const toIdentityInfo = (info: ChainIdentityInfo): IdentityInfo => mapFields(info, Binary.toText)
+
+const fromIdentityInfo = (info: IdentityInfo): ChainIdentityInfo =>
+  mapFields(info, Binary.fromText)
 
 /** Perbill and FixedI64 both scale by a billion, which is all the curves need. */
 const BILLIONTHS = 1_000_000_000
@@ -649,7 +248,7 @@ const BILLIONTHS = 1_000_000_000
  * so a stepped one is the runtime having changed under the wallet rather than
  * something to draw around.
  */
-function toCurve(curve: CurveInfo): Curve {
+function toCurve(curve: ReferendaTypesCurve): Curve {
   switch (curve.type) {
     case 'LinearDecreasing':
       return {
@@ -689,19 +288,19 @@ const toTrack = ([id, info]: [number, TrackInfo]): Track => ({
  * `deciding` is set, and `in_queue` says whether it is waiting on its prepare
  * period or on a track with every deciding slot taken.
  */
-export function toState(status: ReferendumStatus): ReferendumState {
+export function toState(
+  status: Pick<ReferendumStatus, 'deciding' | 'in_queue'>,
+): ReferendumState {
   if (!status.deciding) return status.in_queue ? 'queued' : 'preparing'
   return status.deciding.confirming === undefined ? 'deciding' : 'confirming'
 }
 
 function toBalance(
-  info: AccountInfo | undefined,
+  info: AccountInfo,
   locks: BalanceLock[],
   existentialDeposit: bigint,
 ): AccountBalance {
-  const free = info?.data.free ?? 0n
-  const reserved = info?.data.reserved ?? 0n
-  const frozen = info?.data.frozen ?? 0n
+  const { free, reserved, frozen } = info.data
   return {
     free,
     reserved,
@@ -716,10 +315,8 @@ function toBalance(
  * the pallet that refused the call and, inside that, what it refused it for, so
  * anything that stops at the first level names the pallet and never the reason.
  */
-function dispatchMessage(result: TxResult): string {
-  const error = result.dispatchError
-  if (!error) return 'Transaction failed'
-  const inner = error.value
+function dispatchMessage(error: { type: string; value: unknown }): string {
+  const inner = error.value as { type?: string; value?: { type?: string } } | undefined
   if (!inner?.type) return error.type
   return inner.value?.type ? `${inner.type}: ${inner.value.type}` : `${error.type}: ${inner.type}`
 }
@@ -737,7 +334,7 @@ function refused(problem: unknown): Error {
 
 export function createPapiRepository(network: Network): ChainRepository {
   const client: PolkadotClient = createClient(getWsProvider(network.rpc))
-  const api = client.getUnsafeApi() as unknown as UnsafeApi
+  const api = client.getTypedApi(numen)
 
   /** The last nonce each address went out with, for sends fired back to back. */
   const sentNonces = new Map<string, number>()
@@ -787,18 +384,19 @@ export function createPapiRepository(network: Network): ChainRepository {
    * can put into words. Everything else is shown by the name the runtime gives
    * it, which is honest about how much has been understood.
    */
-  const asOperation = (decoded: DecodedCall): Operation | null => {
-    const { type: pallet, value: call } = decoded
-    const args = call.value ?? {}
+  const asOperation = (decoded: TxCallData): Operation | null => {
+    const call = asCall(decoded)
 
-    if (pallet === 'Balances' && call.type === 'transfer_keep_alive' && args.dest) {
-      return { kind: 'transfer', to: args.dest.value ?? '', amount: args.value ?? 0n }
+    if (call.type === 'Balances' && call.value.type === 'transfer_keep_alive') {
+      const { dest, value } = call.value.value
+      return dest.type === 'Id' ? { kind: 'transfer', to: dest.value, amount: value } : null
     }
-    if (pallet === 'Balances' && call.type === 'transfer_all' && args.dest) {
-      return { kind: 'transferAll', to: args.dest.value ?? '' }
+    if (call.type === 'Balances' && call.value.type === 'transfer_all') {
+      const { dest } = call.value.value
+      return dest.type === 'Id' ? { kind: 'transferAll', to: dest.value } : null
     }
-    if (pallet === 'Utility' && call.type === 'batch_all' && args.calls) {
-      const inner = args.calls.map(asOperation)
+    if (call.type === 'Utility' && call.value.type === 'batch_all') {
+      const inner = call.value.value.calls.map(asOperation)
       return inner.every((entry) => entry !== null) ? { kind: 'batch', calls: inner } : null
     }
 
@@ -813,11 +411,17 @@ export function createPapiRepository(network: Network): ChainRepository {
   const proposalBytes = async (
     proposal: ReferendumStatus['proposal'],
   ): Promise<Uint8Array | undefined> => {
-    if (proposal.type === 'Inline') return proposal.value as Uint8Array
-    // The codec hands the hash over as hex, which is what the key takes
-    const held = proposal.value as { hash?: string; len?: number }
-    if (!held.hash || held.len == null) return undefined
-    return api.query.Preimage.PreimageFor.getValue([held.hash, held.len], BEST)
+    switch (proposal.type) {
+      case 'Inline':
+        return proposal.value
+      case 'Lookup':
+        return api.query.Preimage.PreimageFor.getValue(
+          [proposal.value.hash, proposal.value.len],
+          BEST,
+        )
+      case 'Legacy':
+        return undefined
+    }
   }
 
   /**
@@ -825,19 +429,22 @@ export function createPapiRepository(network: Network): ChainRepository {
    * proposal books several payouts, so the walk goes down rather than reading
    * the outermost call alone.
    */
-  const collectSpends = (call: DecodedCall, out: ProposalSpend[], depth: number): void => {
-    const { type: pallet, value: inner } = call
-    if (pallet === 'Utility' && BATCH_CALLS.has(inner.type)) {
-      if (depth >= PROPOSAL_DEPTH) return
-      for (const nested of inner.value?.calls ?? []) collectSpends(nested, out, depth + 1)
+  const collectSpends = (decoded: TxCallData, out: ProposalSpend[], depth: number): void => {
+    const call = asCall(decoded)
+    if (call.type === 'Utility') {
+      switch (call.value.type) {
+        case 'batch':
+        case 'batch_all':
+        case 'force_batch':
+          if (depth >= PROPOSAL_DEPTH) return
+          for (const nested of call.value.value.calls) collectSpends(nested, out, depth + 1)
+      }
       return
     }
-    if (pallet !== 'Treasury' || inner.type !== 'spend' || !inner.value) return
-    out.push({
-      amount: inner.value.amount ?? 0n,
-      beneficiary: inner.value.beneficiary ?? '',
-      validFrom: inner.value.valid_from ?? null,
-    })
+    if (call.type === 'Treasury' && call.value.type === 'spend') {
+      const { amount, beneficiary, valid_from } = call.value.value
+      out.push({ amount, beneficiary, validFrom: valid_from ?? null })
+    }
   }
 
   const readProposal = async (proposal: ReferendumStatus['proposal']): Promise<Proposal> => {
@@ -1007,7 +614,6 @@ export function createPapiRepository(network: Network): ChainRepository {
     if (operation.kind === 'propose') {
       const spends = operation.payouts.map((payout) =>
         api.tx.Treasury.spend({
-          asset_kind: undefined,
           amount: payout.amount,
           beneficiary: payout.beneficiary,
           valid_from: payout.validFrom ?? undefined,
@@ -1023,8 +629,9 @@ export function createPapiRepository(network: Network): ChainRepository {
 
       const table = await trackTable()
       const track = table.find((entry) => entry.id === operation.track)
-      const spender = (await chainFacts()).spenders.find((entry) => entry.track === operation.track)
-      if (!track || !spender) throw new Error(`Track ${operation.track} takes no proposals`)
+      const cap = (await api.constants.Origins.SpendCaps()).find(([id]) => id === operation.track)
+      if (!track || !cap) throw new Error(`Track ${operation.track} takes no proposals`)
+      const [, origin] = cap
 
       // Referenda carries a short proposal in the call itself and leaves a
       // longer one in the preimage store, which is where instalments land
@@ -1035,7 +642,7 @@ export function createPapiRepository(network: Network): ChainRepository {
         : Enum('Lookup', { hash: blake2AsHex(encoded, 256), len: encoded.length })
 
       const submit = api.tx.Referenda.submit({
-        proposal_origin: Enum('Origins', Enum(spender.origin)),
+        proposal_origin: Enum('Origins', origin),
         proposal,
         enactment_moment: Enum('After', track.minEnactmentPeriod),
       })
@@ -1091,7 +698,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       const inner = await build(operation.call)
       const encoded = await inner.getEncodedData()
       const { weight } = await api.apis.TransactionPaymentCallApi.query_call_info(
-        inner.decodedCall,
+        asCall(inner.decodedCall),
         encoded.length,
       )
 
@@ -1108,7 +715,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       const inner = await api.txFromCallData(hexToU8a(operation.hex))
       const encoded = await inner.getEncodedData()
       const { weight } = await api.apis.TransactionPaymentCallApi.query_call_info(
-        inner.decodedCall,
+        asCall(inner.decodedCall),
         encoded.length,
       )
 
@@ -1233,15 +840,15 @@ export function createPapiRepository(network: Network): ChainRepository {
           : api.tx.Utility.batch_all({ calls: calls.map((call) => call.decodedCall) })
       }
       case 'clearIdentity':
-        return api.tx.Identity.clear_identity({})
+        return api.tx.Identity.clear_identity()
       case 'setSubs':
         return api.tx.Identity.set_subs({
           subs: operation.subs.map((sub) => [sub.address, toData(sub.name)]),
         })
       case 'quitSub':
-        return api.tx.Identity.quit_sub({})
+        return api.tx.Identity.quit_sub()
       case 'vest':
-        return api.tx.Vesting.vest({})
+        return api.tx.Vesting.vest()
       case 'vestedTransfer':
         return api.tx.Vesting.vested_transfer({
           target: Enum('Id', operation.to),
@@ -1405,15 +1012,12 @@ export function createPapiRepository(network: Network): ChainRepository {
     subscribeBalance(address, onBalance): Unsubscribe {
       let info: AccountInfo | undefined
       let locks: BalanceLock[] | undefined
-      // An account nobody has ever touched reads as undefined, which is an
-      // answer, so the amounts need a flag of their own to say they arrived
-      let amounts = false
       // The deposit decides what stays untouchable, so nothing can be reported
       // before it lands. It arrives once and every later update reuses it.
       let deposit: bigint | undefined
 
       const push = () => {
-        if (amounts && locks && deposit !== undefined) onBalance(toBalance(info, locks, deposit))
+        if (info && locks && deposit !== undefined) onBalance(toBalance(info, locks, deposit))
       }
 
       void chainFacts().then((facts) => {
@@ -1423,11 +1027,10 @@ export function createPapiRepository(network: Network): ChainRepository {
 
       const account = api.query.System.Account.watchValue(address).subscribe((update) => {
         info = update.value
-        amounts = true
         push()
       })
       const held = api.query.Balances.Locks.watchValue(address).subscribe((update) => {
-        locks = update.value ?? []
+        locks = update.value
         push()
       })
 
@@ -1438,10 +1041,10 @@ export function createPapiRepository(network: Network): ChainRepository {
     },
 
     async proxies(address: string): Promise<Proxy[]> {
-      const entry = await api.query.Proxy.Proxies.getValue(address)
-      return (entry?.[0] ?? []).map((definition) => ({
+      const [definitions] = await api.query.Proxy.Proxies.getValue(address)
+      return definitions.map((definition) => ({
         delegate: definition.delegate,
-        type: definition.proxy_type.type as Proxy['type'],
+        type: definition.proxy_type.type,
       }))
     },
 
@@ -1450,10 +1053,7 @@ export function createPapiRepository(network: Network): ChainRepository {
      * the parent is holding takes one read and the names take one apiece.
      */
     async subsOf(address: string): Promise<Subs> {
-      const entry = await api.query.Identity.SubsOf.getValue(address, BEST)
-      if (!entry) return { deposit: 0n, list: [] }
-
-      const [deposit, addresses] = entry
+      const [deposit, addresses] = await api.query.Identity.SubsOf.getValue(address, BEST)
       const list = await Promise.all(
         addresses.map(async (sub) => {
           const link = await api.query.Identity.SuperOf.getValue(sub, BEST)
@@ -1470,17 +1070,16 @@ export function createPapiRepository(network: Network): ChainRepository {
     async bounties(): Promise<Bounty[]> {
       const entries = await api.query.Bounties.Bounties.getEntries(BEST)
 
-      const read = entries.flatMap(({ keyArgs: [index], value }) => {
-        const state = BOUNTY_STATES[value.status.type]
-        if (!state) return []
-        return [{ index, value, state }]
-      })
+      const read = entries.map(({ keyArgs: [index], value }) => ({
+        index,
+        value,
+        state: BOUNTY_STATES[value.status.type],
+      }))
 
       return (
         await Promise.all(
           read.map(async ({ index, value, state }) => {
             const bytes = await api.query.Bounties.BountyDescriptions.getValue(index, BEST)
-            const held = value.status.value ?? {}
             return {
               index,
               description: bytes ? new TextDecoder().decode(bytes) : '',
@@ -1490,9 +1089,7 @@ export function createPapiRepository(network: Network): ChainRepository {
               bond: value.bond,
               curatorDeposit: value.curator_deposit,
               state,
-              curator: held.curator ?? null,
-              beneficiary: held.beneficiary ?? null,
-              until: held.unlock_at ?? held.update_due ?? null,
+              ...bountyHolders(value.status),
             }
           }),
         )
@@ -1503,10 +1100,12 @@ export function createPapiRepository(network: Network): ChainRepository {
     async childBounties(): Promise<ChildBounty[]> {
       const entries = await api.query.ChildBounties.ChildBounties.getEntries(BEST)
 
-      const read = entries.flatMap(({ keyArgs: [parent, index], value }) => {
-        const state = CHILD_STATES[value.status.type]
-        return state ? [{ parent, index, value, state }] : []
-      })
+      const read = entries.map(({ keyArgs: [parent, index], value }) => ({
+        parent,
+        index,
+        value,
+        state: CHILD_STATES[value.status.type],
+      }))
 
       return (
         await Promise.all(
@@ -1516,7 +1115,6 @@ export function createPapiRepository(network: Network): ChainRepository {
               index,
               BEST,
             )
-            const held = value.status.value ?? {}
             return {
               parent,
               index,
@@ -1525,9 +1123,7 @@ export function createPapiRepository(network: Network): ChainRepository {
               fee: value.fee,
               curatorDeposit: value.curator_deposit,
               state,
-              curator: held.curator ?? null,
-              beneficiary: held.beneficiary ?? null,
-              until: held.unlock_at ?? null,
+              ...childHolders(value.status),
             }
           }),
         )
@@ -1560,7 +1156,7 @@ export function createPapiRepository(network: Network): ChainRepository {
     },
 
     async registrars(): Promise<Registrar[]> {
-      const entries = (await api.query.Identity.Registrars.getValue(BEST)) ?? []
+      const entries = await api.query.Identity.Registrars.getValue(BEST)
       // The list is sparse once one is removed, and the index is what a request
       // names, so a gap keeps its slot rather than shifting the ones after it
       return entries.flatMap((entry, index) =>
@@ -1578,7 +1174,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       const entries = await api.query.Referenda.ReferendumInfoFor.getEntries(BEST)
 
       const running = entries.flatMap(({ keyArgs: [index], value }) =>
-        value.type === 'Ongoing' ? [{ index, status: value.value as ReferendumStatus }] : [],
+        value.type === 'Ongoing' ? [{ index, status: value.value }] : [],
       )
 
       const read = running.map(async ({ index, status }) => ({
@@ -1608,11 +1204,21 @@ export function createPapiRepository(network: Network): ChainRepository {
 
       return entries
         .flatMap(({ keyArgs: [index], value }) => {
-          const outcome = OUTCOMES[value.type]
-          if (!outcome) return []
-
-          const [, submission, decision] = value.value as SettledInfo
-          return [{ index, outcome, submission: submission ?? null, decision: decision ?? null }]
+          switch (value.type) {
+            case 'Approved':
+            case 'Rejected':
+            case 'TimedOut':
+            case 'Cancelled': {
+              const [, submission, decision] = value.value
+              const outcome = OUTCOMES[value.type]
+              return [
+                { index, outcome, submission: submission ?? null, decision: decision ?? null },
+              ]
+            }
+            case 'Ongoing':
+            case 'Killed':
+              return []
+          }
         })
         .filter(hasRefund)
         .sort((one, other) => other.index - one.index)
@@ -1723,7 +1329,8 @@ export function createPapiRepository(network: Network): ChainRepository {
         held.map(async ([track, amount]) => {
           const voting = await api.query.ConvictionVoting.VotingFor.getValue(address, track, BEST)
           const [freeAt] = voting.value.prior
-          return { track, amount, polls: voting.value.votes?.map(([poll]) => poll) ?? [], freeAt }
+          const polls = voting.type === 'Casting' ? voting.value.votes.map(([poll]) => poll) : []
+          return { track, amount, polls, freeAt }
         }),
       )
     },
@@ -1769,11 +1376,11 @@ export function createPapiRepository(network: Network): ChainRepository {
                   onProgress?.({ stage: 'broadcast', hash: event.txHash })
                 }
                 if (event.type === 'txBestBlocksState' && event.found) {
-                  if (!event.ok) return fail(new Error(dispatchMessage(event)))
+                  if (!event.ok) return fail(new Error(dispatchMessage(event.dispatchError)))
                   onProgress?.({ stage: 'inBlock', hash: event.txHash })
                 }
                 if (event.type === 'finalized') {
-                  if (!event.ok) return fail(new Error(dispatchMessage(event)))
+                  if (!event.ok) return fail(new Error(dispatchMessage(event.dispatchError)))
                   onProgress?.({ stage: 'finalized', hash: event.txHash })
                   resolve(event.txHash)
                 }

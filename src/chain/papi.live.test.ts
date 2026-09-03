@@ -19,66 +19,17 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { Keyring } from '@polkadot/keyring'
 import { hexToU8a, u8aToHex as toHex } from '@polkadot/util'
 import { blake2AsHex, cryptoWaitReady, encodeMultiAddress } from '@polkadot/util-crypto'
+import { numen } from '@polkadot-api/descriptors'
 import { Binary, createClient, Enum } from 'polkadot-api'
 import { getPolkadotSigner } from 'polkadot-api/signer'
 import { getWsProvider } from 'polkadot-api/ws'
 import { toNumenAddress } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { NETWORKS, SS58_PREFIX, UNIT } from './config'
-import { depositFor, EMPTY_IDENTITY, IDENTITY_FIELDS, isQualified, labelOf } from './identity'
+import { depositFor, EMPTY_IDENTITY, isQualified, labelOf } from './identity'
 import { createPapiRepository } from './papi'
 import { transferableOf, type AccountBalance, type Operation } from './types'
 import { scheduleOver } from './vesting'
-
-/** pallet_identity's Data, the way papi.ts writes one, so the two agree. */
-const toData = (text: string) => {
-  const bytes = new TextEncoder().encode(text)
-  if (bytes.length === 0) return Enum('None')
-  if (bytes.length === 1) return Enum('Raw1', bytes[0]!)
-  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
-  return Enum(`Raw${bytes.length}`, `0x${hex}`)
-}
-
-/** Only what this suite reaches for, since the wallet's own calls go through the repository. */
-interface PrimeTx {
-  getEncodedData(): Promise<Uint8Array>
-  signSubmitAndWatch(signer: WalletAccount['signer']): {
-    subscribe(observer: {
-      next: (event: { type: string; found?: boolean }) => void
-      error: (problem: unknown) => void
-    }): { unsubscribe(): void }
-  }
-}
-
-interface UnsafeApi {
-  query: {
-    Balances: {
-      TotalIssuance: { getValue(at: { at: string }): Promise<bigint> }
-      Locks: {
-        getValue(address: string): Promise<{ amount: bigint }[]>
-      }
-    }
-    System: {
-      Account: {
-        getValue(address: string, at: { at: string }): Promise<{ data: { free: bigint } }>
-      }
-    }
-  }
-  tx: {
-    System: { set_code(args: { code: unknown }): PrimeTx }
-    Balances: { force_transfer(args: { source: unknown; dest: unknown; value: bigint }): PrimeTx }
-    Identity: {
-      add_registrar(args: { account: unknown }): PrimeTx
-      set_identity(args: { info: Record<string, unknown> }): PrimeTx
-      provide_judgement(args: {
-        reg_index: number
-        target: unknown
-        judgement: unknown
-        identity: string
-      }): PrimeTx
-    }
-  }
-}
 
 /**
  * A dev node never finalizes, so PAPI pins every block on the unfinalized fork
@@ -92,7 +43,7 @@ const raw = createClient(getWsProvider(RPC))
 let alice: WalletAccount
 
 /** The raw client, for the two calls the wallet itself never makes. */
-const api = raw.getUnsafeApi() as unknown as UnsafeApi
+const api = raw.getTypedApi(numen)
 
 // One field a single byte, since PAPI's codec takes Raw1 as a bare number and
 // a hex string there is refused
@@ -119,7 +70,7 @@ const send = (operation: Operation) =>
   })
 
 /** Calls the wallet has no business making, which prime makes here instead. */
-const asPrime = (tx: PrimeTx) =>
+const asPrime = (tx: ReturnType<typeof api.tx.Identity.add_registrar>) =>
   new Promise<void>((resolve, reject) => {
     const sub = tx.signSubmitAndWatch(alice.signer).subscribe({
       next(event) {
@@ -427,7 +378,18 @@ describe('governance', () => {
     // The judgement names the identity by the hash of what was registered, so
     // this has to encode the same info rather than a copy of it that can drift
     const encoded = await api.tx.Identity.set_identity({
-      info: Object.fromEntries(IDENTITY_FIELDS.map((field) => [field, toData(info[field])])),
+      info: {
+        display: Binary.fromText(info.display),
+        avatar: Binary.fromText(info.avatar),
+        bio: Binary.fromText(info.bio),
+        web: Binary.fromText(info.web),
+        email: Binary.fromText(info.email),
+        github: Binary.fromText(info.github),
+        matrix: Binary.fromText(info.matrix),
+        x: Binary.fromText(info.x),
+        telegram: Binary.fromText(info.telegram),
+        discord: Binary.fromText(info.discord),
+      },
     }).getEncodedData()
 
     await send({ kind: 'requestJudgement', registrar: 0, maxFee: UNIT })
