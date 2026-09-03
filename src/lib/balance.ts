@@ -27,6 +27,15 @@ export function parseAmount(input: string): bigint {
   return BigInt(whole || '0') * BASE + BigInt(frac.padEnd(DECIMALS, '0') || '0')
 }
 
+/** Planck for a box that may not parse yet, which counts as nothing until it does. */
+export function amountOrZero(input: string): bigint {
+  try {
+    return parseAmount(input)
+  } catch {
+    return 0n
+  }
+}
+
 /**
  * What an amount box may hold, which is the shape parseAmount takes and nothing
  * else. Typing is filtered rather than rejected afterwards, since a box that

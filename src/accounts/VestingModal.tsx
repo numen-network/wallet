@@ -11,7 +11,7 @@ import {
   type VestingSchedule,
 } from '@/chain/vesting'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, amountOrZero, formatAmount } from '@/lib/balance'
 import { waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
@@ -204,12 +204,7 @@ function Grant({
   const from = Number(start) || height
   const over = Number(days)
 
-  let locked = 0n
-  try {
-    locked = parseAmount(amount)
-  } catch {
-    locked = 0n
-  }
+  const locked = amountOrZero(amount)
   const schedule =
     locked > 0n && over > 0 && facts ? scheduleOver(locked, over, from, facts.blockSeconds) : null
   const target = resolveAddress(to)

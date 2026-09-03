@@ -41,9 +41,9 @@ import {
   RefundModal,
 } from './ProposeModal'
 import { ReferendumCard } from './ReferendumCard'
-import type { Bounty, ChildBounty } from '@/chain/bounties'
+import type { ChildBounty } from '@/chain/bounties'
 import { BountyCard } from './BountyCard'
-import { BountyModal, ProposeBountyModal, type BountyCall } from './BountyModal'
+import { BountyModal, ProposeBountyModal, type Job } from './BountyModal'
 import { PreimageCard } from './PreimageCard'
 import { ClaimAllModal, ReturnAllModal } from './SweepModal'
 import { SettledCard } from './SettledCard'
@@ -58,7 +58,7 @@ type Modal =
   | { kind: 'payout'; spend: Spend }
   | { kind: 'refund'; poll: number; held: Held; call: 'refundSubmission' | 'refundDecision' }
   | { kind: 'preimage'; preimage: NotedPreimage }
-  | { kind: 'bounty'; target: Bounty | ChildBounty; call: BountyCall }
+  | { kind: 'bounty'; job: Job }
   | { kind: 'proposeBounty' }
   | { kind: 'propose' }
   | { kind: 'voteAll' }
@@ -256,8 +256,8 @@ export function GovernanceView({
                   children={(children ?? []).filter(
                     (child: ChildBounty) => child.parent === bounty.index,
                   )}
-                  onAct={(chosen, call) => setModal({ kind: 'bounty', target: chosen, call })}
-                  onChildAct={(chosen, call) => setModal({ kind: 'bounty', target: chosen, call })}
+                  onAct={(bounty, call) => setModal({ kind: 'bounty', job: { bounty, call } })}
+                  onChildAct={(child, call) => setModal({ kind: 'bounty', job: { child, call } })}
                 />
               ))}
             </section>
@@ -340,12 +340,7 @@ export function GovernanceView({
       )}
 
       {signers && modal?.kind === 'bounty' && (
-        <BountyModal
-          target={modal.target}
-          call={modal.call}
-          accounts={signers}
-          onClose={close}
-        />
+        <BountyModal job={modal.job} accounts={signers} onClose={close} />
       )}
 
       {signers && modal?.kind === 'proposeBounty' && (

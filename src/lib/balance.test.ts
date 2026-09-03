@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { amountInput, AmountError, formatAmount, parseAmount } from './balance'
+import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from './balance'
 import { UNIT } from '@/chain/config'
 
 describe('parseAmount', () => {
@@ -123,5 +123,13 @@ describe('round trip', () => {
       const formatted = formatAmount(parseAmount(s), { precision: 18, grouped: false, pad: false })
       expect(parseAmount(formatted)).toBe(parseAmount(s))
     }
+  })
+})
+
+describe('amountOrZero', () => {
+  it('reads a box that parses and counts one that does not as nothing', () => {
+    expect(amountOrZero('1.5')).toBe((UNIT * 3n) / 2n)
+    expect(amountOrZero('')).toBe(0n)
+    expect(amountOrZero('nonsense')).toBe(0n)
   })
 })

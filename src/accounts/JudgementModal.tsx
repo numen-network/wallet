@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useChain } from '@/chain/provider'
+import type { Operation } from '@/chain/types'
 import { useRegistrars, useStanding } from '@/chain/queries'
 import { botRegistrar, CHANNELS, isChecked, LABELS, pendingWith } from '@/chain/identity'
 import { formatAmount } from '@/lib/balance'
@@ -42,10 +43,12 @@ export function JudgementModal({
   const claimed = CHANNELS.filter((channel) => registration?.info[channel])
   const checked = registration?.judgements.find((verdict) => isChecked(verdict.judgement))
 
-  const operation =
+  const operation: Operation | null =
     pending !== null
-      ? ({ kind: 'cancelJudgement', registrar: pending } as const)
-      : ({ kind: 'requestJudgement', registrar: registrar?.index ?? 0, maxFee: registrar?.fee ?? 0n } as const)
+      ? { kind: 'cancelJudgement', registrar: pending }
+      : registrar
+        ? { kind: 'requestJudgement', registrar: registrar.index, maxFee: registrar.fee }
+        : null
 
   const form = () => {
     setError('')
@@ -54,16 +57,16 @@ export function JudgementModal({
       setError('Set an identity first, there is nothing to check yet')
       return false
     }
-    if (pending === null && !registrar) {
+    if (!operation) {
       setError('This chain has no registrar to ask')
       return false
     }
 
-    void send()
+    void send(operation)
     return false
   }
 
-  const send = async () => {
+  const send = async (operation: Operation) => {
     setBusy(true)
     try {
       await submit(operation, password)
@@ -85,7 +88,7 @@ export function JudgementModal({
       disabled={busy}
       from={signer.address}
       needsPassword={needsPassword}
-      operation={wrap(operation)}
+      operation={operation && wrap(operation)}
       password={password}
       onPassword={setPassword}
       error={error}

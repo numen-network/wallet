@@ -1,6 +1,6 @@
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { AmountError, parseAmount } from '@/lib/balance'
+import { AmountError, amountOrZero, parseAmount } from '@/lib/balance'
 
 /**
  * One account paying several, which the chain takes as one call over a list of
@@ -43,17 +43,7 @@ export function payments(rows: Row[]): Operation[] | null {
   return calls.length > 0 ? calls : null
 }
 
-/**
- * What the rows come to so far. A half typed form still has a total, so an
- * amount that does not parse yet counts as nothing rather than stopping the sum.
- */
+/** What the rows come to so far, a half typed form included. */
 export function owed(rows: Row[]): bigint {
-  return rows.reduce((total, row) => {
-    try {
-      const planck = parseAmount(row.amount)
-      return planck > 0n ? total + planck : total
-    } catch {
-      return total
-    }
-  }, 0n)
+  return rows.reduce((total, row) => total + amountOrZero(row.amount), 0n)
 }

@@ -17,7 +17,7 @@ import { isQualified, shortfall } from '@/chain/identity'
 import { format, parseISO } from 'date-fns'
 import { useFacts, useHead, useStanding, useSymbol, useTracks } from '@/chain/queries'
 import { resolveAddress, shorten } from '@/lib/address'
-import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
@@ -98,12 +98,7 @@ export function ProposeModal({
   // Every row that reads as a payout. The form turns anything short of all of
   // them away, so what reaches the chain is what was typed
   const booked: Payout[] = payouts.flatMap((row) => {
-    let planck = 0n
-    try {
-      planck = row.amount ? parseAmount(row.amount) : 0n
-    } catch {
-      return []
-    }
+    const planck = amountOrZero(row.amount)
     const target = resolveAddress(row.to)
     if (planck <= 0n || !target) return []
     return [{ amount: planck, beneficiary: target, validFrom: release(row) }]

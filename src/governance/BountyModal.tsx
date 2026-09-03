@@ -4,12 +4,13 @@ import type { Bounty, ChildBounty } from '@/chain/bounties'
 import { useSymbol } from '@/chain/queries'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Field, Input } from '@/ui/Modal'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { AddressField } from '@/accounts/AddressField'
+import type { BountyAct, ChildAct } from './BountyCard'
 
 /** What the form has to ask for on top of the account signing it. */
 type Wants = 'nothing' | 'beneficiary' | 'piece' | 'curator'
@@ -20,7 +21,7 @@ interface Ask {
   wants: Wants
 }
 
-const ASKS: Record<string, Ask> = {
+const ASKS: Record<BountyAct | ChildAct, Ask> = {
   accept: {
     title: 'Take on the bounty',
     note: 'Taking it on holds a deposit worked out from the fee, and it comes back when the bounty is awarded or you stand down before anybody complains.',
@@ -63,7 +64,10 @@ const ASKS: Record<string, Ask> = {
   },
 }
 
-export type BountyCall = keyof typeof ASKS
+/** A bounty and what to do about it, or a piece of one and what to do about that. */
+export type Job =
+  | { bounty: Bounty; call: BountyAct }
+  | { child: ChildBounty; call: ChildAct }
 
 /**
  * Everything a curator or a beneficiary does about a bounty or a piece of one.
@@ -71,21 +75,18 @@ export type BountyCall = keyof typeof ASKS
  * question on it.
  */
 export function BountyModal({
-  target,
-  call,
+  job,
   accounts,
   onClose,
 }: {
-  /** The bounty, or the child and the parent it came out of. */
-  target: Bounty | ChildBounty
-  call: BountyCall
+  job: Job
   accounts: Voters
   onClose: () => void
 }) {
   const symbol = useSymbol()
-  const ask = ASKS[call]!
-  const child = 'parent' in target ? target : null
-  const bounty = child ? child.parent : (target as Bounty).index
+  const ask = ASKS[job.call]
+  const target = 'child' in job ? job.child : job.bounty
+  const bounty = 'child' in job ? job.child.parent : job.bounty.index
 
   const [address, setAddress] = useState(target.curator ?? accounts[0].address)
   const [beneficiary, setBeneficiary] = useState('')
@@ -103,47 +104,40 @@ export function BountyModal({
   // A fee is quoted against a call the form may not have filled in yet, so the
   // probe carries the signer wherever an address is still to be typed
   const build = (target: string, planck: bigint): Operation => {
-    switch (call) {
+    if ('child' in job) {
+      const child = job.child.index
+      switch (job.call) {
+        case 'accept':
+          return { kind: 'acceptChildCurator', bounty, child }
+        case 'award':
+          return { kind: 'awardChild', bounty, child, beneficiary: target }
+        case 'claim':
+          return { kind: 'claimChild', bounty, child }
+        case 'unassign':
+          return { kind: 'unassignChildCurator', bounty, child }
+        case 'propose':
+          return { kind: 'proposeChildCurator', bounty, child, curator: target, fee: planck }
+        case 'close':
+          return { kind: 'closeChild', bounty, child }
+      }
+    }
+    switch (job.call) {
       case 'accept':
-        return child
-          ? { kind: 'acceptChildCurator', bounty, child: child.index }
-          : { kind: 'acceptCurator', bounty }
+        return { kind: 'acceptCurator', bounty }
       case 'award':
-        return child
-          ? { kind: 'awardChild', bounty, child: child.index, beneficiary: target }
-          : { kind: 'awardBounty', bounty, beneficiary: target }
+        return { kind: 'awardBounty', bounty, beneficiary: target }
       case 'claim':
-        return child
-          ? { kind: 'claimChild', bounty, child: child.index }
-          : { kind: 'claimBounty', bounty }
+        return { kind: 'claimBounty', bounty }
       case 'unassign':
-        return child
-          ? { kind: 'unassignChildCurator', bounty, child: child.index }
-          : { kind: 'unassignCurator', bounty }
+        return { kind: 'unassignCurator', bounty }
       case 'extend':
         return { kind: 'extendBounty', bounty }
       case 'addChild':
         return { kind: 'addChild', bounty, value: planck, description }
-      case 'propose':
-        return {
-          kind: 'proposeChildCurator',
-          bounty,
-          child: child?.index ?? 0,
-          curator: target,
-          fee: planck,
-        }
-      default:
-        return { kind: 'closeChild', bounty, child: child?.index ?? 0 }
     }
   }
 
-  let typed = 0n
-  try {
-    typed = parseAmount(call === 'propose' ? fee : amount)
-  } catch {
-    typed = 0n
-  }
-  const probe = build(address, typed)
+  const probe = build(address, amountOrZero(job.call === 'propose' ? fee : amount))
 
   const form = () => {
     setError('')
@@ -213,7 +207,7 @@ export function BountyModal({
       title={ask.title}
       submitLabel={busy ? 'Signing…' : 'Sign and send'}
       disabled={busy}
-      footNote={`${child ? `Bounty ${bounty}.${child.index}` : `Bounty ${bounty}`}, ${formatAmount(target.value, { precision: 0 })} ${symbol}`}
+      footNote={`${'child' in job ? `Bounty ${bounty}.${job.child.index}` : `Bounty ${bounty}`}, ${formatAmount(target.value, { precision: 0 })} ${symbol}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(probe)}
@@ -300,13 +294,7 @@ export function ProposeBountyModal({
   const voter = useVoter(accounts, address)
   const account = voter.account
 
-  let asked = 0n
-  try {
-    asked = amount ? parseAmount(amount) : 0n
-  } catch {
-    asked = 0n
-  }
-  const operation = { kind: 'proposeBounty' as const, value: asked, description }
+  const operation = { kind: 'proposeBounty' as const, value: amountOrZero(amount), description }
 
   const form = () => {
     setError('')
