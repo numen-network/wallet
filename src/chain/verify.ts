@@ -1,6 +1,5 @@
 import type { Network } from './config'
 import { BOT_CHANNELS, type Proven } from './identity'
-import { usingMock } from './index'
 
 /**
  * The handshake with the identity site, which is where the social sign in and
@@ -73,8 +72,6 @@ const WINDOW = 'width=520,height=680,menubar=no,toolbar=no'
 const WATCH_MS = 400
 
 export function verify(network: Network, provider: Provider, address: string): Promise<Verified> {
-  if (usingMock) return Promise.resolve(pretend(provider))
-
   const origin = new URL(network.identitySite).origin
   const popup = window.open(
     `${origin}/verify?provider=${provider}&address=${address}`,
@@ -112,17 +109,3 @@ export function verify(network: Network, provider: Provider, address: string): P
     window.addEventListener('message', read)
   })
 }
-
-const HOUR_MS = 60 * 60 * 1000
-
-/**
- * VITE_CHAIN=mock has no site to open. The real one proves one channel a
- * window, and handles come bare the way the chain holds them.
- */
-const pretend = (provider: Provider): Verified => ({
-  proven: {
-    telegram: provider === 'telegram' ? 'vaultkeeper' : '',
-    discord: provider === 'discord' ? 'vaultkeeper' : '',
-  },
-  expiresAt: Date.now() + HOUR_MS,
-})

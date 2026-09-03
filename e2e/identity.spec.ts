@@ -9,6 +9,31 @@ import { expectAddress, fillAddress, pickAddress } from './address'
 const PASSWORD = 'correct horse battery'
 const SUB = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 
+/**
+ * VITE_CHAIN=mock has no identity site to open a window on, so this stands in
+ * for the window. The reply comes back the way the site sends one, from the
+ * site's own origin and naming the address it was asked about.
+ */
+test.beforeEach(({ page }) =>
+  page.addInitScript(() => {
+    window.open = (url) => {
+      const asked = new URL(String(url))
+      const provider = asked.searchParams.get('provider')
+      const handle = (own: string) => (provider === own ? 'vaultkeeper' : '')
+      const reply = {
+        kind: 'numen-identity',
+        address: asked.searchParams.get('address'),
+        proven: { telegram: handle('telegram'), discord: handle('discord') },
+        expiresAt: Date.now() + 60 * 60 * 1000,
+      }
+      setTimeout(() => {
+        window.dispatchEvent(new MessageEvent('message', { data: reply, origin: asked.origin }))
+      })
+      return { close() {}, closed: false } as unknown as Window
+    }
+  }),
+)
+
 const card = (page: Page, name = 'Vault') => page.locator('article').filter({ hasText: name })
 
 /** The board offers its own button while it is empty, the toolbar once it is not. */
@@ -408,10 +433,8 @@ test('a request already paid for outlives an edit, and the dialog says so', asyn
 })
 
 /**
- * The verified path. VITE_CHAIN=mock has no identity site to open a window on,
- * so the verifier hands back what one would have proved and the rest of the
- * flow is the real thing. A sign in is held by the dialog, the signature that
- * spends it is its own click.
+ * The verified path. A sign in is held by the dialog, the signature that spends
+ * it is its own click.
  */
 async function verifyWith(page: Page, provider: Channel, name = 'Alice') {
   await openIdentity(page, 'Automatic')
