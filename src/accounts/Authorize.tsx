@@ -131,6 +131,44 @@ function FeeLine({ from, operation }: { from: string; operation: Operation }) {
   )
 }
 
+/**
+ * The password a dialog collects, the refusal it has to show, and whether a
+ * submit is still in the air. The three go together and go the same way in
+ * every dialog, so they are kept here rather than in each one.
+ */
+export function useCall(onClose?: () => void) {
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  return {
+    password,
+    setPassword,
+    error,
+    setError,
+    busy,
+    /**
+     * Sends one call and sees it through, closing the dialog once it is out.
+     * Returns false, which is what a form hands back to stay open until the
+     * chain has answered.
+     */
+    run(sending: Promise<unknown>, done = 'Sent') {
+      setError('')
+      setBusy(true)
+      sending
+        .then(() => {
+          toast(done)
+          onClose?.()
+        })
+        .catch((problem: unknown) => {
+          setError(problem instanceof Error ? problem.message : 'The chain refused it')
+        })
+        .finally(() => setBusy(false))
+      return false
+    },
+  }
+}
+
 /** The key is decrypted here and nowhere else, for the length of one call. */
 export function signerFor(account: Account, password: string): WalletAccount {
   return account.signing ?? unlockKey(account.address, password)

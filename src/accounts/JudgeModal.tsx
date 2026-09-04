@@ -17,9 +17,8 @@ import { FieldTitle } from '@/components/ui/field'
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { CROSS, MarkDisc, TICK } from '@/ui/JudgementBadge'
 import { Select } from '@/ui/Select'
-import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
 const OPTIONS = VERDICTS.map((verdict) => ({ value: verdict.value, label: verdict.value }))
@@ -48,9 +47,7 @@ export function JudgeModal({
   const { data: registrars } = useRegistrars()
   const [to, setTo] = useState('')
   const [verdict, setVerdict] = useState<Ruling>('Reasonable')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const seat = registrars?.find((entry) => entry.account === account.address)
@@ -72,7 +69,7 @@ export function JudgeModal({
       : null
 
   const fail = (message: string) => {
-    setError(message)
+    call.setError(message)
     return false
   }
 
@@ -80,41 +77,26 @@ export function JudgeModal({
     if (!seat) return fail('This account is not a registrar on this chain')
     if (!target) return fail('Enter a Numen or EVM address')
     if (!registration) return fail('That account has no identity to judge')
-    if (needsPassword && !password) return fail('Enter the password for this account')
+    if (needsPassword && !call.password) return fail('Enter the password for this account')
+    if (!operation) return false
 
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    if (!operation) return
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit(operation, call.password))
   }
 
   return (
     <CallModal
       title="Judge an identity"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={
         seat ? `Signing as registrar ${seat.index}` : 'This account is not a registrar'
       }
       from={signer.address}
       needsPassword={needsPassword}
       operation={operation ? wrap(operation) : null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -199,9 +181,7 @@ export function SetFeeModal({
   const symbol = useSymbol()
   const { data: registrars } = useRegistrars()
   const [fee, setFee] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const seat = registrars?.find((entry) => entry.account === account.address)
@@ -213,7 +193,7 @@ export function SetFeeModal({
     : null
 
   const fail = (message: string) => {
-    setError(message)
+    call.setError(message)
     return false
   }
 
@@ -226,38 +206,23 @@ export function SetFeeModal({
     } catch (problem) {
       return fail(problem instanceof AmountError ? problem.message : 'Enter an amount')
     }
-    if (needsPassword && !password) return fail('Enter the password for this account')
+    if (needsPassword && !call.password) return fail('Enter the password for this account')
 
-    setError('')
-    void send({ kind: 'setFee', registrar: seat.index, fee: planck })
-    return false
-  }
-
-  const send = async (operation: Operation) => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit({ kind: 'setFee', registrar: seat.index, fee: planck }, call.password))
   }
 
   return (
     <CallModal
       title="Set the judgement fee"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={seat ? `Signing as registrar ${seat.index}` : 'This account is not a registrar'}
       from={signer.address}
       needsPassword={needsPassword}
       operation={probe ? wrap(probe) : null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

@@ -1,5 +1,5 @@
 import { Fragment, useId, useState } from 'react'
-import { CallModal } from '@/accounts/Authorize'
+import { CallModal, useCall } from '@/accounts/Authorize'
 import { waitFor } from '@/lib/blocks'
 import { useFacts, useSymbol, useTracks } from '@/chain/queries'
 import type { ChainFacts } from '@/chain/types'
@@ -20,7 +20,6 @@ import { Check, X, Minus } from 'lucide-react'
 import { Field, INSIDE } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/ui/Select'
-import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 
 
@@ -70,9 +69,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
   const sideId = useId()
   const [conviction, setConviction] = useState<Conviction>('Locked1x')
   const [amount, setAmount] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
@@ -83,50 +80,36 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
     side === 'abstain' ? { kind: 'abstain', amount: planck } : { kind: side, conviction, amount: planck }
 
   const form = () => {
-    setError('')
-
     let planck = 0n
     try {
       planck = parseAmount(amount)
     } catch (problem) {
-      setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
+      call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
       return false
     }
 
     if (planck <= 0n || planck > held) {
-      setError('Enter an amount within what this account holds')
+      call.setError('Enter an amount within what this account holds')
       return false
     }
 
-    void send(planck)
-    return false
-  }
-
-  const send = async (planck: bigint) => {
-    setBusy(true)
-    try {
-      await voter.submit({ kind: 'vote', poll: referendum.index, ballot: ballotFor(planck) }, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The vote was refused')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(
+      voter.submit({ kind: 'vote', poll: referendum.index, ballot: ballotFor(planck) }, call.password),
+    )
   }
 
   return (
     <CallModal
       title={`Vote on referendum ${referendum.index}`}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap({ kind: 'vote', poll: referendum.index, ballot: ballotFor(held) })}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -190,9 +173,7 @@ export function RemoveVoteModal({
   onClose: () => void
 }) {
   const [address, setAddress] = useState(accounts[0].address)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
@@ -202,36 +183,19 @@ export function RemoveVoteModal({
     poll: referendum.index,
   } as const
 
-  const form = () => {
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain kept the vote')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const form = () => call.run(voter.submit(operation, call.password))
 
   return (
     <CallModal
       title={`Take back the vote on ${referendum.index}`}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -291,9 +255,7 @@ export function VoteManyModal({
   const [conviction, setConviction] = useState<Conviction>('Locked1x')
   const [amount, setAmount] = useState('')
   const [sides, setSides] = useState<Record<number, Side>>({})
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
@@ -314,10 +276,8 @@ export function VoteManyModal({
     }))
 
   const form = () => {
-    setError('')
-
     if (chosen.length === 0) {
-      setError('Say how at least one of these should go')
+      call.setError('Say how at least one of these should go')
       return false
     }
 
@@ -325,45 +285,31 @@ export function VoteManyModal({
     try {
       planck = parseAmount(amount)
     } catch (problem) {
-      setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
+      call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
       return false
     }
 
     if (planck <= 0n || planck > held) {
-      setError('Enter an amount within what this account holds')
+      call.setError('Enter an amount within what this account holds')
       return false
     }
 
-    void send(planck)
-    return false
-  }
-
-  const send = async (planck: bigint) => {
-    setBusy(true)
-    try {
-      await voter.submit(batched(callsFor(planck)), password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The votes were refused')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(voter.submit(batched(callsFor(planck)), call.password))
   }
 
   return (
     <CallModal
       title="Batch vote"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       width={640}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held, and the same amount rides every one of these`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={chosen.length > 0 ? voter.wrap(batched(callsFor(held))) : null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

@@ -8,8 +8,7 @@ import { Field } from '@/ui/Field'
 import { CAPTION, FieldError } from '@/components/ui/field'
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { AddressField } from './AddressField'
-import { toast } from '@/ui/Toast'
-import { CallPage, useSigning } from './Authorize'
+import { CallPage, useCall, useSigning } from './Authorize'
 import { BLANK, owed, payments, rowProblem, type Row } from './payments'
 import type { SendManyProps } from './SendModal'
 
@@ -33,10 +32,8 @@ export function SendMany({
   const { rows } = draft
   // Anywhere else the wallet knows, since paying this account from itself is a no op
   const others = accounts.filter((entry) => entry.address !== account.address)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const call = useCall(onClose)
   const [shown, setShown] = useState(false)
-  const [busy, setBusy] = useState(false)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
 
@@ -59,44 +56,32 @@ export function SendMany({
 
   const form = () => {
     setShown(true)
-    setError('')
+    call.setError('')
 
     const calls = payments(rows)
     if (!calls) return false
 
     if (total > spendable) {
-      setError('The rows come to more than this account can send, fee included')
+      call.setError('The rows come to more than this account can send, fee included')
       return false
     }
 
-    if (needsPassword && !password) {
-      setError('Enter the password for this account')
+    if (needsPassword && !call.password) {
+      call.setError('Enter the password for this account')
       return false
     }
 
-    void send(batched(calls))
-    return false
-  }
-
-  const send = async (operation: Operation) => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast(`${rows.length === 1 ? 'Transfer' : 'Transfers'} sent`)
-      sent()
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(
+      submit(batched(calls), call.password).then(sent),
+      `${rows.length === 1 ? 'Transfer' : 'Transfers'} sent`,
+    )
   }
 
   return (
     <CallPage
       title="Batch send"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       aside={tabs}
       footNote={
         account.multisig &&
@@ -105,9 +90,9 @@ export function SendMany({
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap(probe)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CallModal } from '@/accounts/Authorize'
+import { CallModal, useCall } from '@/accounts/Authorize'
 import type { Bounty, ChildBounty } from '@/chain/bounties'
 import { useSymbol } from '@/chain/queries'
 import type { Operation } from '@/chain/types'
@@ -7,7 +7,6 @@ import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
-import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { AddressField } from '@/accounts/AddressField'
 import type { BountyAct, ChildAct } from './BountyCard'
@@ -94,9 +93,7 @@ export function BountyModal({
   const [description, setDescription] = useState('')
   const [curator, setCurator] = useState('')
   const [fee, setFee] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
@@ -140,79 +137,60 @@ export function BountyModal({
   const probe = build(address, amountOrZero(job.call === 'propose' ? fee : amount))
 
   const form = () => {
-    setError('')
-
     if (ask.wants === 'beneficiary') {
       const paid = resolveAddress(beneficiary)
       if (!paid) {
-        setError('Enter the Numen or EVM address it would go to')
+        call.setError('Enter the Numen or EVM address it would go to')
         return false
       }
-      void send(build(paid, 0n))
-      return false
+      return call.run(voter.submit(build(paid, 0n), call.password))
     }
 
     if (ask.wants === 'piece') {
       if (description.trim() === '') {
-        setError('Say what the piece is for, since that is all the list shows')
+        call.setError('Say what the piece is for, since that is all the list shows')
         return false
       }
       try {
         if (parseAmount(amount) <= 0n) throw new AmountError('Enter an amount')
       } catch (problem) {
-        setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
+        call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
         return false
       }
-      void send(build(address, parseAmount(amount)))
-      return false
+      return call.run(voter.submit(build(address, parseAmount(amount)), call.password))
     }
 
     if (ask.wants === 'curator') {
       const named = resolveAddress(curator)
       if (!named) {
-        setError('Enter the Numen or EVM address that would run it')
+        call.setError('Enter the Numen or EVM address that would run it')
         return false
       }
       let asked = 0n
       try {
         asked = parseAmount(fee)
       } catch {
-        setError('Enter the fee it would take')
+        call.setError('Enter the fee it would take')
         return false
       }
-      void send(build(named, asked))
-      return false
+      return call.run(voter.submit(build(named, asked), call.password))
     }
 
-    void send(probe)
-    return false
-  }
-
-  const send = async (operation: Operation) => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(voter.submit(probe, call.password))
   }
 
   return (
     <CallModal
       title={ask.title}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={`${'child' in job ? `Bounty ${bounty}.${job.child.index}` : `Bounty ${bounty}`}, ${formatAmount(target.value, { precision: 0 })} ${symbol}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(probe)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -286,9 +264,7 @@ export function ProposeBountyModal({
   const [address, setAddress] = useState(accounts[0].address)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
@@ -296,48 +272,32 @@ export function ProposeBountyModal({
   const operation = { kind: 'proposeBounty' as const, value: amountOrZero(amount), description }
 
   const form = () => {
-    setError('')
-
     if (description.trim() === '') {
-      setError('Say what the bounty is for, since that is all the list shows')
+      call.setError('Say what the bounty is for, since that is all the list shows')
       return false
     }
 
     try {
       if (parseAmount(amount) <= 0n) throw new AmountError('Enter an amount')
     } catch (problem) {
-      setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
+      call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
       return false
     }
 
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(voter.submit(operation, call.password))
   }
 
   return (
     <CallModal
       title="Propose a bounty"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

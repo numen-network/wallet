@@ -11,8 +11,7 @@ import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui
 import { Field, INSIDE } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/ui/Select'
-import { toast } from '@/ui/Toast'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
 interface DelegateProps {
@@ -96,9 +95,7 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
   const [to, setTo] = useState('')
   const [conviction, setConviction] = useState<Conviction>('Locked1x')
   const [amount, setAmount] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const held = balance ? totalOf(balance) : 0n
 
@@ -111,11 +108,9 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
     )
 
   const form = () => {
-    setError('')
-
     const target = resolveAddress(to)
     if (!target) {
-      setError('Enter the Numen or EVM address to delegate to')
+      call.setError('Enter the Numen or EVM address to delegate to')
       return false
     }
 
@@ -123,49 +118,35 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
     try {
       planck = parseAmount(amount)
     } catch (problem) {
-      setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
+      call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
       return false
     }
 
     if (planck <= 0n || planck > held) {
-      setError('Enter an amount within what this account holds')
+      call.setError('Enter an amount within what this account holds')
       return false
     }
 
     if (chosen.length === 0) {
-      setError('Pick at least one track')
+      call.setError('Pick at least one track')
       return false
     }
 
-    void send(target, planck)
-    return false
-  }
-
-  const send = async (target: string, planck: bigint) => {
-    setBusy(true)
-    try {
-      await submit(delegating(target, planck), password)
-      toast('Delegation sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'Delegation failed')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit(delegating(target, planck), call.password), 'Delegation sent')
   }
 
   return (
     <CallModal
       title="Delegate votes"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap(delegating(account.address, held))}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -215,48 +196,30 @@ export function UndelegateModal({
 }) {
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const [chosen, setChosen] = useState([0])
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const ending = batched(chosen.map((track) => ({ kind: 'undelegate' as const, track })))
 
   const form = () => {
-    setError('')
-
     if (chosen.length === 0) {
-      setError('Pick at least one track')
+      call.setError('Pick at least one track')
       return false
     }
 
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await submit(ending, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'Could not end the delegation')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit(ending, call.password))
   }
 
   return (
     <CallModal
       title="Take a delegation back"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap(ending)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

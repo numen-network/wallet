@@ -8,8 +8,8 @@ import { Item, ItemActions, ItemDescription, ItemGroup, ItemTitle } from '@/comp
 import { Plus, Trash2 } from 'lucide-react'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
-import { toast, toastProblem } from '@/ui/Toast'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { toastProblem } from '@/ui/Toast'
+import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 import { AddressField } from './AddressField'
 
@@ -38,9 +38,7 @@ export function SubsModal({
   const [edited, setEdited] = useState<Sub[] | null>(null)
   const [address, setAddress] = useState('')
   const [name, setName] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const { data: facts } = useFacts()
@@ -59,20 +57,20 @@ export function SubsModal({
   const add = () => {
     const trimmed = address.trim()
     if (!isSubstrateAddress(trimmed)) {
-      setError('Enter a Numen address')
+      call.setError('Enter a Numen address')
       return
     }
     const numen = toNumenAddress(trimmed)
     if (subs.some((sub) => sub.address === numen)) {
-      setError('That account is already on the list')
+      call.setError('That account is already on the list')
       return
     }
     if (byteLength(name.trim()) > SUB_NAME_MAX_BYTES) {
-      setError(`A name is at most ${SUB_NAME_MAX_BYTES} bytes`)
+      call.setError(`A name is at most ${SUB_NAME_MAX_BYTES} bytes`)
       return
     }
 
-    setError('')
+    call.setError('')
     setEdited([...subs, { address: numen, name: name.trim() }])
     setAddress('')
     setName('')
@@ -86,31 +84,18 @@ export function SubsModal({
       return false
     }
     if (!standing?.own) {
-      setError('This account has no identity of its own for a sub to hang off')
+      call.setError('This account has no identity of its own for a sub to hang off')
       return false
     }
-    void send()
-    return false
-  }
 
-  const send = async () => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit(operation, call.password))
   }
 
   return (
     <CallModal
       title="Sub accounts"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={
         holding !== null &&
         `${formatAmount(holding, { precision: 2 })} ${symbol} held while the list stands`
@@ -118,9 +103,9 @@ export function SubsModal({
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -199,46 +184,27 @@ export function QuitSubModal({
   const symbol = useSymbol()
   const { data: facts } = useFacts()
   const { data: standing } = useStanding(account.address)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const operation = wrap({ kind: 'quitSub' })
   const parent = standing?.sub
   const named = parent?.registration?.info.display
 
-  const form = () => {
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain kept the link')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const form = () => call.run(submit(operation, call.password))
 
   return (
     <CallModal
       title="Reject the parent identity"
       submitLabel="Reject it"
-      busy={busy}
+      busy={call.busy}
       danger
       from={signer.address}
       needsPassword={needsPassword}
       operation={operation}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

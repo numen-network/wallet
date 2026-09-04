@@ -4,8 +4,7 @@ import type { Operation } from '@/chain/types'
 import { useRegistrars, useStanding } from '@/chain/queries'
 import { botRegistrar, CHANNELS, isChecked, LABELS, pendingWith } from '@/chain/identity'
 import { formatAmount } from '@/lib/balance'
-import { toast } from '@/ui/Toast'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import { RegistrarField } from './RegistrarField'
 import type { Account } from './types'
 
@@ -29,9 +28,7 @@ export function JudgementModal({
   const { data: registrars } = useRegistrars()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const [chosen, setChosen] = useState<number | null>(null)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const pending = pendingWith(registration ?? null)
   // The automated one only takes the transfer riding the identity dialog, a
@@ -50,46 +47,30 @@ export function JudgementModal({
         : null
 
   const form = () => {
-    setError('')
-
     if (!registration) {
-      setError('Set an identity first, there is nothing to check yet')
+      call.setError('Set an identity first, there is nothing to check yet')
       return false
     }
     if (!operation) {
-      setError('This chain has no registrar to ask')
+      call.setError('This chain has no registrar to ask')
       return false
     }
 
-    void send(operation)
-    return false
-  }
-
-  const send = async (operation: Operation) => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit(operation, call.password))
   }
 
   return (
     <CallModal
       title={pending === null ? 'Ask a registrar' : 'Withdraw the request'}
       submitLabel={pending === null ? 'Sign and send' : 'Withdraw it'}
-      busy={busy}
+      busy={call.busy}
       danger={pending !== null}
       from={signer.address}
       needsPassword={needsPassword}
       operation={operation && wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

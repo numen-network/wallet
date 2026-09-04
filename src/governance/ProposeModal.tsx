@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CallModal, SignerField } from '@/accounts/Authorize'
+import { CallModal, SignerField, useCall } from '@/accounts/Authorize'
 import {
   dumpBytes,
   metadataDump,
@@ -26,7 +26,6 @@ import { Field } from '@/ui/Field'
 import { CAPTION } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { Plus, Trash2 } from 'lucide-react'
 import { AddressField } from '@/accounts/AddressField'
@@ -70,9 +69,7 @@ export function ProposeModal({
     payouts: [{ ...BLANK, to: accounts[0].address }] as PayoutDraft[],
   })
   const { address, title, description, payouts } = draft
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
@@ -135,27 +132,25 @@ export function ProposeModal({
     patch({ payouts: payouts.map((row, at) => (at === index ? { ...row, ...next } : row)) })
 
   const form = () => {
-    setError('')
-
     // Without a head every date reads as no date at all, which would sign away
     // the schedule and pay the lot at once
     if (!head || !facts) {
-      setError('Still reading the chain, so give it a moment')
+      call.setError('Still reading the chain, so give it a moment')
       return false
     }
 
     if (!qualified) {
-      setError('This account does not clear the identity standard')
+      call.setError('This account does not clear the identity standard')
       return false
     }
 
     if (title.trim() === '') {
-      setError('Give it a title, since that is what the list shows')
+      call.setError('Give it a title, since that is what the list shows')
       return false
     }
 
     if (bytes > facts.preimageMaxSize) {
-      setError(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
+      call.setError(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
       return false
     }
 
@@ -166,12 +161,12 @@ export function ProposeModal({
           parseAmount(row.amount)
         } catch (problem) {
           if (problem instanceof AmountError) {
-            setError(problem.message)
+            call.setError(problem.message)
             return false
           }
         }
       }
-      setError('Every payout needs an amount and an address to pay it to')
+      call.setError('Every payout needs an amount and an address to pay it to')
       return false
     }
 
@@ -180,7 +175,7 @@ export function ProposeModal({
         (most, spender) => (spender.cap > most ? spender.cap : most),
         0n,
       )
-      setError(`One referendum can ask for at most ${formatAmount(biggest, { precision: 0 })}`)
+      call.setError(`One referendum can ask for at most ${formatAmount(biggest, { precision: 0 })}`)
       return false
     }
 
@@ -191,44 +186,30 @@ export function ProposeModal({
     )
     if (shut) {
       const least = daySpan(Math.max(0, runsFor - facts.payoutPeriod), facts.blockSeconds)
-      setError(`A payout has to be dated at least ${least} out, or its claim window shuts before the referendum enacts`)
+      call.setError(`A payout has to be dated at least ${least} out, or its claim window shuts before the referendum enacts`)
       return false
     }
 
-    void send(booked, track)
-    return false
-  }
-
-  const send = async (asking: Payout[], id: number) => {
-    setBusy(true)
-    try {
-      await voter.submit(
-        { kind: 'propose', track: id, payouts: asking, title, description },
-        password,
-      )
-      toast('Sent')
-      sent()
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(
+      voter
+        .submit({ kind: 'propose', track, payouts: booked, title, description }, call.password)
+        .then(sent),
+    )
   }
 
   return (
     <CallModal
       title="Open a referendum"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       disabled={!qualified || !head || !facts}
       width={760}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={track !== null ? voter.wrap({ kind: 'propose', track, payouts: booked, title, description, }) : null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -390,9 +371,7 @@ export function EditTextModal({
   const { data: facts } = useFacts()
   const [title, setTitle] = useState(referendum.title ?? '')
   const [description, setDescription] = useState(referendum.description ?? '')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   // set_metadata answers only to whoever opened it, so there is nobody to pick
   const voter = useVoter(accounts, referendum.submitter)
@@ -420,54 +399,38 @@ export function EditTextModal({
       : null
 
   const form = () => {
-    setError('')
-
     if (title.trim() === '') {
-      setError('Give it a title, since that is what the list shows')
+      call.setError('Give it a title, since that is what the list shows')
       return false
     }
 
     if (facts && bytes > facts.preimageMaxSize) {
-      setError(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
+      call.setError(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
       return false
     }
 
     // The chain refuses to note the very same bytes twice, and there is
     // nothing to change anyway
     if (metadataDump(title, description) === metadataDump(referendum.title ?? '', referendum.description ?? '')) {
-      setError('It already says exactly that')
+      call.setError('It already says exactly that')
       return false
     }
 
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(voter.submit(operation, call.password))
   }
 
   return (
     <CallModal
       title={`Edit the text of referendum ${referendum.index}`}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       disabled={!facts}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -531,46 +494,27 @@ export function PreimageModal({
   onClose: () => void
 }) {
   const symbol = useSymbol()
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   // Only the noter is allowed, so there is nobody to choose between
   const voter = useVoter(accounts, preimage.who)
   const account = voter.account
   const operation = { kind: 'unnotePreimage', hash: preimage.hash } as const
 
-  const form = () => {
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const form = () => call.run(voter.submit(operation, call.password))
 
   return (
     <CallModal
       title="Clear the preimage"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={`${formatAmount(preimage.amount, { precision: 2 })} ${symbol} back to ${shorten(preimage.who)}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -616,46 +560,27 @@ export function RefundModal({
 }) {
   const symbol = useSymbol()
   const [address, setAddress] = useState(accounts[0].address)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
   const operation = { kind, poll } as const
   const what = kind === 'refundSubmission' ? 'submission' : 'decision'
 
-  const form = () => {
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const form = () => call.run(voter.submit(operation, call.password))
 
   return (
     <CallModal
       title={`Return the ${what} deposit`}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={`${formatAmount(held.amount, { precision: 0 })} ${symbol} to ${shorten(held.who)}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -684,45 +609,26 @@ export function PayoutModal({
 }) {
   const symbol = useSymbol()
   const [address, setAddress] = useState(accounts[0].address)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
   const operation = { kind: 'payout', spend: spend.index } as const
 
-  const form = () => {
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const form = () => call.run(voter.submit(operation, call.password))
 
   return (
     <CallModal
       title={`Pay out spend ${spend.index}`}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={`${formatAmount(spend.amount, { precision: 2 })} ${symbol} to ${shorten(spend.beneficiary)}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -752,9 +658,7 @@ export function DepositModal({
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
   const [address, setAddress] = useState(accounts[0].address)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const account = voter.account
@@ -762,30 +666,13 @@ export function DepositModal({
   // The call takes an index and nothing else, since the track fixes what it costs
   const deposit = tracks?.find((entry) => entry.id === referendum.track)?.decisionDeposit ?? null
 
-  const form = () => {
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const form = () => call.run(voter.submit(operation, call.password))
 
   return (
     <CallModal
       title={`Start referendum ${referendum.index} deciding`}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={
         deposit === null
           ? undefined
@@ -794,9 +681,9 @@ export function DepositModal({
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

@@ -4,7 +4,6 @@ import { useBalances, useFacts, useFeeEstimate, useSymbol } from '@/chain/querie
 import { totalOf, type AccountBalance, type Operation } from '@/chain/types'
 import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ModalFrame } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
@@ -17,11 +16,10 @@ import {
   InputGroupText,
 } from '@/components/ui/input-group'
 import { Identicon } from '@/ui/Identicon'
-import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'
-import { CallPage, useSigning } from './Authorize'
+import { CallPage, useCall, useSigning } from './Authorize'
 import { BLANK, type Row } from './payments'
 import { SendMany } from './SendManyModal'
 import type { Account } from './types'
@@ -97,11 +95,9 @@ function SendOne({
   const [amount, setAmount] = useState('')
   const [everything, setEverything] = useState(false)
   const everythingId = useId()
-  const [password, setPassword] = useState('')
+  const call = useCall(onClose)
   const [toError, setToError] = useState('')
   const [amountError, setAmountError] = useState('')
-  const [passwordError, setPasswordError] = useState('')
-  const [busy, setBusy] = useState(false)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
 
@@ -166,33 +162,18 @@ function SendOne({
       operation = destination ? { kind: 'transfer', to: destination, amount: planck } : null
     }
 
-    const missing = needsPassword && !password
-    setPasswordError(missing ? 'Enter the password for this account' : '')
+    const missing = needsPassword && !call.password
+    call.setError(missing ? 'Enter the password for this account' : '')
     if (!operation || missing) return false
 
-    void send(operation)
-    return false
-  }
-
-  const send = async (operation: Operation) => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Transfer sent')
-      onClose()
-    } catch (error) {
-      if (error instanceof VaultError) setPasswordError(error.message)
-      else setAmountError(error instanceof Error ? error.message : 'Transfer failed')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit(operation, call.password), 'Transfer sent')
   }
 
   return (
     <CallPage
       title={`Send ${symbol}`}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       aside={tabs}
       footNote={
         account.multisig &&
@@ -201,9 +182,9 @@ function SendOne({
       from={account.address}
       needsPassword={needsPassword}
       operation={probe}
-      password={password}
-      onPassword={setPassword}
-      error={passwordError}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       note="Unlocks this account for one transfer"
       onClose={onClose}
       onSubmit={form}

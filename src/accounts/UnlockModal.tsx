@@ -1,12 +1,11 @@
-import { Fragment, useState } from 'react'
+import { Fragment } from 'react'
 import { trackLabel, type ClassLock } from '@/chain/governance'
 import { useFacts, useHead, useLocks, useReferenda, useSymbol, useTracks } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { waitFor } from '@/lib/blocks'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
-import { toast } from '@/ui/Toast'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
 const plural = (many: number, noun: string) => `${many} ${noun}${many === 1 ? '' : 's'}`
@@ -33,9 +32,7 @@ export function UnlockModal({
   const { data: facts } = useFacts()
   const head = useHead()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const height = head?.number ?? 0
   const held = locks ?? []
@@ -67,43 +64,27 @@ export function UnlockModal({
   const operation = batched(calls)
 
   const form = () => {
-    setError('')
-
     if (calls.length === 0) {
-      setError('Nothing is free to unlock yet')
+      call.setError('Nothing is free to unlock yet')
       return false
     }
 
-    void send()
-    return false
+    return call.run(submit(operation, call.password))
   }
 
-  const send = async () => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain kept the lock')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const takes = calls.filter((call) => call.kind === 'removeVote').length
+  const takes = calls.filter((entry) => entry.kind === 'removeVote').length
 
   return (
     <CallModal
       title="Release vote locks"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       from={signer.address}
       needsPassword={needsPassword}
       operation={calls.length > 0 ? wrap(operation) : null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

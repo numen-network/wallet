@@ -21,10 +21,9 @@ import { Card } from '@/components/ui/card'
 import { Empty } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
-import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
 import { AddressField } from './AddressField'
-import { CallPage, SignerField, useSigning } from './Authorize'
+import { CallPage, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
 interface VestingModalProps {
@@ -80,9 +79,7 @@ function Release({
   const { data: schedules } = useVesting(account.address)
   const { data: facts } = useFacts()
   const head = useHead()
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const height = head?.number ?? 0
@@ -90,24 +87,7 @@ function Release({
   const free = releasable(held, height)
   const operation = { kind: 'vest' } as const
 
-  const form = () => {
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const form = () => call.run(submit(operation, call.password))
 
   const amount = (planck: bigint) => `${formatAmount(planck, { precision: 4 })} ${symbol}`
   const block = (at: number) => `block ${at.toLocaleString('en-US')}`
@@ -122,16 +102,16 @@ function Release({
     <CallPage
       title="Vesting"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       disabled={free === 0n}
       aside={tabs}
       footNote={held.length > 0 && free === 0n && 'Nothing has thawed since this was last asked for'}
       from={signer.address}
       needsPassword={needsPassword && free > 0n}
       operation={free > 0n ? wrap(operation) : null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -200,9 +180,7 @@ function Grant({
   const [amount, setAmount] = useState('')
   const [days, setDays] = useState('')
   const [start, setStart] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const height = head?.number ?? 0
@@ -228,7 +206,7 @@ function Grant({
     }`
 
   const fail = (message: string) => {
-    setError(message)
+    call.setError(message)
     return false
   }
 
@@ -240,39 +218,25 @@ function Grant({
     }
     if (locked > transferable) return fail('More than this account can send')
     if (!(over > 0)) return fail('Say how many days it unlocks over')
-    if (needsPassword && !password) return fail('Enter the password for this account')
+    if (needsPassword && !call.password) return fail('Enter the password for this account')
 
-    setError('')
-    void send()
-    return false
-  }
+    if (!operation) return false
 
-  const send = async () => {
-    if (!operation) return
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit(operation, call.password))
   }
 
   return (
     <CallPage
       title="Grant a vesting schedule"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       aside={tabs}
       from={signer.address}
       needsPassword={needsPassword}
       operation={operation ? wrap(operation) : null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

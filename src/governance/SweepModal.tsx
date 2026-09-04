@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { CallModal } from '@/accounts/Authorize'
+import { CallModal, useCall } from '@/accounts/Authorize'
 import { refundsSubmission, type NotedPreimage, type Settled, type Spend } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
-import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 
 /**
@@ -39,46 +38,27 @@ function Sweep({
 }) {
   const symbol = useSymbol()
   const [address, setAddress] = useState(accounts[0].address)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const { calls, worth, says } = plan(voter.account.address)
   const operation = batched(calls)
 
-  const send = async () => {
-    setBusy(true)
-    try {
-      await voter.submit(operation, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <CallModal
       title={title}
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       disabled={calls.length === 0}
       footNote={`${formatAmount(worth, { precision: 0 })} ${symbol} over ${count(calls.length, 'call')}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
-      onSubmit={() => {
-        setError('')
-        void send()
-        return false
-      }}
+      onSubmit={() => call.run(voter.submit(operation, call.password))}
     >
       <p className="text-[13.5px] text-muted-foreground">{says}</p>
 

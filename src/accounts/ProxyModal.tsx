@@ -7,8 +7,7 @@ import { formatAmount } from '@/lib/balance'
 import { Empty } from '@/components/ui/empty'
 import { Field, INSIDE } from '@/ui/Field'
 import { Select } from '@/ui/Select'
-import { toast } from '@/ui/Toast'
-import { CallModal, SignerField, useSigning } from './Authorize'
+import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
 
@@ -38,9 +37,7 @@ export function AddProxyModal({
   const { data: facts } = useFacts()
   const [delegate, setDelegate] = useState('')
   const [type, setType] = useState<ProxyType>('Governance')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
   // Naming yourself as your own proxy is a call that does nothing
   const others = accounts.filter((entry) => entry.address !== account.address)
 
@@ -52,40 +49,25 @@ export function AddProxyModal({
       : facts.proxyDepositBase + facts.proxyDepositFactor
 
   const form = () => {
-    setError('')
-
     const target = resolveAddress(delegate)
     if (!target) {
-      setError('Enter the Numen or EVM address to act for this account')
+      call.setError('Enter the Numen or EVM address to act for this account')
       return false
     }
     if (facts && (held?.length ?? 0) >= facts.maxProxies) {
-      setError(`This account already has ${facts.maxProxies} proxies`)
+      call.setError(`This account already has ${facts.maxProxies} proxies`)
       return false
     }
 
-    void send({ delegate: target, type })
-    return false
-  }
-
-  const send = async (proxy: Proxy) => {
-    setBusy(true)
-    try {
-      await submit({ kind: 'addProxy', proxy }, password)
-      toast('Proxy sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The proxy could not be added')
-    } finally {
-      setBusy(false)
-    }
+    const proxy: Proxy = { delegate: target, type }
+    return call.run(submit({ kind: 'addProxy', proxy }, call.password), 'Proxy sent')
   }
 
   return (
     <CallModal
       title="Add proxy"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       footNote={
         deposit !== null &&
         `${formatAmount(deposit, { precision: 2 })} ${symbol} held on deposit`
@@ -93,9 +75,9 @@ export function AddProxyModal({
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap({ kind: 'addProxy', proxy: { delegate: account.address, type } })}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -139,46 +121,29 @@ export function RemoveProxyModal({
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const { data: held, isPending } = useProxies(account.address)
   const [chosen, setChosen] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
   const proxies = held ?? []
   const selected = proxies.find((proxy) => proxyKey(proxy) === chosen) ?? proxies[0]
 
   const form = () => {
-    setError('')
     if (!selected) return false
 
-    void send(selected)
-    return false
-  }
-
-  const send = async (proxy: Proxy) => {
-    setBusy(true)
-    try {
-      await submit({ kind: 'removeProxy', proxy }, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The proxy could not be removed')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit({ kind: 'removeProxy', proxy: selected }, call.password))
   }
 
   return (
     <CallModal
       title="Remove proxy"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       disabled={!selected}
       from={signer.address}
       needsPassword={proxies.length > 0 && needsPassword}
       operation={selected ? wrap({ kind: 'removeProxy', proxy: selected }) : null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >

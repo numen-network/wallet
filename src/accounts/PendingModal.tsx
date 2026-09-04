@@ -14,10 +14,9 @@ import { CopyButton } from '@/ui/CopyButton'
 import { Facts } from '@/ui/Facts'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
-import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { describe } from './activity'
-import { CallModal, useSigning } from './Authorize'
+import { CallModal, useCall, useSigning } from './Authorize'
 import { readAgainst, useCallsStore } from './calls'
 import { otherSignatories } from './multisig'
 import type { Account } from './types'
@@ -45,9 +44,7 @@ export function PendingModal({
   const symbol = useSymbol()
   const { data: pending, isPending } = usePending([account.address])
   const calls = useCallsStore((state) => state.calls)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall()
 
   const { signer, choose, send: submit, needsPassword } = useSigning(account, signers)
   const threshold = account.multisig?.threshold ?? 0
@@ -58,19 +55,6 @@ export function PendingModal({
   const name = (address: string) =>
     accounts.find((entry) => entry.address === address)?.name ?? 'Not in this wallet'
 
-  const run = async (what: Promise<unknown>) => {
-    setError('')
-    setBusy(true)
-    try {
-      await what
-      toast('Sent')
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain refused it')
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <CallModal
       title="Multisig approvals"
@@ -79,9 +63,9 @@ export function PendingModal({
       from={signer.address}
       needsPassword={waiting.length > 0 && needsPassword}
       operation={null}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
     >
       {isPending ? (
@@ -93,20 +77,20 @@ export function PendingModal({
         </Empty>
       ) : (
         <div className="grid gap-2.5">
-          {waiting.map((call) => (
+          {waiting.map((entry) => (
             <WaitingCall
-              key={call.callHash}
-              call={call}
-              held={calls[call.callHash]}
+              key={entry.callHash}
+              call={entry}
+              held={calls[entry.callHash]}
               signatories={signatories}
               name={name}
               threshold={threshold}
-              signed={call.approvals.includes(signer.address)}
-              mine={call.depositor === signer.address}
+              signed={entry.approvals.includes(signer.address)}
+              mine={entry.depositor === signer.address}
               symbol={symbol}
-              busy={busy}
-              onSign={(hex, label) =>
-                void run(
+              busy={call.busy}
+              onSign={(hex, label) => {
+                call.run(
                   submit(
                     {
                       kind: 'multisigApproveData',
@@ -116,24 +100,24 @@ export function PendingModal({
                       hex,
                       label,
                     },
-                    password,
+                    call.password,
                   ),
                 )
-              }
-              onCancel={() =>
-                void run(
+              }}
+              onCancel={() => {
+                call.run(
                   submit(
                     {
                       kind: 'multisigCancel',
                       threshold,
                       others,
                       multisig: account.address,
-                      callHash: call.callHash,
+                      callHash: entry.callHash,
                     },
-                    password,
+                    call.password,
                   ),
                 )
-              }
+              }}
             />
           ))}
         </div>

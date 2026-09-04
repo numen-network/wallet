@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { useChain } from '@/chain/provider'
 import { useFacts, useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import {
@@ -25,8 +25,7 @@ import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from '@/co
 import { useDraft } from '@/ui/draft'
 import { ModalFrame } from '@/ui/Modal'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
-import { toast } from '@/ui/Toast'
-import { CallModal, CallPage, SignerField, useSigning } from './Authorize'
+import { CallModal, CallPage, SignerField, useCall, useSigning } from './Authorize'
 import { IdentityLine } from './IdentityLine'
 import { RegistrarField } from './RegistrarField'
 import type { Account } from './types'
@@ -124,10 +123,8 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
   const { data: facts } = useFacts()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const { info, chosen, ask } = draft
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const call = useCall(onClose)
   const askId = useId()
-  const [busy, setBusy] = useState(false)
 
   // The form owns the fields the moment somebody types, before that the chain does
   const current = info ?? registration?.info ?? EMPTY_IDENTITY
@@ -155,40 +152,23 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
   } as const
 
   const form = () => {
-    setError('')
-
     if (isEmpty(current)) {
-      setError('Fill in at least one field, or clear the identity instead')
+      call.setError('Fill in at least one field, or clear the identity instead')
       return false
     }
 
     if (!named(current.display)) {
-      setError('The record needs a display name')
+      call.setError('The record needs a display name')
       return false
     }
 
     const [long] = overlong(current)
     if (long) {
-      setError(`${LABELS[long]} is longer than ${MAX_BYTES[long]} bytes`)
+      call.setError(`${LABELS[long]} is longer than ${MAX_BYTES[long]} bytes`)
       return false
     }
 
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await submit(operation, password)
-      toast('Identity sent')
-      sent()
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The identity was refused')
-    } finally {
-      setBusy(false)
-    }
+    return call.run(submit(operation, call.password).then(sent), 'Identity sent')
   }
 
   const line = (field: IdentityField) => (
@@ -204,7 +184,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
     <CallPage
       title="On chain identity"
       submitLabel="Sign and send"
-      busy={busy}
+      busy={call.busy}
       aside={tabs}
       footNote={
         facts &&
@@ -213,9 +193,9 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap(operation)}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
@@ -298,41 +278,22 @@ export function ClearIdentityModal({
   const { data: standing } = useStanding(account.address)
   const registration = standing?.own ?? null
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const call = useCall(onClose)
 
-  const form = () => {
-    setError('')
-    void send()
-    return false
-  }
-
-  const send = async () => {
-    setBusy(true)
-    try {
-      await submit({ kind: 'clearIdentity' }, password)
-      toast('Sent')
-      onClose()
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'The chain kept the identity')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const form = () => call.run(submit({ kind: 'clearIdentity' }, call.password))
 
   return (
     <CallModal
       title="Clear on chain identity"
       submitLabel="Clear it"
-      busy={busy}
+      busy={call.busy}
       danger
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap({ kind: 'clearIdentity' })}
-      password={password}
-      onPassword={setPassword}
-      error={error}
+      password={call.password}
+      onPassword={call.setPassword}
+      error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
