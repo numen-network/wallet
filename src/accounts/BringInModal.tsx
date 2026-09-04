@@ -6,7 +6,16 @@ import { totalOf } from '@/chain/types'
 import { evmAccounts, metaMask, wasRejected, withdrawFee, withdrawToSubstrate } from '@/evm/metamask'
 import { evmToSubstrate, publicKeyOf, shorten, shortenEvm } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Modal } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError } from '@/components/ui/field'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from '@/components/ui/input-group'
 import { toast, toastProblem } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import type { Account } from './types'
@@ -118,8 +127,9 @@ export function BringInModal({
   return (
     <Modal
       title="Bring in from MetaMask"
-      submitLabel={busy ? 'Waiting…' : 'Ask MetaMask'}
-      disabled={busy || !from || itself || !facts}
+      submitLabel="Ask MetaMask"
+      busy={busy}
+      disabled={!from || itself || !facts}
       onClose={onClose}
       onSubmit={send}
     >
@@ -142,29 +152,27 @@ export function BringInModal({
       )}
 
       <Field label="Amount">
-        <span className="relative block">
-          <Input
-            className="pr-[106px] font-mono"
+        <InputGroup>
+          <InputGroupInput
+            className="font-mono"
             value={amount}
             inputMode="decimal"
             placeholder="0.0"
             autoComplete="off"
             onChange={(event) => setAmount(amountInput(event.target.value))}
           />
-          <span className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-[7px]">
-            <button
-              type="button"
-              className="rounded-md bg-primary-soft px-2 py-[3px] text-[11px] font-bold text-primary"
+          <InputGroupAddon>
+            <InputGroupButton
               disabled={sendable === 0n}
               onClick={() =>
                 setAmount(formatAmount(sendable, { precision: DECIMALS, grouped: false, pad: false }))
               }
             >
               MAX
-            </button>
-            <span className="text-[11.5px] font-bold tracking-wide text-dim">{facts?.symbol ?? ''}</span>
-          </span>
-        </span>
+            </InputGroupButton>
+            <InputGroupText>{facts?.symbol ?? ''}</InputGroupText>
+          </InputGroupAddon>
+        </InputGroup>
       </Field>
       <FieldError>{error}</FieldError>
 

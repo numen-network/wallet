@@ -34,10 +34,10 @@ async function createKey(page: Page, name = 'Vault') {
   await page.getByRole('button', { name: 'Done' }).click()
 }
 
-const governance = async (page: Page) => page.getByRole('button', { name: 'Governance' }).click()
+const governance = async (page: Page) => page.getByRole('tab', { name: 'Governance' }).click()
 
 // Each list is a tab, so only the open one is on the page
-const tab = async (page: Page, name: string) => page.getByRole('button', { name }).click()
+const tab = async (page: Page, name: string) => page.getByRole('tab', { name }).click()
 
 // Every list on this page is cards with a #index, so each is reached through
 // the region it lives in rather than by walking every article
@@ -81,9 +81,9 @@ test('the list shows what each referendum would pay and where it has got to', as
   // in for the address and the hover hands the address back
   const paid = running.getByRole('link', { name: 'Numen Explorer Team' }).first()
   await expect(paid).toHaveAttribute('href', /\/account\/nu2uaQWz/)
-  await expect(paid).toHaveAttribute(
-    'title',
-    'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg\nTelegram @numen_explorer',
+  await paid.hover()
+  await expect(page.getByRole('tooltip')).toHaveText(
+    /^nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg\s+Telegram @numen_explorer$/,
   )
   // Nobody has ever heard of #0's beneficiary, so its address shows whole
   await expect(
@@ -218,7 +218,7 @@ test('a multisig votes through its signatories', async ({ page }) => {
 
   // One signature of two, so what lands is a call waiting on the other
   await expect(page.getByText('Signature added')).toBeVisible()
-  await page.getByRole('button', { name: 'Accounts' }).click()
+  await page.getByRole('tab', { name: 'Accounts' }).click()
   await page.locator('article').filter({ hasText: 'Treasury' }).getByRole('button', { name: 'Account menu' }).click()
   await page.getByRole('menuitem', { name: 'Multisig approvals' }).click()
   await expect(page.getByRole('dialog').getByText('1 of 2 signed')).toBeVisible()
@@ -491,7 +491,7 @@ test('voting locks the balance and the lock says what holds it', async ({ page }
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Vote counted')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Accounts' }).click()
+  await page.getByRole('tab', { name: 'Accounts' }).click()
   await page.locator('article').filter({ hasText: 'Vault' }).getByRole('button', { name: 'Account menu' }).click()
   await page.getByRole('menuitem', { name: 'Release vote locks' }).click()
 
@@ -566,7 +566,7 @@ test('one signature takes back the finished votes and frees the track', async ({
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Vote taken back')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Accounts' }).click()
+  await page.getByRole('tab', { name: 'Accounts' }).click()
   await page
     .locator('article')
     .filter({ hasText: 'Vault' })

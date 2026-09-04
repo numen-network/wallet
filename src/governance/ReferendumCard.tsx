@@ -18,7 +18,7 @@ import { formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { ExternalLink } from 'lucide-react'
 
 /** One colour a state, in the order a referendum passes through them. */
@@ -130,30 +130,34 @@ export function ReferendumCard({
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
+      <CardHeader>
         <span className="font-mono text-[13px] font-bold text-dim">#{referendum.index}</span>
         {/* The track names it while its metadata does not, which is all a
             referendum nobody titled has to go by */}
-        <a
-          href={explorerReferendum(network, referendum.index)}
-          target="_blank"
-          rel="noopener"
-          className="flex items-center gap-1 text-[13px] font-semibold hover:text-primary"
-        >
-          {referendum.title ?? trackLabel(tracks, referendum.track)}
-          <ExternalLink className="size-3" />
-        </a>
+        <CardTitle>
+          <a
+            href={explorerReferendum(network, referendum.index)}
+            target="_blank"
+            rel="noopener"
+            className="flex items-center gap-1 hover:text-primary"
+          >
+            {referendum.title ?? trackLabel(tracks, referendum.track)}
+            <ExternalLink className="size-3" />
+          </a>
+        </CardTitle>
         <Badge variant={TONE[referendum.state]}>{STATE_LABELS[referendum.state]}</Badge>
-      </div>
+      </CardHeader>
 
       {/* What the proposer wrote, which the chain has been carrying all along
           and nothing here ever showed. The whole of it, since somebody is being
           asked to vote on it and a card is not worth hiding it for */}
       {referendum.description && (
-        <p className="mt-2 text-[13px] whitespace-pre-line text-muted-foreground">{referendum.description}</p>
+        <CardContent className="text-[13px] whitespace-pre-line text-muted-foreground">
+          {referendum.description}
+        </CardContent>
       )}
 
-      <div className="mt-2 text-[13.5px]">
+      <CardContent>
         {proposal.kind === 'spend' ? (
           <Spending
             spends={proposal.spends}
@@ -164,9 +168,9 @@ export function ReferendumCard({
         ) : (
           <span className="text-muted-foreground">{proposal.label}</span>
         )}
-      </div>
+      </CardContent>
 
-      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[12.5px]">
+      <CardContent className="flex flex-wrap gap-x-5 gap-y-1 text-[12.5px]">
         <Stat label="Approval">
           {approval(referendum.tally).toFixed(2)}%<Needs percent={needs?.approval} />
         </Stat>
@@ -178,12 +182,12 @@ export function ReferendumCard({
         {clock && facts && (
           <Stat label={clock.label}>{waitFor(clock.blocks, facts.blockSeconds)}</Stat>
         )}
-      </div>
+      </CardContent>
 
-      <p className="mt-1.5 text-[12.5px] text-muted-foreground">{STATE_SAYS[referendum.state]}</p>
+      <CardDescription>{STATE_SAYS[referendum.state]}</CardDescription>
 
       {canSign && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <CardFooter>
           <Button type="button" onClick={() => onVote(referendum)}>
             Vote
           </Button>
@@ -200,7 +204,7 @@ export function ReferendumCard({
               Edit the text
             </Button>
           )}
-        </div>
+        </CardFooter>
       )}
     </Card>
   )

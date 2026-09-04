@@ -7,6 +7,7 @@ import {
   type Standing,
 } from '@/chain/identity'
 import { JudgementBadge } from '@/ui/JudgementBadge'
+import { Tip } from '@/ui/Tip'
 
 /**
  * What the registrars made of an identity, with the reason on hover. Wherever an
@@ -19,15 +20,13 @@ export function IdentityVerdict({ standing }: { standing: Standing }) {
   if (!registration) return null
 
   const verdict = identityState(registration)
+  const says = isQualified(standing)
+    ? `${STATE_WORDS[verdict]}, so this account clears the identity standard`
+    : `${STATE_WORDS[verdict]}. ${shortfall(standing) ?? ''}`
 
   return (
-    <JudgementBadge
-      verdict={verdict}
-      title={
-        isQualified(standing)
-          ? `${STATE_WORDS[verdict]}, so this account clears the identity standard`
-          : `${STATE_WORDS[verdict]}. ${shortfall(standing) ?? ''}`
-      }
-    />
+    <Tip text={says}>
+      <JudgementBadge verdict={verdict} aria-label={says} />
+    </Tip>
   )
 }

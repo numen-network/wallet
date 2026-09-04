@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react'
 import { shorten } from '@/lib/address'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2 } from 'lucide-react'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Modal } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError, FieldLegend, FieldSet } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { GroupField } from './GroupField'
@@ -63,37 +66,39 @@ export function MultisigModal({ accounts, onClose }: { accounts: Account[]; onCl
 
       {/* One box per signatory, since a set of addresses is a list rather than a
           paragraph, and each one is worth an identicon and a name */}
-      <p className="caption mt-4">Signatories</p>
+      <FieldSet className="mt-4">
+        <FieldLegend>Signatories</FieldLegend>
 
-      {rows.map((row, index) => (
-        <div key={index} className="mt-1.5 grid grid-cols-[1fr_28px] items-start gap-x-2">
-          <AddressField
-            label={`Signatory ${index + 1}`}
-            value={row}
-            onChange={(next) => setRow(index, next)}
-            accounts={accounts}
-            className="w-full"
-            labelled={false}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={`Remove signatory ${index + 1}`}
-            disabled={rows.length <= LEAST}
-            onClick={() => setRows(rows.filter((_, at) => at !== index))}
-          >
-            <Trash2 />
+        {rows.map((row, index) => (
+          <div key={index} className="mt-1.5 grid grid-cols-[1fr_28px] items-start gap-x-2">
+            <AddressField
+              label={`Signatory ${index + 1}`}
+              value={row}
+              onChange={(next) => setRow(index, next)}
+              accounts={accounts}
+              className="w-full"
+              labelled={false}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={`Remove signatory ${index + 1}`}
+              disabled={rows.length <= LEAST}
+              onClick={() => setRows(rows.filter((_, at) => at !== index))}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        ))}
+
+        <div className="mt-3">
+          <Button type="button" variant="outline" onClick={() => setRows([...rows, ''])}>
+            <Plus />
+            Add signatory
           </Button>
         </div>
-      ))}
-
-      <div className="mt-3">
-        <Button type="button" variant="outline" onClick={() => setRows([...rows, ''])}>
-          <Plus />
-          Add signatory
-        </Button>
-      </div>
+      </FieldSet>
 
       <Field label="Threshold">
         <Input

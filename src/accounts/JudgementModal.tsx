@@ -83,9 +83,9 @@ export function JudgementModal({
   return (
     <CallModal
       title={pending === null ? 'Ask a registrar' : 'Withdraw the request'}
-      submitLabel={busy ? 'Signing…' : pending === null ? 'Sign and send' : 'Withdraw it'}
+      submitLabel={pending === null ? 'Sign and send' : 'Withdraw it'}
+      busy={busy}
       danger={pending !== null}
-      disabled={busy}
       from={signer.address}
       needsPassword={needsPassword}
       operation={operation && wrap(operation)}

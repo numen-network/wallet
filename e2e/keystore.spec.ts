@@ -207,7 +207,7 @@ test('grants a schedule and says where the rate lands it', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'Vesting' }).click()
 
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Grant' }).click()
+  await dialog.getByRole('tab', { name: 'Grant' }).click()
   await fillAddress(page, dialog, 'To', DESTINATION)
   await dialog.getByLabel('Amount').fill('10')
   await dialog.getByLabel('Unlocks over').fill('30')
@@ -244,7 +244,7 @@ test('says which pallet refused a call and what for', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'Vesting' }).click()
 
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Grant' }).click()
+  await dialog.getByRole('tab', { name: 'Grant' }).click()
   await fillAddress(page, dialog, 'To', DESTINATION)
 
   const whole = await dialog.getByText(/tNUMN to send/).innerText()
@@ -253,7 +253,7 @@ test('says which pallet refused a call and what for', async ({ page }) => {
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   // Named rather than left as a loose red line, so it reads as what it is
   await expect(sent.getByRole('term').filter({ hasText: 'refused' })).toBeVisible()
@@ -271,7 +271,7 @@ test('refuses a grant under what the chain takes', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'Vesting' }).click()
 
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Grant' }).click()
+  await dialog.getByRole('tab', { name: 'Grant' }).click()
   await fillAddress(page, dialog, 'To', DESTINATION)
   await dialog.getByLabel('Amount').fill('0.5')
   await dialog.getByLabel('Unlocks over').fill('30')
@@ -433,9 +433,9 @@ test('the tab remembers what it sent, across a reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click()
 
   // Nothing sent yet, so the page that lists it says so
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   await expect(page.getByText('Nothing sent yet')).toBeVisible()
-  await page.getByRole('button', { name: 'Accounts' }).click()
+  await page.getByRole('tab', { name: 'Accounts' }).click()
 
   await card(page).getByRole('button', { name: 'Send' }).click()
   const dialog = page.getByRole('dialog')
@@ -455,7 +455,7 @@ test('the tab remembers what it sent, across a reload', async ({ page }) => {
   await expect(flight).toHaveCount(0)
 
   await page.reload()
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.getByText('Transfer', { exact: true })).toBeVisible()
   await expect(sent.getByText('final')).toBeVisible()
@@ -493,7 +493,7 @@ test('one page carries what every account sent, not one account at a time', asyn
   await send('Vault', '1')
   await send('Spare', '2')
 
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.locator('article')).toHaveCount(2)
   // Each one names the account that signed it and says which address that is,
@@ -523,7 +523,7 @@ test('one signature pays several accounts at once', async ({ page }) => {
 
   await card(page).getByRole('button', { name: 'Send' }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Batch' }).click()
+  await dialog.getByRole('tab', { name: 'Batch' }).click()
   await fillAddress(page, dialog, 'Address 1', DESTINATION)
   await dialog.getByLabel('Amount 1').fill('1')
 
@@ -550,7 +550,7 @@ test('one signature pays several accounts at once', async ({ page }) => {
   await expect(page.getByText('Transfers sent')).toBeVisible()
 
   // One call reached the chain, not two
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.locator('article')).toHaveCount(1)
 })
@@ -575,7 +575,7 @@ test('one delegation covers every track it is ticked for', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 
   await expect(page.getByText('All of it went through')).toBeVisible()
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.locator('article')).toHaveCount(1)
 })

@@ -3,11 +3,12 @@ import { useChain } from '@/chain/provider'
 import { useSymbol } from '@/chain/queries'
 import { shorten } from '@/lib/address'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CopyButton } from '@/ui/CopyButton'
-import { Empty } from '@/ui/Empty'
+import { Empty } from '@/components/ui/empty'
 import { Facts, type Fact } from '@/ui/Facts'
 import { SHELL } from '@/ui/shell'
+import { Tip } from '@/ui/Tip'
 import { describe, STAGES } from './activity'
 import { useSessionStore, type Submission } from './session'
 import type { Account } from './types'
@@ -60,28 +61,32 @@ function Row({
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[13.5px] font-semibold">{title}</span>
+      <CardHeader>
+        <CardTitle className="text-[13.5px]">{title}</CardTitle>
         <Badge
           variant={entry.error ? 'destructive' : entry.stage === 'finalized' ? 'primary' : 'default'}
         >
           {state}
         </Badge>
-        <span className="flex-1" />
-        <a
-          href={explorerAccount(network, entry.address)}
-          target="_blank"
-          rel="noopener"
-          title={entry.address}
-          className="flex items-baseline gap-1.5 text-[12.5px] text-muted-foreground hover:text-primary"
-        >
-          {name && <span className="font-semibold">{name}</span>}
-          <span className="font-mono">{shorten(entry.address)}</span>
-        </a>
-        <span className="text-[12.5px] text-dim">{clock.format(entry.at)}</span>
-      </div>
+        <CardAction className="flex items-center gap-2">
+          <Tip text={entry.address}>
+            <a
+              href={explorerAccount(network, entry.address)}
+              target="_blank"
+              rel="noopener"
+              className="flex items-baseline gap-1.5 text-[12.5px] text-muted-foreground hover:text-primary"
+            >
+              {name && <span className="font-semibold">{name}</span>}
+              <span className="font-mono">{shorten(entry.address)}</span>
+            </a>
+          </Tip>
+          <span className="text-[12.5px] text-dim">{clock.format(entry.at)}</span>
+        </CardAction>
+      </CardHeader>
 
-      <Facts rows={rows} />
+      <CardContent>
+        <Facts rows={rows} />
+      </CardContent>
     </Card>
   )
 }

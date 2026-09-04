@@ -5,10 +5,16 @@ import type { Pending, ReadCall } from '@/chain/types'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Empty } from '@/components/ui/empty'
+import { Item, ItemActions, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item'
+import { cn } from '@/lib/cn'
 import { CopyButton } from '@/ui/CopyButton'
 import { Facts } from '@/ui/Facts'
-import { Field, Input } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { describe } from './activity'
@@ -81,12 +87,12 @@ export function PendingModal({
       onClose={onClose}
     >
       {isPending ? (
-        <p className="text-[13.5px] text-muted-foreground">Reading the chain…</p>
+        <Empty className="mt-0 p-6">Reading the chain…</Empty>
       ) : waiting.length === 0 ? (
-        <p className="text-[13.5px] text-muted-foreground">
+        <Empty className="mt-0 p-6">
           Nothing is waiting. A call this multisig starts shows up here until enough signatories
           have put their name to it.
-        </p>
+        </Empty>
       ) : (
         <div className="grid gap-2.5">
           {waiting.map((call) => (
@@ -217,16 +223,16 @@ function WaitingCall({
   const enough = call.approvals.length + (signed ? 0 : 1) >= threshold
 
   return (
-    <div className="rounded-lg border border-border bg-muted p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[13px] font-semibold">
+    <Card variant="muted" className="gap-0 p-3">
+      <CardHeader>
+        <CardTitle>
           {call.approvals.length} of {threshold} signed
-        </span>
+        </CardTitle>
         <span className="ml-auto text-[12px] text-dim">
           call hash <span className="font-mono">{call.callHash.slice(0, 12)}…</span>
         </span>
         <CopyButton text={call.callHash} label="Copy the call hash" />
-      </div>
+      </CardHeader>
 
       {known ? (
         // The wallet's own words where it has them, and what the runtime calls
@@ -246,24 +252,24 @@ function WaitingCall({
       )}
 
       {/* Who is behind it, since a count of signatures says nothing about whose */}
-      <ul className="mt-2 grid gap-1 text-[12.5px]">
+      <ItemGroup className="mt-2 gap-1 text-[12.5px]">
         {signatories.map((address) => (
-          <li key={address} className="flex items-baseline gap-2">
-            <span className={call.approvals.includes(address) ? 'text-primary' : 'text-hint'}>
+          <Item key={address} className="items-baseline p-0">
+            <ItemMedia className={call.approvals.includes(address) ? 'text-primary' : 'text-hint'}>
               {call.approvals.includes(address) ? '✓' : '·'}
-            </span>
-            <span className={call.approvals.includes(address) ? '' : 'text-dim'}>
+            </ItemMedia>
+            <ItemTitle
+              className={cn('text-[12.5px] font-normal', !call.approvals.includes(address) && 'text-dim')}
+            >
               {name(address)}
-            </span>
-            <span className="ml-auto font-mono text-[11.5px] text-dim">{shorten(address)}</span>
-            {address === call.depositor && (
-              <span className="text-[10.5px] font-bold tracking-[0.06em] text-dim uppercase">
-                started it
-              </span>
-            )}
-          </li>
+            </ItemTitle>
+            <ItemActions className="ml-auto">
+              <span className="font-mono text-[11.5px] text-dim">{shorten(address)}</span>
+              {address === call.depositor && <Badge>started it</Badge>}
+            </ItemActions>
+          </Item>
         ))}
-      </ul>
+      </ItemGroup>
 
       <p className="mt-1.5 text-[12.5px] text-dim">
         Holding {formatAmount(call.deposit, { precision: 2 })} {symbol} from whoever started it,
@@ -299,7 +305,6 @@ function WaitingCall({
         {known && (!signed || call.approvals.length >= threshold) && (
           <Button
             type="button"
-            disabled={busy}
             onClick={() => onSign(known.hex, said ? said.title : known.read.label)}
           >
             {signed ? 'Run it' : enough ? 'Sign and run it' : 'Add my signature'}
@@ -311,12 +316,7 @@ function WaitingCall({
           </span>
         )}
         {known && (
-          <CopyButton
-            text={known.hex}
-            label="Copy the call data"
-            spelled
-            className="rounded-md border border-input px-2.5 py-1.5"
-          />
+          <CopyButton text={known.hex} label="Copy the call data" spelled variant="outline" />
         )}
         {mine && (
           <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
@@ -324,6 +324,6 @@ function WaitingCall({
           </Button>
         )}
       </div>
-    </div>
+    </Card>
   )
 }

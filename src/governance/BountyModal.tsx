@@ -6,7 +6,8 @@ import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Field, Input } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { AddressField } from '@/accounts/AddressField'
@@ -205,8 +206,8 @@ export function BountyModal({
   return (
     <CallModal
       title={ask.title}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={`${'child' in job ? `Bounty ${bounty}.${job.child.index}` : `Bounty ${bounty}`}, ${formatAmount(target.value, { precision: 0 })} ${symbol}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
@@ -332,8 +333,8 @@ export function ProposeBountyModal({
   return (
     <CallModal
       title="Propose a bounty"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}

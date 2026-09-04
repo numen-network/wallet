@@ -1,6 +1,18 @@
-import { useState } from 'react'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Fragment, useState } from 'react'
+import { Modal } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemSeparator,
+  ItemTitle,
+} from '@/components/ui/item'
 import { Trash2 } from 'lucide-react'
 import { toast } from '@/ui/Toast'
 import { customNetworks } from './custom'
@@ -65,30 +77,30 @@ export function EndpointModal({ onClose }: { onClose: () => void }) {
       <FieldError>{error}</FieldError>
 
       {added.length > 0 && (
-        <ul className="mt-3.5 rounded-lg border border-border bg-muted">
-          {added.map((network) => (
-            <li
-              key={network.id}
-              className="flex items-center gap-2 border-t border-border px-2.5 py-1.5 first:border-t-0"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold">{network.name}</span>
-                <span className="block truncate font-mono text-[11.5px] text-muted-foreground">
-                  {network.rpc}
-                </span>
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Forget ${network.name}`}
-                onClick={() => forget(network.id)}
-              >
-                <Trash2 />
-              </Button>
-            </li>
+        <ItemGroup variant="outline" className="mt-3.5 bg-muted">
+          {added.map((network, index) => (
+            <Fragment key={network.id}>
+              {index > 0 && <ItemSeparator />}
+              <Item>
+                <ItemContent>
+                  <ItemTitle>{network.name}</ItemTitle>
+                  <ItemDescription className="font-mono">{network.rpc}</ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Forget ${network.name}`}
+                    onClick={() => forget(network.id)}
+                  >
+                    <Trash2 />
+                  </Button>
+                </ItemActions>
+              </Item>
+            </Fragment>
           ))}
-        </ul>
+        </ItemGroup>
       )}
     </Modal>
   )

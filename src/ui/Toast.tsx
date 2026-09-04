@@ -1,5 +1,5 @@
 import { Toaster, toast as sonner } from 'sonner'
-import { RefreshCw } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 
 /**
  * Sonner does the stacking, the timers, the swipe and the live region. What is
@@ -61,7 +61,7 @@ export function ToastHost() {
       // Clear of the header, which is where a working notice would otherwise
       // land on top of the tabs
       offset={{ top: 60 }}
-      icons={{ loading: <RefreshCw className="mt-[3px] size-3.5 animate-spin text-primary" /> }}
+      icons={{ loading: <Spinner className="mt-[3px] size-3.5 text-primary" /> }}
       // Its own styles are dropped rather than overridden, so nothing depends
       // on which stylesheet the browser happened to read last
       toastOptions={{

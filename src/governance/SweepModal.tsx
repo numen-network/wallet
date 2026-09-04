@@ -65,8 +65,9 @@ function Sweep({
   return (
     <CallModal
       title={title}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy || calls.length === 0}
+      submitLabel="Sign and send"
+      busy={busy}
+      disabled={calls.length === 0}
       footNote={`${formatAmount(worth, { precision: 0 })} ${symbol} over ${count(calls.length, 'call')}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}

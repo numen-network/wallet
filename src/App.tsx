@@ -11,7 +11,8 @@ import { formatAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Empty } from '@/ui/Empty'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { CAPTION } from '@/components/ui/field'
 import { Footer } from '@/ui/Footer'
 import WalletMetamask from '@web3icons/react/icons/wallets/WalletMetamask'
 import {
@@ -25,9 +26,10 @@ import {
   SignalZero,
 } from 'lucide-react'
 import { ConfirmModal, PromptModal } from '@/ui/PromptModal'
-import { PILL, Select } from '@/ui/Select'
+import { Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
-import { Tabs, type TabOption } from '@/ui/Tabs'
+import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
+import { Tip } from '@/ui/Tip'
 import { ToolButton } from '@/ui/ToolButton'
 import { ToastHost, toast, toastProblem } from '@/ui/Toast'
 import { AccountBoard } from '@/accounts/AccountBoard'
@@ -142,8 +144,8 @@ function EndpointPicker({ onAdd }: { onAdd: () => void }) {
         onValueChange={setNetwork}
         options={networks.map((option) => ({ value: option.id, label: option.name }))}
         label="RPC endpoint"
-        title={usingMock ? 'Nothing is connected, balances are invented' : `${network.rpc}${health}`}
-        className={PILL}
+        hint={usingMock ? 'Nothing is connected, balances are invented' : `${network.rpc}${health}`}
+        variant="pill"
       >
         <SignalBars
           lit={grade ? GRADE[grade].lit : SignalZero}
@@ -152,14 +154,18 @@ function EndpointPicker({ onAdd }: { onAdd: () => void }) {
         {reach && <span className="text-dim tabular-nums">{Math.round(reach.ms)} ms</span>}
       </Select>
 
-      <Button type="button" variant="ghost" size="icon" aria-label="Add an endpoint" title="Add an endpoint" onClick={onAdd}>
-        <Plus />
-      </Button>
+      <Tip text="Add an endpoint">
+        <Button type="button" variant="ghost" size="icon" aria-label="Add an endpoint" onClick={onAdd}>
+          <Plus />
+        </Button>
+      </Tip>
 
       {usingMock && (
-        <Badge variant="destructive" title="No node is attached. Every balance on this page is made up">
-          mock data
-        </Badge>
+        <Tip text="No node is attached. Every balance on this page is made up">
+          <Badge variant="destructive">
+            mock data
+          </Badge>
+        </Tip>
       )}
     </>
   )
@@ -205,7 +211,7 @@ function Stat({ label, planck, lead = false }: { label: string; planck: bigint; 
 
   return (
     <div>
-      <div className="text-[11px] font-bold tracking-[0.09em] text-dim uppercase">{label}</div>
+      <div className={CAPTION}>{label}</div>
       <div
         className={`mt-1 font-mono font-semibold tracking-tight ${
           lead ? 'text-3xl max-[560px]:text-2xl' : 'text-xl text-muted-foreground'
@@ -290,7 +296,7 @@ export function App() {
   )
 
   return (
-    <>
+    <Tabs value={view} onChange={setView}>
       <header className="sticky top-0 z-40 border-b border-border bg-card">
         <div className={`${SHELL} flex flex-wrap items-center gap-3 py-2.5`}>
           <div className="flex items-center gap-2.5 text-[15px] font-bold tracking-tight">
@@ -302,27 +308,32 @@ export function App() {
 
           <span className="flex-1" />
 
-          <Tabs value={view} options={VIEWS} onChange={setView} />
+          <TabBar options={VIEWS} />
           <MetaMaskButton />
         </div>
       </header>
 
-      {facts.isError && (
+      {facts.isError ? (
         <main className={`${SHELL} grow pt-20`}>
-          <div className="mx-auto max-w-md rounded-lg border-[1.5px] border-input p-10 text-center">
-            <p className="text-sm font-bold text-muted-foreground">This endpoint answers for a different chain.</p>
-            <p className="mt-2 text-[13px] text-dim">{(facts.error as Error).message}</p>
-            <p className="mt-2 text-[13px] text-dim">Pick another endpoint from the header.</p>
-          </div>
+          <Empty className="mx-auto mt-0 max-w-md border-solid">
+            <EmptyHeader>
+              <EmptyTitle className="font-bold">This endpoint answers for a different chain.</EmptyTitle>
+              <EmptyDescription>{(facts.error as Error).message}</EmptyDescription>
+              <EmptyDescription>Pick another endpoint from the header.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         </main>
-      )}
-
-      {!facts.isError && view === 'governance' && <GovernanceView accounts={accounts} balances={balances} />}
-
-      {!facts.isError && view === 'activity' && <ActivityView accounts={accounts} />}
-
-      {!facts.isError && view === 'accounts' && (
+      ) : (
         <>
+          <TabPanel value="governance">
+            <GovernanceView accounts={accounts} balances={balances} />
+          </TabPanel>
+
+          <TabPanel value="activity">
+            <ActivityView accounts={accounts} />
+          </TabPanel>
+
+          <TabPanel value="accounts">
       <section className={`${SHELL} flex flex-wrap items-end gap-10 pt-6 pb-1.5 max-[560px]:gap-6`}>
         <Stat label="Total balance" planck={summary.total} lead />
         <Stat label="Transferable" planck={summary.transferable} />
@@ -367,19 +378,19 @@ export function App() {
         {/* A group the user just made has to show up, even with nothing in it */}
         {accounts.length === 0 && store.layout.groups.length === 1 ? (
           <Empty>
-            <p>No accounts yet.</p>
-            <p className="mx-auto mt-1 max-w-[420px] text-[13px] text-dim">
-              Create a key here, import one you already have, connect a browser extension, or just
-              watch an address without holding its key.
-            </p>
-            <Button
-              type="button"
-              className="mt-4"
-              onClick={() => setModal({ kind: 'add' })}
-            >
-              <Plus />
-              Add account
-            </Button>
+            <EmptyHeader>
+              <EmptyTitle>No accounts yet.</EmptyTitle>
+              <EmptyDescription>
+                Create a key here, import one you already have, connect a browser extension, or
+                just watch an address without holding its key.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button type="button" onClick={() => setModal({ kind: 'add' })}>
+                <Plus />
+                Add account
+              </Button>
+            </EmptyContent>
           </Empty>
         ) : (
           <AccountBoard
@@ -396,6 +407,7 @@ export function App() {
           />
         )}
       </main>
+          </TabPanel>
         </>
       )}
 
@@ -614,6 +626,6 @@ export function App() {
 
       <RefusalModal />
       <ToastHost />
-    </>
+    </Tabs>
   )
 }

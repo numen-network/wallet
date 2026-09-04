@@ -22,15 +22,10 @@ import type { Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import type { WalletAccount } from '@/signing/types'
 import { unlockKey } from '@/signing/vault'
-import {
-  Field,
-  FieldError,
-  Input,
-  ModalFrame,
-  ModalPage,
-  type ModalPageProps,
-  type ModalProps,
-} from '@/ui/Modal'
+import { ModalFrame, ModalPage, type ModalPageProps, type ModalProps } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { toast, toastProblem, toastSettled, toastWorking } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { describe, SETTLED, WORKING } from './activity'

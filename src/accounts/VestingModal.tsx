@@ -16,8 +16,12 @@ import { waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
 import { Figure } from '@/ui/Figure'
-import { Field, Input, ModalFrame } from '@/ui/Modal'
-import { Tabs, type TabOption } from '@/ui/Tabs'
+import { ModalFrame } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { Card } from '@/components/ui/card'
+import { Empty } from '@/components/ui/empty'
+import { Input } from '@/components/ui/input'
+import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
 import { AddressField } from './AddressField'
@@ -46,14 +50,19 @@ const MODES: TabOption<Mode>[] = [
  */
 export function VestingModal(props: VestingModalProps) {
   const [draft, patch] = useDraft(`vesting:${props.account.address}`, { mode: 'release' as Mode })
-  const tabs = (
-    <Tabs value={draft.mode} options={MODES} onChange={(mode) => patch({ mode })} className="w-fit" />
-  )
+  const tabs = <TabBar options={MODES} className="w-fit" />
 
   return (
-    <ModalFrame onClose={props.onClose}>
-      {draft.mode === 'release' ? <Release {...props} tabs={tabs} /> : <Grant {...props} tabs={tabs} />}
-    </ModalFrame>
+    <Tabs value={draft.mode} onChange={(mode) => patch({ mode })}>
+      <ModalFrame onClose={props.onClose}>
+        <TabPanel value="release">
+          <Release {...props} tabs={tabs} />
+        </TabPanel>
+        <TabPanel value="grant">
+          <Grant {...props} tabs={tabs} />
+        </TabPanel>
+      </ModalFrame>
+    </Tabs>
   )
 }
 
@@ -114,8 +123,9 @@ function Release({
   return (
     <CallPage
       title="Vesting"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy || free === 0n}
+      submitLabel="Sign and send"
+      busy={busy}
+      disabled={free === 0n}
       aside={tabs}
       footNote={held.length > 0 && free === 0n && 'Nothing has thawed since this was last asked for'}
       from={signer.address}
@@ -128,7 +138,7 @@ function Release({
       onSubmit={form}
     >
       {held.length === 0 ? (
-        <p className="text-[13.5px] text-muted-foreground">Nothing is vesting on this account.</p>
+        <Empty className="mt-0 p-6">Nothing is vesting on this account.</Empty>
       ) : (
         <>
           {/* The two figures every schedule adds up to, since what is worth
@@ -140,7 +150,7 @@ function Release({
 
           <div className="mt-2.5 grid gap-1.5">
             {held.map((schedule, index) => (
-              <div key={index} className="rounded-md border border-border bg-muted px-2.5 py-2">
+              <Card key={index} variant="muted" size="sm">
                 <Facts
                   rows={[
                     {
@@ -158,7 +168,7 @@ function Release({
                     { name: 'ends', value: ends(schedule) },
                   ]}
                 />
-              </div>
+              </Card>
             ))}
           </div>
         </>
@@ -257,8 +267,8 @@ function Grant({
   return (
     <CallPage
       title="Grant a vesting schedule"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       aside={tabs}
       from={signer.address}
       needsPassword={needsPassword}
@@ -317,7 +327,7 @@ function Grant({
       {/* The same three facts the Release tab lists for a schedule already on
           the chain, so what is signed for reads as what shows up */}
       {schedule && (
-        <div className="mt-2.5 rounded-md border border-border bg-muted px-2.5 py-2">
+        <Card variant="muted" size="sm" className="mt-2.5">
           <Facts
             rows={[
               { name: 'starts', value: at(from) },
@@ -327,7 +337,7 @@ function Grant({
               { name: 'ends', value: at(endsAt(schedule)) },
             ]}
           />
-        </div>
+        </Card>
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />

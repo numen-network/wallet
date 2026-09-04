@@ -42,7 +42,7 @@ test('signs a message and reads its own signature back', async ({ page }) => {
   const signature = await dialog.getByText(/^0x[0-9a-f]{128}$/).innerText()
 
   // The other half, on the same signature it just made
-  await dialog.getByRole('button', { name: 'Verify' }).click()
+  await dialog.getByRole('tab', { name: 'Verify' }).click()
   await pickAddress(page, dialog, 'Signed by', 'Vault')
   await dialog.getByLabel('Message').fill(MESSAGE)
   await dialog.getByLabel('Signature').fill(signature)
@@ -72,7 +72,7 @@ test('says nothing was signed when the message was edited after', async ({ page 
   await signing.getByRole('button', { name: 'Sign it' }).click()
   const signature = await signing.getByText(/^0x[0-9a-f]{128}$/).innerText()
 
-  await signing.getByRole('button', { name: 'Verify' }).click()
+  await signing.getByRole('tab', { name: 'Verify' }).click()
   const dialog = page.getByRole('dialog')
   await fillAddress(page, dialog, 'Signed by', OTHER)
   await dialog.getByLabel('Message').fill(MESSAGE)
@@ -85,7 +85,7 @@ test('says nothing was signed when the message was edited after', async ({ page 
 test('refuses a signature it cannot even read', async ({ page }) => {
   await createKey(page)
   const dialog = await open(page)
-  await dialog.getByRole('button', { name: 'Verify' }).click()
+  await dialog.getByRole('tab', { name: 'Verify' }).click()
 
   await fillAddress(page, page.getByRole('dialog'), 'Signed by', OTHER)
   await page.getByRole('dialog').getByLabel('Message').fill(MESSAGE)

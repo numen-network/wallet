@@ -114,10 +114,8 @@ test('the header owns up to running on invented balances', async ({ page }) => {
   await open(page)
 
   await expect(page.getByText('mock data')).toBeVisible()
-  await expect(page.getByRole('combobox', { name: 'RPC endpoint' })).toHaveAttribute(
-    'title',
-    /Nothing is connected/,
-  )
+  await page.getByRole('combobox', { name: 'RPC endpoint' }).hover()
+  await expect(page.getByRole('tooltip')).toHaveText(/Nothing is connected/)
 })
 
 test('the endpoint picker switches network and remembers the choice', async ({ page }) => {

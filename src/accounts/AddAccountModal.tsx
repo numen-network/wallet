@@ -1,12 +1,23 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { evmToSubstrate, isEvmAddress, isSubstrateAddress, toNumenAddress } from '@/lib/address'
 import { addressOf, newMnemonic, seedOf } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Item, ItemActions, ItemContent, ItemMedia } from '@/components/ui/item'
 import { RefreshCw } from 'lucide-react'
 import { Identicon } from '@/ui/Identicon'
-import { Field, FieldError, Input, Modal, PasswordFields } from '@/ui/Modal'
+import { Modal } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import {
+  Field as Row,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { toast, toastProblem } from '@/ui/Toast'
 import { GroupField } from './GroupField'
 import { UNGROUPED_ID } from './layout'
@@ -46,6 +57,7 @@ function MnemonicNotice({
   onClose: () => void
 }) {
   const [saved, setSaved] = useState(false)
+  const savedId = useId()
   const seed = useMemo(() => seedOf(mnemonic), [mnemonic])
 
   return (
@@ -62,25 +74,31 @@ function MnemonicNotice({
         access to the seed you can re-create the account.
       </p>
 
-      <p className="caption mt-3">Mnemonic seed</p>
-      {/* Ordered, because the words in another order open another account */}
-      <ol className="mt-1 grid grid-cols-4 gap-x-2 gap-y-2.5 rounded-lg border border-border bg-muted p-3.5">
-        {mnemonic.split(' ').map((word, place) => (
-          <li key={place} className="text-center text-[15px] font-semibold">
-            {word}
-          </li>
-        ))}
-      </ol>
+      <FieldSet className="mt-3">
+        <FieldLegend>Mnemonic seed</FieldLegend>
+        {/* Ordered, because the words in another order open another account */}
+        <Card asChild variant="muted" className="grid grid-cols-4 gap-x-2 gap-y-2.5">
+          <ol>
+            {mnemonic.split(' ').map((word, place) => (
+              <li key={place} className="text-center text-[15px] font-semibold">
+                {word}
+              </li>
+            ))}
+          </ol>
+        </Card>
+      </FieldSet>
 
-      <p className="caption mt-3">Raw seed</p>
-      <p className="mt-1 rounded-lg border border-border bg-muted p-3 font-mono text-[12.5px] break-all">
-        {seed}
-      </p>
+      <FieldSet className="mt-3">
+        <FieldLegend>Raw seed</FieldLegend>
+        <Card asChild variant="muted" className="p-3 font-mono text-[12.5px] break-all">
+          <p>{seed}</p>
+        </Card>
+      </FieldSet>
 
-      <label className="mt-3.5 flex cursor-pointer items-center gap-2 text-[13.5px]">
-        <Checkbox checked={saved} onCheckedChange={(checked) => setSaved(checked === true)} />
-        I have written the seed down somewhere safe
-      </label>
+      <Row orientation="horizontal" className="mt-3.5">
+        <Checkbox id={savedId} checked={saved} onCheckedChange={(checked) => setSaved(checked === true)} />
+        <FieldLabel htmlFor={savedId}>I have written the seed down somewhere safe</FieldLabel>
+      </Row>
     </Modal>
   )
 }
@@ -91,6 +109,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
   const importSuri = useAccountsStore((s) => s.importSuri)
 
   const [kind, setKind] = useState<Kind>('extension')
+  const kindId = useId()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [phrase, setPhrase] = useState('')
@@ -216,7 +235,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
   )
 
   const passwordFields = (
-    <PasswordFields>
+    <FieldSet className="mt-5">
       <Field label="Password">
         <Input
           type="password"
@@ -233,37 +252,32 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
           onChange={(event) => setRepeat(event.target.value)}
         />
       </Field>
-    </PasswordFields>
+    </FieldSet>
   )
 
   return (
     <Modal
       title="Add account"
       submitLabel={kind === 'extension' ? 'Connect' : kind === 'create' ? 'Create' : 'Add'}
-      disabled={busy}
+      busy={busy}
       onClose={onClose}
       onSubmit={submit}
     >
-      <fieldset>
-        <legend className="caption mb-1.5">
-          Source
-        </legend>
+      <FieldSet>
+        <FieldLegend>Source</FieldLegend>
         <RadioGroup
           value={kind}
           onValueChange={(value) => setKind(value as Kind)}
           className="flex flex-wrap gap-x-3.5 gap-y-1.5"
         >
           {KINDS.map((option) => (
-            <label
-              key={option.id}
-              className="flex cursor-pointer items-center gap-1.5 text-[13.5px]"
-            >
-              <RadioGroupItem value={option.id} />
-              {option.label}
-            </label>
+            <Row key={option.id} orientation="horizontal" className="w-fit gap-1.5">
+              <RadioGroupItem id={`${kindId}-${option.id}`} value={option.id} />
+              <FieldLabel htmlFor={`${kindId}-${option.id}`}>{option.label}</FieldLabel>
+            </Row>
           ))}
         </RadioGroup>
-      </fieldset>
+      </FieldSet>
 
       {kind === 'extension' && (
         <p className="mt-3.5 text-[13.5px] text-muted-foreground">
@@ -275,14 +289,18 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
       {kind === 'create' && (
         <>
           {nameField}
-          <div className="mt-3.5 flex items-center gap-2.5 rounded-lg border border-border bg-muted p-2.5">
-            <Identicon address={draftAddress} />
-            <span className="min-w-0 flex-1 font-mono text-[12.5px] break-all">{draftAddress}</span>
-            <Button type="button" variant="outline" onClick={() => setDraft(newMnemonic())}>
-              <RefreshCw />
-              Reroll
-            </Button>
-          </div>
+          <Item variant="muted" className="mt-3.5 gap-2.5 rounded-lg p-2.5">
+            <ItemMedia>
+              <Identicon address={draftAddress} />
+            </ItemMedia>
+            <ItemContent className="font-mono text-[12.5px] break-all">{draftAddress}</ItemContent>
+            <ItemActions>
+              <Button type="button" variant="outline" onClick={() => setDraft(newMnemonic())}>
+                <RefreshCw />
+                Reroll
+              </Button>
+            </ItemActions>
+          </Item>
           {passwordFields}
           <GroupField value={groupId} onChange={setGroupId} />
           <p className="mt-3 text-[12.5px] text-dim">

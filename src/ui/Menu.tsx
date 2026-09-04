@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, useRef, type ReactNode } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { CAPTION } from '@/components/ui/field'
 import { cn } from '@/lib/cn'
 import { EllipsisVertical } from 'lucide-react'
 
@@ -46,6 +47,10 @@ export function Menu({
   /** For a menu that has to line up with something wider than its trigger. */
   className?: string
 }) {
+  // Whether an item was picked, since one that opens a dialog hands focus on
+  // and the menu must not snatch it back once its fade out ends
+  const picked = useRef(false)
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -68,20 +73,28 @@ export function Menu({
         sideOffset={6}
         collisionPadding={8}
         className={cn('p-1.5', className)}
+        onCloseAutoFocus={(event) => {
+          if (!picked.current) return
+          picked.current = false
+          event.preventDefault()
+        }}
       >
         {sections.map((section, index) => (
           <Fragment key={section.label ?? index}>
             {index > 0 && <DropdownMenuSeparator className="mx-1 my-1.5" />}
             <DropdownMenuGroup>
               {section.label && (
-                <DropdownMenuLabel className="px-2.5 py-1 text-[10.5px] font-bold tracking-[0.07em] text-dim uppercase">
+                <DropdownMenuLabel className={cn('px-2.5 py-1 text-[10.5px]', CAPTION)}>
                   {section.label}
                 </DropdownMenuLabel>
               )}
               {section.items.map((item) => (
                 <DropdownMenuItem
                   key={item.label}
-                  onSelect={item.onSelect}
+                  onSelect={() => {
+                    picked.current = true
+                    item.onSelect()
+                  }}
                   variant={item.danger ? 'destructive' : 'default'}
                   className={ITEM}
                 >

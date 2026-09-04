@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { Field, FieldError, Input, Modal, PasswordFields } from '@/ui/Modal'
+import { Modal } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError, FieldSet } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
 import { GroupField } from './GroupField'
 import { UNGROUPED_ID } from './layout'
@@ -79,7 +82,7 @@ export function DeriveModal({ account, onClose }: { account: Account; onClose: (
         />
       </Field>
 
-      <PasswordFields>
+      <FieldSet className="mt-5">
         <Field label={`Password for ${account.name}`}>
           <Input
             type="password"
@@ -106,7 +109,7 @@ export function DeriveModal({ account, onClose }: { account: Account; onClose: (
             onChange={(event) => setRepeat(event.target.value)}
           />
         </Field>
-      </PasswordFields>
+      </FieldSet>
 
       <GroupField value={groupId} onChange={setGroupId} />
       <FieldError>{error}</FieldError>

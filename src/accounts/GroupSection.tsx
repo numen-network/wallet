@@ -7,7 +7,10 @@ import { totalOf } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
-import { Empty } from '@/ui/Empty'
+import { Card } from '@/components/ui/card'
+import { CAPTION } from '@/components/ui/field'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Empty } from '@/components/ui/empty'
 import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { Menu, type MenuSection } from '@/ui/Menu'
 import { AccountCard, type CardActions } from './AccountCard'
@@ -80,79 +83,79 @@ export function GroupSection({
   }, 0n)
 
   return (
-    <section
-      ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={`mt-4 ${isDragging ? 'opacity-45' : ''}`}
-    >
-      {!alone && (
-        <header
-          ref={setActivatorNodeRef}
-          {...listeners}
-          className="flex touch-pan-y cursor-grab items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2.5 select-none"
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            data-nodrag
-            aria-label={group.collapsed ? 'Expand group' : 'Collapse group'}
-            aria-expanded={!group.collapsed}
-            onClick={() => onToggle(group)}
+    <Collapsible asChild open={!group.collapsed} onOpenChange={() => onToggle(group)}>
+      <section
+        ref={setNodeRef}
+        style={{ transform: CSS.Translate.toString(transform), transition }}
+        className={cn('mt-4', isDragging && 'opacity-45')}
+      >
+        {!alone && (
+          <Card
+            asChild
+            className="flex-row items-center gap-2 px-2.5 py-2.5 shadow-none select-none touch-pan-y cursor-grab"
           >
-            <ChevronDown
-              className={`size-4 transition-transform ${group.collapsed ? '-rotate-90' : ''}`}
-              strokeWidth={2.4}
-            />
-          </Button>
+            <header ref={setActivatorNodeRef} {...listeners}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  data-nodrag
+                  aria-label={group.collapsed ? 'Expand group' : 'Collapse group'}
+                >
+                  <ChevronDown
+                    className={cn('size-4 transition-transform', group.collapsed && '-rotate-90')}
+                    strokeWidth={2.4}
+                  />
+                </Button>
+              </CollapsibleTrigger>
 
-          <h2
-            className={`text-[12.5px] font-bold tracking-[0.08em] uppercase ${
-              dropTarget ? 'text-primary' : ''
-            }`}
-          >
-            {group.name}
-          </h2>
+              <h2 className={cn(CAPTION, 'text-[12.5px] text-foreground', dropTarget && 'text-primary')}>
+                {group.name}
+              </h2>
 
-          <span className="flex-1" />
+              <span className="flex-1" />
 
-          <span className="text-[12.5px]">
-            {formatAmount(sum, { precision: 2 })} {symbol}
-          </span>
+              <span className="text-[12.5px]">
+                {formatAmount(sum, { precision: 2 })} {symbol}
+              </span>
 
-          <Menu label="Group menu" sections={menu} />
-        </header>
-      )}
+              <Menu label="Group menu" sections={menu} />
+            </header>
+          </Card>
+        )}
 
-      {!group.collapsed && (
-        <SortableContext items={accounts.map((account) => account.address)} strategy={settled}>
-          <div
-            className={`mt-0.5 grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-0.5 rounded-lg ${
-              dropTarget ? 'outline-[1.5px] outline-dashed outline-primary outline-offset-2' : ''
-            }`}
-          >
-            {accounts.map((account) => (
-              <AccountCard
-                key={account.address}
-                account={account}
-                balance={balances[account.address]}
-                {...actions}
-              />
-            ))}
+        <CollapsibleContent>
+          <SortableContext items={accounts.map((account) => account.address)} strategy={settled}>
+            <div
+              className={cn(
+                'mt-0.5 grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-0.5 rounded-lg',
+                dropTarget && 'outline-[1.5px] outline-dashed outline-primary outline-offset-2',
+              )}
+            >
+              {accounts.map((account) => (
+                <AccountCard
+                  key={account.address}
+                  account={account}
+                  balance={balances[account.address]}
+                  {...actions}
+                />
+              ))}
 
-            {accounts.length === 0 && (
-              <Empty
-                className={cn(
-                  'col-span-full mt-0 p-6 text-[13px]',
-                  dropTarget ? 'border-primary text-primary' : 'text-dim',
-                )}
-              >
-                {system ? 'New accounts land here' : 'Drop accounts here'}
-              </Empty>
-            )}
-          </div>
-        </SortableContext>
-      )}
-    </section>
+              {accounts.length === 0 && (
+                <Empty
+                  className={cn(
+                    'col-span-full mt-0 p-6 text-[13px]',
+                    dropTarget ? 'border-primary text-primary' : 'text-dim',
+                  )}
+                >
+                  {system ? 'New accounts land here' : 'Drop accounts here'}
+                </Empty>
+              )}
+            </div>
+          </SortableContext>
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
   )
 }

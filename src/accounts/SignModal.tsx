@@ -3,8 +3,11 @@ import { shorten } from '@/lib/address'
 import { signMessage, verifyMessage, type Verdict } from '@/signing/message'
 import { VaultError } from '@/signing/vault'
 import { CopyButton } from '@/ui/CopyButton'
-import { Field, FieldError, ModalFrame, ModalPage, Textarea } from '@/ui/Modal'
-import { Tabs, type TabOption } from '@/ui/Tabs'
+import { ModalFrame, ModalPage } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError } from '@/components/ui/field'
+import { Textarea } from '@/components/ui/textarea'
+import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { useDraft } from '@/ui/draft'
 import { AddressField } from './AddressField'
 import { AccountPassword, signerFor } from './Authorize'
@@ -36,18 +39,19 @@ export function SignModal({
   onClose: () => void
 }) {
   const [draft, patch] = useDraft(initial ? `sign:${initial}` : 'sign', { mode: 'sign' as Mode })
-  const tabs = (
-    <Tabs value={draft.mode} options={MODES} onChange={(mode) => patch({ mode })} className="w-fit" />
-  )
+  const tabs = <TabBar options={MODES} className="w-fit" />
 
   return (
-    <ModalFrame onClose={onClose}>
-      {draft.mode === 'sign' ? (
-        <Sign accounts={accounts} initial={initial} tabs={tabs} onClose={onClose} />
-      ) : (
-        <Verify accounts={accounts} tabs={tabs} onClose={onClose} />
-      )}
-    </ModalFrame>
+    <Tabs value={draft.mode} onChange={(mode) => patch({ mode })}>
+      <ModalFrame onClose={onClose}>
+        <TabPanel value="sign">
+          <Sign accounts={accounts} initial={initial} tabs={tabs} onClose={onClose} />
+        </TabPanel>
+        <TabPanel value="verify">
+          <Verify accounts={accounts} tabs={tabs} onClose={onClose} />
+        </TabPanel>
+      </ModalFrame>
+    </Tabs>
   )
 }
 
@@ -101,9 +105,9 @@ function Sign({
   return (
     <ModalPage
       title="Sign a message"
-      submitLabel={busy ? 'Signing…' : 'Sign it'}
+      submitLabel="Sign it"
+      busy={busy}
       cancelLabel="Close"
-      disabled={busy}
       aside={tabs}
       footer={
         <>

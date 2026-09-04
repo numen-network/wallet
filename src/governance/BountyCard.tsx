@@ -14,7 +14,7 @@ import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<Bounty['state'], BadgeVariant>> = {
@@ -60,22 +60,20 @@ function Child({
   const asked = mine.some((address) => awaitsChildCurator(child, address))
 
   return (
-    <div className="rounded-md border border-border bg-muted px-2.5 py-2">
-      <div className="flex flex-wrap items-center gap-2">
+    <Card variant="muted" size="sm">
+      <CardHeader>
         <span className="font-mono text-[12.5px] font-bold text-dim">
           #{child.parent}.{child.index}
         </span>
-        <span className="text-[12.5px] font-semibold">{child.description || 'unnamed'}</span>
-        <span className="text-[11px] font-bold tracking-[0.06em] text-dim uppercase">
-          {CHILD_LABELS[child.state]}
-        </span>
+        <CardTitle>{child.description || 'unnamed'}</CardTitle>
+        <Badge>{CHILD_LABELS[child.state]}</Badge>
         <span className="font-mono text-[12.5px]">
           {formatAmount(child.value, { precision: 0 })} {symbol}
         </span>
-      </div>
+      </CardHeader>
 
       {canSign && (
-        <div className="mt-2 flex flex-wrap gap-2">
+        <CardFooter>
           {asked && (
             <Button type="button" variant="outline" onClick={() => onAct(child, 'accept')}>
               Take it on
@@ -106,9 +104,9 @@ function Child({
               Pay it out
             </Button>
           )}
-        </div>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -133,41 +131,41 @@ export function BountyCard({
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
+      <CardHeader>
         <span className="font-mono text-[13px] font-bold text-dim">#{bounty.index}</span>
-        <span className="text-[13px] font-semibold">{bounty.description || 'unnamed'}</span>
+        <CardTitle>{bounty.description || 'unnamed'}</CardTitle>
         <Badge variant={TONE[bounty.state] ?? 'default'}>{BOUNTY_LABELS[bounty.state]}</Badge>
-      </div>
+      </CardHeader>
 
-      <div className="mt-2 text-[13.5px]">
+      <CardContent>
         Pays <span className="font-mono font-semibold">{amount(bounty.value)}</span>, of which{' '}
         <span className="font-mono font-semibold">{amount(bounty.fee)}</span> goes to the curator
-      </div>
+      </CardContent>
 
       {bounty.curator && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[13.5px]">
+        <CardContent className="flex flex-wrap items-center gap-x-2">
           <span className="text-muted-foreground">Curated by</span>
           <Beneficiary address={bounty.curator} />
-        </div>
+        </CardContent>
       )}
 
       {bounty.beneficiary && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[13.5px]">
+        <CardContent className="flex flex-wrap items-center gap-x-2">
           <span className="text-muted-foreground">Awarded to</span>
           <Beneficiary address={bounty.beneficiary} />
-        </div>
+        </CardContent>
       )}
 
       {bounty.state === 'pendingPayout' && (
-        <p className="mt-1.5 text-[12.5px] text-dim">
+        <CardDescription>
           {claimable(bounty, height)
             ? 'The delay is up, so anybody may hand it over'
             : `Claimable from block ${(bounty.until ?? 0).toLocaleString('en-US')}`}
-        </p>
+        </CardDescription>
       )}
 
       {canSign && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <CardFooter>
           {asked.length > 0 && (
             <Button type="button" onClick={() => onAct(bounty, 'accept')}>
               Take it on
@@ -198,11 +196,11 @@ export function BountyCard({
               Pay it out
             </Button>
           )}
-        </div>
+        </CardFooter>
       )}
 
       {children.length > 0 && (
-        <div className="mt-3 grid gap-1.5">
+        <div className="grid gap-1.5 pt-1">
           {children.map((child) => (
             <Child
               key={child.index}

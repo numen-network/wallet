@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { CAPTION } from '@/components/ui/field'
 import { Copy, EyeOff } from 'lucide-react'
 import { Identicon } from '@/ui/Identicon'
 import { Modal } from '@/ui/Modal'
@@ -14,9 +15,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
 
   return (
     <div className="flex min-w-[150px] flex-1 flex-col items-center gap-[7px]">
-      <div className="text-[10.5px] font-bold tracking-[0.08em] text-dim uppercase">
-        {kind} address
-      </div>
+      <div className={CAPTION}>{kind} address</div>
       <div className="rounded-lg border border-border bg-white p-2.5">
         {hidden ? (
           <div
@@ -40,14 +39,15 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
         Copy
       </Button>
       {/* The heading says which address this is, the label has to say it again */}
-      <button
+      <Button
         type="button"
+        variant="link"
+        size="sm"
         aria-label={`${hidden ? 'Show' : 'Hide'} the ${kind} QR code`}
-        className="text-xs text-dim underline underline-offset-2 hover:text-muted-foreground"
         onClick={() => setHidden(!hidden)}
       >
         {hidden ? 'Show QR code' : 'Hide QR code'}
-      </button>
+      </Button>
     </div>
   )
 }

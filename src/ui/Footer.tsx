@@ -1,5 +1,6 @@
 import type { IconType } from '@icons-pack/react-simple-icons'
 import { SiBitcoin, SiDiscord, SiGithub, SiTelegram, SiX, SiYoutube } from '@icons-pack/react-simple-icons'
+import { Button } from '@/components/ui/button'
 import { SHELL } from './shell'
 
 /**
@@ -23,16 +24,11 @@ export function Footer() {
         <span>© 2026 Numen Network</span>
         <div className="ml-auto flex items-center">
           {SOCIAL.map(([label, href, Mark]) => (
-            <a
-              key={label}
-              href={href}
-              target="_blank"
-              rel="noopener"
-              aria-label={label}
-              className="grid size-8 place-items-center text-dim hover:text-foreground"
-            >
-              <Mark size={16} title="" />
-            </a>
+            <Button key={label} asChild variant="ghost" size="icon">
+              <a href={href} target="_blank" rel="noopener" aria-label={label}>
+                <Mark size={16} title="" />
+              </a>
+            </Button>
           ))}
         </div>
       </div>

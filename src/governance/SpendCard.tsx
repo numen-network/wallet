@@ -3,7 +3,7 @@ import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<ReturnType<typeof spendState>, BadgeVariant>> = {
@@ -29,19 +29,19 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
+      <CardHeader>
         <span className="font-mono text-[13px] font-bold text-dim">#{spend.index}</span>
-        <span className="text-[13px] font-semibold">
+        <CardTitle>
           {formatAmount(spend.amount, { precision: 2 })} {symbol}
-        </span>
+        </CardTitle>
         <Badge variant={TONE[state] ?? 'default'}>{SPEND_LABELS[state]}</Badge>
-      </div>
+      </CardHeader>
 
-      <div className="mt-2 text-[13.5px]">
+      <CardContent>
         To <Beneficiary address={spend.beneficiary} />
-      </div>
+      </CardContent>
 
-      <p className="mt-1.5 text-[12.5px] text-dim">
+      <CardDescription>
         {state === 'waiting'
           ? `Claimable from block ${spend.validFrom.toLocaleString('en-US')}`
           : state === 'ready'
@@ -49,14 +49,14 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
             : state === 'expired'
               ? 'Nobody claimed it in time, so the treasury kept it'
               : 'The money has moved, and the record clears itself'}
-      </p>
+      </CardDescription>
 
       {canSign && state === 'ready' && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <CardFooter>
           <Button type="button" onClick={() => onPayout(spend)}>
             Pay out
           </Button>
-        </div>
+        </CardFooter>
       )}
     </Card>
   )

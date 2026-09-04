@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { ComponentProps, CSSProperties } from 'react'
 import { CircleAlert, CircleCheck, CircleQuestionMark, CircleX, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
@@ -23,13 +23,11 @@ const MARKS: Record<Verdict, { fill: string; mark: LucideIcon }> = {
 export function MarkDisc({
   fill,
   mark: Mark,
-  title,
   className = 'size-3.5',
-}: {
+  ...props
+}: Omit<ComponentProps<LucideIcon>, 'fill'> & {
   fill: string
   mark: LucideIcon
-  title?: string | undefined
-  className?: string
 }) {
   return (
     <Mark
@@ -37,16 +35,15 @@ export function MarkDisc({
       style={{ '--fill': fill } as CSSProperties}
       strokeWidth={2.6}
       role="img"
-      aria-label={title}
-    >
-      {title && <title>{title}</title>}
-    </Mark>
+      {...props}
+    />
   )
 }
 
 /** The explorer's identity badge in the same colours, so one judgement reads alike in both. */
-export function JudgementBadge({ verdict, title }: { verdict: Verdict; title?: string }) {
-  const { fill, mark } = MARKS[verdict]
-
-  return <MarkDisc fill={fill} mark={mark} title={title} />
+export function JudgementBadge({
+  verdict,
+  ...props
+}: Omit<ComponentProps<typeof MarkDisc>, 'fill' | 'mark'> & { verdict: Verdict }) {
+  return <MarkDisc {...MARKS[verdict]} {...props} />
 }

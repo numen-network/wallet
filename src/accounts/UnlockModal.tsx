@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { trackLabel, type ClassLock } from '@/chain/governance'
 import { useFacts, useHead, useLocks, useReferenda, useSymbol, useTracks } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { waitFor } from '@/lib/blocks'
 import { VaultError } from '@/signing/vault'
+import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { toast } from '@/ui/Toast'
 import { CallModal, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
@@ -97,8 +98,8 @@ export function UnlockModal({
   return (
     <CallModal
       title="Release vote locks"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       from={signer.address}
       needsPassword={needsPassword}
       operation={calls.length > 0 ? wrap(operation) : null}
@@ -112,27 +113,27 @@ export function UnlockModal({
         <p className="text-[13.5px] text-muted-foreground">{account.name} has nothing locked behind a vote.</p>
       ) : (
         <>
-          <ul className="rounded-lg border border-border bg-muted">
-            {held.map((lock) => {
+          <ItemGroup variant="outline" className="bg-muted">
+            {held.map((lock, index) => {
               const blocking = why(lock)
               return (
-                <li
-                  key={lock.track}
-                  className="flex items-baseline gap-2 border-t border-border px-2.5 py-1.5 first:border-t-0"
-                >
-                  <span className="flex-1 text-[13px] font-semibold">
-                    {trackLabel(tracks, lock.track)}
-                  </span>
-                  <span className="font-mono text-[12.5px]">
-                    {formatAmount(lock.amount, { precision: 2 })} {symbol}
-                  </span>
-                  <span className={`text-[11.5px] ${blocking ? 'text-dim' : 'text-primary'}`}>
-                    {blocking ?? 'free'}
-                  </span>
-                </li>
+                <Fragment key={lock.track}>
+                  {index > 0 && <ItemSeparator />}
+                  <Item className="items-baseline">
+                    <span className="flex-1 text-[13px] font-semibold">
+                      {trackLabel(tracks, lock.track)}
+                    </span>
+                    <span className="font-mono text-[12.5px]">
+                      {formatAmount(lock.amount, { precision: 2 })} {symbol}
+                    </span>
+                    <span className={`text-[11.5px] ${blocking ? 'text-dim' : 'text-primary'}`}>
+                      {blocking ?? 'free'}
+                    </span>
+                  </Item>
+                </Fragment>
               )
             })}
-          </ul>
+          </ItemGroup>
 
           {takes > 0 && (
             <p className="mt-2.5 text-[12.5px] text-muted-foreground">

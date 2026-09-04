@@ -5,8 +5,10 @@ import { isSubstrateAddress, shorten, toNumenAddress } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
+import { Item, ItemActions, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item'
 import { Plus, Trash2 } from 'lucide-react'
-import { Field, Input } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { Input } from '@/components/ui/input'
 import { toast, toastProblem } from '@/ui/Toast'
 import { CallModal, SignerField, useSigning } from './Authorize'
 import type { Account } from './types'
@@ -109,8 +111,8 @@ export function SubsModal({
   return (
     <CallModal
       title="Sub accounts"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={
         holding !== null &&
         `${formatAmount(holding, { precision: 2 })} ${symbol} held while the list stands`
@@ -138,27 +140,25 @@ export function SubsModal({
       )}
 
       {subs.length > 0 && (
-        <div className="mt-3.5 grid gap-1.5">
+        <ItemGroup className="mt-3.5">
           {subs.map((sub) => (
-            <div
-              key={sub.address}
-              className="flex items-center gap-2 rounded-md border border-border bg-muted px-2.5 py-1.5"
-            >
-              <span className="text-[13px] font-semibold">{sub.name || 'unnamed'}</span>
-              <span className="font-mono text-[12.5px] text-muted-foreground">{shorten(sub.address)}</span>
-              <span className="flex-1" />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Remove ${sub.name || sub.address}`}
-                onClick={() => setEdited(subs.filter((entry) => entry.address !== sub.address))}
-              >
-                <Trash2 />
-              </Button>
-            </div>
+            <Item key={sub.address} variant="muted">
+              <ItemTitle>{sub.name || 'unnamed'}</ItemTitle>
+              <ItemDescription className="font-mono text-[12.5px]">{shorten(sub.address)}</ItemDescription>
+              <ItemActions className="ml-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Remove ${sub.name || sub.address}`}
+                  onClick={() => setEdited(subs.filter((entry) => entry.address !== sub.address))}
+                >
+                  <Trash2 />
+                </Button>
+              </ItemActions>
+            </Item>
           ))}
-        </div>
+        </ItemGroup>
       )}
 
       <AddressField label="Add an account" value={address} onChange={setAddress} accounts={others} />
@@ -233,9 +233,9 @@ export function QuitSubModal({
   return (
     <CallModal
       title="Reject the parent identity"
-      submitLabel={busy ? 'Signing…' : 'Reject it'}
+      submitLabel="Reject it"
+      busy={busy}
       danger
-      disabled={busy}
       from={signer.address}
       needsPassword={needsPassword}
       operation={operation}

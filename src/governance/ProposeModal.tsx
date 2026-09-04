@@ -23,7 +23,10 @@ import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
 import { useDraft } from '@/ui/draft'
 import { Figure } from '@/ui/Figure'
-import { BOX, Field, Input, Textarea } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { CAPTION } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { Plus, Trash2 } from 'lucide-react'
@@ -218,8 +221,9 @@ export function ProposeModal({
   return (
     <CallModal
       title="Open a referendum"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy || !qualified || !head || !facts}
+      submitLabel="Sign and send"
+      busy={busy}
+      disabled={!qualified || !head || !facts}
       width={760}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
@@ -276,9 +280,9 @@ export function ProposeModal({
         )}
 
         <div className={`mt-4 ${COLUMNS}`}>
-          <span className="caption">Address</span>
-          <span className="caption">Amount</span>
-          <span className="caption">Release</span>
+          <span className={CAPTION}>Address</span>
+          <span className={CAPTION}>Amount</span>
+          <span className={CAPTION}>Release</span>
           <span />
         </div>
 
@@ -293,24 +297,27 @@ export function ProposeModal({
               labelled={false}
             />
 
-            <Input
-              value={row.amount}
-              inputMode="decimal"
-              placeholder="0.0"
-              autoComplete="off"
-              aria-label={`Amount ${index + 1}`}
-              className={`px-3 py-2 font-mono ${BOX}`}
-              onChange={(event) => editPayout(index, { amount: amountInput(event.target.value) })}
-            />
+            <Field>
+              <Input
+                value={row.amount}
+                inputMode="decimal"
+                placeholder="0.0"
+                autoComplete="off"
+                aria-label={`Amount ${index + 1}`}
+                className="font-mono"
+                onChange={(event) => editPayout(index, { amount: amountInput(event.target.value) })}
+              />
+            </Field>
 
-            <Input
-              type="date"
-              value={row.on}
-              min={earliest}
-              aria-label={`Release date for payout ${index + 1}`}
-              className={`px-3 py-2 ${BOX}`}
-              onChange={(event) => editPayout(index, { on: event.target.value })}
-            />
+            <Field>
+              <Input
+                type="date"
+                value={row.on}
+                min={earliest}
+                aria-label={`Release date for payout ${index + 1}`}
+                onChange={(event) => editPayout(index, { on: event.target.value })}
+              />
+            </Field>
 
             <Button
               type="button"
@@ -455,8 +462,9 @@ export function EditTextModal({
   return (
     <CallModal
       title={`Edit the text of referendum ${referendum.index}`}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy || !facts}
+      submitLabel="Sign and send"
+      busy={busy}
+      disabled={!facts}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
@@ -558,8 +566,8 @@ export function PreimageModal({
   return (
     <CallModal
       title="Clear the preimage"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={`${formatAmount(preimage.amount, { precision: 2 })} ${symbol} back to ${shorten(preimage.who)}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
@@ -644,8 +652,8 @@ export function RefundModal({
   return (
     <CallModal
       title={`Return the ${what} deposit`}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={`${formatAmount(held.amount, { precision: 0 })} ${symbol} to ${shorten(held.who)}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
@@ -712,8 +720,8 @@ export function PayoutModal({
   return (
     <CallModal
       title={`Pay out spend ${spend.index}`}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={`${formatAmount(spend.amount, { precision: 2 })} ${symbol} to ${shorten(spend.beneficiary)}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
@@ -783,8 +791,8 @@ export function DepositModal({
   return (
     <CallModal
       title={`Start referendum ${referendum.index} deciding`}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={
         deposit === null
           ? undefined

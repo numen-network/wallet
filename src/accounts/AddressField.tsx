@@ -8,7 +8,7 @@ import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Identicon } from '@/ui/Identicon'
 import { ChevronDown } from 'lucide-react'
-import { BOX } from '@/ui/Modal'
+import { BOX } from '@/ui/Field'
 import { IdentityVerdict } from './IdentityVerdict'
 import { useAccountsStore } from './store'
 
@@ -137,8 +137,8 @@ export function AddressField<T extends Pickable>({
         aria-label={label}
         disabled={!offers}
         className={cn(
-          'flex min-w-[350px] items-center gap-3 py-2 pr-2 pl-3 text-left',
           BOX,
+          'flex min-w-[350px] items-center gap-3 pr-2 text-left',
           labelled && 'mt-2.5 first:mt-0',
           className,
           'data-[state=open]:border-primary',

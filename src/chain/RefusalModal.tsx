@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { CROSS, MarkDisc } from '@/ui/JudgementBadge'
-import { BOX, Modal } from '@/ui/Modal'
+import { Modal } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldTitle } from '@/components/ui/field'
 
 /**
  * The one refusal on screen. A call can be turned down after the dialog that
@@ -43,12 +45,12 @@ export function RefusalModal() {
         {refusal.message}
       </p>
 
-      <div className={`mt-3 px-3 py-2 ${BOX}`}>
-        <span className="text-[11.5px] text-dim">Raw error</span>
+      <Field className="mt-3">
+        <FieldTitle>Raw error</FieldTitle>
         <pre className="mt-1 font-mono text-[12.5px] break-all whitespace-pre-wrap text-muted-foreground">
           {refusal.detail}
         </pre>
-      </div>
+      </Field>
     </Modal>
   )
 }

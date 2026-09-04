@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { changePassword } from '@/signing/vault'
-import { Field, FieldError, Input, Modal } from '@/ui/Modal'
+import { Modal } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
 import type { Account } from './types'
 

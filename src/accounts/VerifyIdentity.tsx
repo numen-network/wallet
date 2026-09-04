@@ -29,7 +29,8 @@ import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
 import { Facts, type Fact } from '@/ui/Facts'
 import { Trash2 } from 'lucide-react'
-import { FieldError } from '@/ui/Modal'
+import { FieldError } from '@/components/ui/field'
+import { Item, ItemActions, ItemContent, ItemGroup } from '@/components/ui/item'
 import { toast } from '@/ui/Toast'
 import { CallPage, SignerField, useSigning } from './Authorize'
 import type { IdentityFormProps } from './IdentityModal'
@@ -241,7 +242,8 @@ export function VerifyIdentity({
   return (
     <CallPage
       title="On chain identity"
-      submitLabel={signable ? (busy === 'signing' ? 'Signing…' : 'Sign and send') : null}
+      submitLabel={signable ? 'Sign and send' : null}
+      busy={busy === 'signing'}
       cancelLabel="Close"
       disabled={stuck || busy !== null}
       aside={tabs}
@@ -283,7 +285,7 @@ export function VerifyIdentity({
       {/* One channel a row, and the two states beside the button answer
           different questions. What the chain stands behind outlives this
           dialog, while a sign in held here is good for an hour */}
-      <ul className="mt-4 grid gap-2.5">
+      <ItemGroup className="mt-4 gap-2.5">
         {PROVIDERS.map((provider) => {
           const name = PROVIDER_NAMES[provider]
           const held = checks[provider]
@@ -298,7 +300,7 @@ export function VerifyIdentity({
                 ? 'Comes off the record when you sign'
                 : 'Not signed in'
           return (
-            <li key={provider} className="flex items-center gap-3.5">
+            <Item key={provider} className="gap-3.5 p-0">
               {/* Half the row apiece, so the states line up in a column */}
               <Button
                 type="button"
@@ -309,28 +311,30 @@ export function VerifyIdentity({
               >
                 {busy === provider ? `Waiting for ${name}…` : `Verify with ${name}`}
               </Button>
-              <div className="min-w-0 flex-1 text-[12.5px] leading-[1.5]">
+              <ItemContent className="text-[12.5px] leading-[1.5]">
                 <p className={`truncate ${stood && riding ? 'text-good' : 'text-dim'}`}>
                   {stood ? `Checked on chain as ${stood}` : 'Never checked'}
                 </p>
                 <p className={trouble ? 'text-destructive' : 'truncate text-dim'}>{trouble ?? state}</p>
-              </div>
+              </ItemContent>
               {riding && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={`Remove ${name}`}
-                  disabled={busy !== null}
-                  onClick={() => remove(provider)}
-                >
-                  <Trash2 />
-                </Button>
+                <ItemActions>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Remove ${name}`}
+                    disabled={busy !== null}
+                    onClick={() => remove(provider)}
+                  >
+                    <Trash2 />
+                  </Button>
+                </ItemActions>
               )}
-            </li>
+            </Item>
           )
         })}
-      </ul>
+      </ItemGroup>
 
       {registrar === undefined ? (
         <p className="mt-3 text-[12.5px] text-dim">

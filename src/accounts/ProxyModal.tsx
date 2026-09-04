@@ -5,7 +5,8 @@ import { PROXY_TYPES, type Proxy, type ProxyType } from '@/chain/types'
 import { resolveAddress, shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
-import { Field, INSIDE } from '@/ui/Modal'
+import { Empty } from '@/components/ui/empty'
+import { Field, INSIDE } from '@/ui/Field'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
 import { CallModal, SignerField, useSigning } from './Authorize'
@@ -85,8 +86,8 @@ export function AddProxyModal({
   return (
     <CallModal
       title="Add proxy"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={
         deposit !== null &&
         `${formatAmount(deposit, { precision: 2 })} ${symbol} held on deposit`
@@ -172,8 +173,9 @@ export function RemoveProxyModal({
   return (
     <CallModal
       title="Remove proxy"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy || !selected}
+      submitLabel="Sign and send"
+      busy={busy}
+      disabled={!selected}
       from={signer.address}
       needsPassword={proxies.length > 0 && needsPassword}
       operation={selected ? wrap({ kind: 'removeProxy', proxy: selected }) : null}
@@ -184,9 +186,9 @@ export function RemoveProxyModal({
       onSubmit={form}
     >
       {proxies.length === 0 ? (
-        <p className="text-[13.5px] text-muted-foreground">
+        <Empty className="mt-0 p-6">
           {isPending ? 'Reading the chain…' : `Nothing acts for ${account.name}.`}
-        </p>
+        </Empty>
       ) : (
         <>
           <AddressField

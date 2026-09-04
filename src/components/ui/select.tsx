@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { Select as SelectPrimitive } from 'radix-ui'
 
 import { cn } from '@/lib/cn'
@@ -12,22 +13,37 @@ function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.V
   return <SelectPrimitive.Value data-slot="select-value" {...props} />
 }
 
-/*
-  Bare on purpose. The box a select sits in is drawn by the field around it,
-  the way an input here carries nothing of its own.
-*/
+const selectTriggerVariants = cva(
+  'inline-flex cursor-pointer items-center gap-1.5 outline-none select-none disabled:cursor-not-allowed disabled:opacity-50 data-placeholder:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  {
+    variants: {
+      variant: {
+        /* Bare, so the field around it draws the box, the way an input here carries nothing of its own. */
+        bare: '',
+        /* For a select that sits in a band of the page rather than in a form. */
+        pill: 'rounded-full border border-border bg-card py-[3px] pr-2 pl-2.5 text-[11.5px] font-semibold text-muted-foreground hover:bg-accent',
+        /* A box of its own, for a select in a row that has no field to sit in. */
+        boxed: 'justify-between rounded-md border border-input bg-muted px-2.5 py-1 text-[13px]',
+      },
+    },
+    defaultVariants: {
+      variant: 'bare',
+    },
+  },
+)
+
 function SelectTrigger({
   className,
   children,
+  variant = 'bare',
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> &
+  VariantProps<typeof selectTriggerVariants>) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
-      className={cn(
-        'inline-flex cursor-pointer items-center gap-1.5 outline-none select-none disabled:cursor-not-allowed disabled:opacity-50 data-placeholder:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0',
-        className,
-      )}
+      data-variant={variant}
+      className={cn(selectTriggerVariants({ variant, className }))}
       {...props}
     >
       {children}

@@ -79,7 +79,7 @@ async function openMenu(page: Page, item: string | RegExp, name = 'Vault') {
 async function openIdentity(page: Page, tab: 'Automatic' | 'Manual') {
   await openMenu(page, /(Set an|Edit the) on chain identity/)
   if (tab === 'Manual') {
-    await page.getByRole('dialog').getByRole('button', { name: 'Manual' }).click()
+    await page.getByRole('dialog').getByRole('tab', { name: 'Manual' }).click()
   }
 }
 
@@ -114,7 +114,7 @@ test('registering and asking a registrar is one signature', async ({ page }) => 
   await expect(card(page).getByRole('img', { name: /being paid to check/ })).toBeVisible()
 
   // One call reached the chain, not two
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.getByText('Set identity')).toHaveCount(1)
 })
@@ -322,7 +322,7 @@ test('a multisig sets an identity of its own', async ({ page }) => {
 
   await openMenu(page, /Set an on chain identity/, 'Treasury')
   const form = page.getByRole('dialog')
-  await form.getByRole('button', { name: 'Manual' }).click()
+  await form.getByRole('tab', { name: 'Manual' }).click()
   await form.getByLabel('Display name', { exact: true }).fill('Cold Store')
   await form.getByRole('checkbox').uncheck()
   await expect(form.getByText('Signing as')).toBeVisible()
@@ -467,7 +467,7 @@ test('verifying puts an identity on chain in one call', async ({ page }) => {
   await expect(card(page).getByRole('img', { name: /Checked by a registrar/ })).toBeVisible()
 
   // One call, rather than a registration followed by a payment
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.getByText('Set identity')).toHaveCount(1)
 })
@@ -535,7 +535,7 @@ test('two sign ins ride one signature and each pays its price', async ({ page })
   await expect(manual.getByLabel('Discord', { exact: true })).toHaveValue('vaultkeeper')
   await page.mouse.click(20, 400)
 
-  await page.getByRole('button', { name: 'Activity' }).click()
+  await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.getByText('Set identity')).toHaveCount(1)
 })
@@ -795,12 +795,12 @@ test('one menu item carries both ways of filling it in', async ({ page }) => {
   await expect(dialog.getByRole('button', { name: 'Verify with Telegram' })).toBeVisible()
   await expect(dialog.getByLabel('Website', { exact: true })).toHaveCount(0)
 
-  await dialog.getByRole('button', { name: 'Manual' }).click()
+  await dialog.getByRole('tab', { name: 'Manual' }).click()
   await expect(dialog.getByLabel('Website', { exact: true })).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Verify with Telegram' })).toHaveCount(0)
 
   // Back again, and the dialog never went away
-  await dialog.getByRole('button', { name: 'Automatic' }).click()
+  await dialog.getByRole('tab', { name: 'Automatic' }).click()
   await expect(dialog.getByRole('button', { name: 'Verify with Telegram' })).toBeVisible()
   await expect(dialog).toHaveCount(1)
 })

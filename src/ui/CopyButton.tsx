@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ComponentProps } from 'react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { Check, Copy } from 'lucide-react'
 import { copyAddress } from './clipboard'
+import { Tip } from './Tip'
 
 interface CopyButtonProps {
   text: string
   label: string
   /** Spelled out beside the icon, where an icon on its own says too little. */
   spelled?: boolean
+  variant?: ComponentProps<typeof Button>['variant']
   className?: string
 }
 
-export function CopyButton({ text, label, spelled = false, className }: CopyButtonProps) {
+export function CopyButton({ text, label, spelled = false, variant = spelled ? 'ghost' : 'plain', className }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -26,21 +29,19 @@ export function CopyButton({ text, label, spelled = false, className }: CopyButt
   }
 
   return (
-    <button
-      type="button"
-      data-nodrag
-      onClick={copy}
-      title={label}
-      aria-label={label}
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-md p-0.5',
-        spelled ? 'text-[12.5px]' : 'grid place-items-center',
-        copied ? 'text-primary' : 'text-dim hover:text-foreground',
-        className,
-      )}
-    >
-      {copied ? <Check className="size-3.5" strokeWidth={2.4} /> : <Copy className="size-3.5" />}
-      {spelled && (copied ? 'Copied' : label)}
-    </button>
+    <Tip text={label}>
+      <Button
+        type="button"
+        variant={variant}
+        size={spelled ? 'sm' : 'icon-xs'}
+        data-nodrag
+        aria-label={label}
+        className={cn(copied && 'text-primary', className)}
+        onClick={copy}
+      >
+        {copied ? <Check strokeWidth={2.4} /> : <Copy />}
+        {spelled && (copied ? 'Copied' : label)}
+      </Button>
+    </Tip>
   )
 }

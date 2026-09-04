@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { verifyPassword } from '@/signing/vault'
-import { FieldError, Modal } from '@/ui/Modal'
-import { ConfirmModal } from '@/ui/PromptModal'
+import { Modal } from '@/ui/Modal'
+import { FieldError } from '@/components/ui/field'
 import { toast } from '@/ui/Toast'
 import { AccountPassword } from './Authorize'
 import { useAccountsStore } from './store'
@@ -16,31 +16,21 @@ export function ForgetModal({ account, onClose }: { account: Account; onClose: (
   const forgetAccount = useAccountsStore((s) => s.forgetAccount)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const local = account.source === 'keystore'
 
   const forget = () => {
-    forgetAccount(account.address)
-    toast('Account forgotten')
-  }
-
-  if (account.source !== 'keystore') {
-    return (
-      <ConfirmModal title="Forget this account" submitLabel="Forget" onClose={onClose} onConfirm={forget}>
-        {`This removes ${account.name} from the wallet view. Funds on chain are not affected.`}
-      </ConfirmModal>
-    )
-  }
-
-  const submit = () => {
-    setError('')
-
-    try {
-      verifyPassword(account.address, password)
-    } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'That account could not be read')
-      return false
+    if (local) {
+      setError('')
+      try {
+        verifyPassword(account.address, password)
+      } catch (problem) {
+        setError(problem instanceof Error ? problem.message : 'That account could not be read')
+        return false
+      }
     }
 
-    forget()
+    forgetAccount(account.address)
+    toast('Account forgotten')
   }
 
   return (
@@ -49,17 +39,20 @@ export function ForgetModal({ account, onClose }: { account: Account; onClose: (
       submitLabel="Forget"
       danger
       footer={
-        <>
-          <AccountPassword value={password} onChange={setPassword} />
-          <FieldError>{error}</FieldError>
-        </>
+        local && (
+          <>
+            <AccountPassword value={password} onChange={setPassword} />
+            <FieldError>{error}</FieldError>
+          </>
+        )
       }
       onClose={onClose}
-      onSubmit={submit}
+      onSubmit={forget}
     >
       <p className="text-[13.5px] text-muted-foreground">
-        This browser holds the only copy of {account.name}. Without the seed or a
-        backup file, the funds go with it.
+        {local
+          ? `This browser holds the only copy of ${account.name}. Without the seed or a backup file, the funds go with it.`
+          : `This removes ${account.name} from the wallet view. Funds on chain are not affected.`}
       </p>
     </Modal>
   )

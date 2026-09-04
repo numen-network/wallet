@@ -1,5 +1,5 @@
 import { AddressField } from './AddressField'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { waitFor } from '@/lib/blocks'
 import { useFacts, useSymbol, useTracks } from '@/chain/queries'
 import type { ChainFacts } from '@/chain/types'
@@ -8,7 +8,9 @@ import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, Input, INSIDE } from '@/ui/Modal'
+import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import { Field, INSIDE } from '@/ui/Field'
+import { Input } from '@/components/ui/input'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
 import { CallModal, SignerField, useSigning } from './Authorize'
@@ -54,16 +56,16 @@ export function TrackField({
 }) {
   const { data: tracks } = useTracks()
   const { data: facts } = useFacts()
+  const trackId = useId()
 
   return (
-    <fieldset className="mt-3.5">
-      <legend className="caption mb-1.5 block">
-        Tracks
-      </legend>
+    <FieldSet className="mt-3.5">
+      <FieldLegend>Tracks</FieldLegend>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5">
         {(tracks ?? []).map((track) => (
-          <label key={track.id} className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
+          <Row key={track.id} orientation="horizontal" className="w-fit gap-1.5">
             <Checkbox
+              id={`${trackId}-${track.id}`}
               checked={chosen.includes(track.id)}
               onCheckedChange={(checked) =>
                 onChange(
@@ -73,11 +75,11 @@ export function TrackField({
                 )
               }
             />
-            {track.name}
-          </label>
+            <FieldLabel htmlFor={`${trackId}-${track.id}`}>{track.name}</FieldLabel>
+          </Row>
         ))}
       </div>
-    </fieldset>
+    </FieldSet>
   )
 }
 
@@ -157,8 +159,8 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
   return (
     <CallModal
       title="Delegate votes"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={signer.address}
       needsPassword={needsPassword}
@@ -250,8 +252,8 @@ export function UndelegateModal({
   return (
     <CallModal
       title="Take a delegation back"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap(ending)}

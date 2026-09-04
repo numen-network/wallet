@@ -8,7 +8,7 @@ import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<Settled['outcome'], BadgeVariant>> = {
@@ -28,7 +28,7 @@ function Line({
   const symbol = useSymbol()
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]">
+    <CardContent className="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-mono font-semibold">
         {formatAmount(held.amount, { precision: 0 })} {symbol}
@@ -36,7 +36,7 @@ function Line({
       <span className="text-muted-foreground">to</span>
       <Beneficiary address={held.who} />
       {action}
-    </div>
+    </CardContent>
   )
 }
 
@@ -62,10 +62,10 @@ export function SettledCard({
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
+      <CardHeader>
         <span className="font-mono text-[13px] font-bold text-dim">#{settled.index}</span>
         <Badge variant={TONE[settled.outcome] ?? 'default'}>{OUTCOME_LABELS[settled.outcome]}</Badge>
-      </div>
+      </CardHeader>
 
       {settled.decision && (
         <Line

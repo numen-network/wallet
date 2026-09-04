@@ -13,7 +13,7 @@ import { metaMask } from '@/evm/metamask'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CopyButton } from '@/ui/CopyButton'
 import { DECIMALS, explorerAccount } from '@/chain/config'
 import {
@@ -41,6 +41,7 @@ import {
 } from 'lucide-react'
 import { Identicon } from '@/ui/Identicon'
 import { Menu, type MenuSection } from '@/ui/Menu'
+import { Tip } from '@/ui/Tip'
 import { canSend, signsAlone, type Account } from './types'
 
 export interface CardActions {
@@ -116,9 +117,9 @@ function IdentityMark({ standing }: { standing: Standing }) {
       <IdentityVerdict standing={standing} />
       {/* Four cards to a row leaves a long name truncated, so it is reachable */}
       {name && (
-        <span title={name} className="truncate text-[12.5px] font-semibold">
-          {name}
-        </span>
+        <Tip text={name}>
+          <span className="truncate text-[12.5px] font-semibold">{name}</span>
+        </Tip>
       )}
     </span>
   )
@@ -144,9 +145,7 @@ function AddressRow({
     <div className="mt-px flex items-center gap-1.5 text-muted-foreground">
       {children}
       {label && (
-        <span className="shrink-0 text-[9.5px] font-semibold tracking-[0.07em] text-dim uppercase">
-          {label}
-        </span>
+        <Badge variant="muted">{label}</Badge>
       )}
       <span data-nodrag className={`shrink-0 font-mono text-[12.5px] ${PICKABLE}`}>
         {short}
@@ -155,17 +154,13 @@ function AddressRow({
       {explorer && (
         // A new tab, since the wallet has nothing to index history with and no
         // business holding a worse copy of what the explorer already shows
-        <a
-          data-nodrag
-          href={explorer}
-          target="_blank"
-          rel="noopener"
-          title="View on the explorer"
-          aria-label="View on the explorer"
-          className="grid place-items-center rounded-md p-0.5 text-dim hover:text-foreground"
-        >
-          <ExternalLink />
-        </a>
+        <Tip text="View on the explorer">
+          <Button asChild variant="plain" size="icon-xs" data-nodrag>
+            <a href={explorer} target="_blank" rel="noopener" aria-label="View on the explorer">
+              <ExternalLink />
+            </a>
+          </Button>
+        </Tip>
       )}
     </div>
   )
@@ -400,14 +395,14 @@ function CardBody({
 
   return (
     <>
-      <div className="flex items-center gap-2.5">
+      <CardHeader className="flex-nowrap gap-2.5">
         <Identicon address={account.address} />
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-[7px]">
-            <span data-nodrag className={`truncate text-[15px] font-semibold ${PICKABLE}`}>
+            <CardTitle data-nodrag className={cn('truncate text-[15px]', PICKABLE)}>
               {account.name}
-            </span>
+            </CardTitle>
             {badge && (
               <Badge variant="muted">
                 {badge.icon}
@@ -415,10 +410,12 @@ function CardBody({
               </Badge>
             )}
             {watched && (
-              <Badge variant="muted" title={CANNOT_SEND[account.source]}>
-                {WATCHING.icon}
-                {WATCHING.label}
-              </Badge>
+              <Tip text={CANNOT_SEND[account.source]}>
+                <Badge variant="muted">
+                  {WATCHING.icon}
+                  {WATCHING.label}
+                </Badge>
+              </Tip>
             )}
           </div>
 
@@ -440,11 +437,12 @@ function CardBody({
           )}
         </div>
 
+        <CardAction>
+          <Menu label="Account menu" sections={menu} />
+        </CardAction>
+      </CardHeader>
 
-        <Menu label="Account menu" sections={menu} />
-      </div>
-
-      <div className="mt-3">
+      <CardContent className="pt-1">
         {/* What the account holds, to the planck. The split under it is rounded
             for reading, and says so */}
         <div data-nodrag className={`font-mono text-xl font-semibold tracking-tight ${PICKABLE}`}>
@@ -459,23 +457,26 @@ function CardBody({
           <span>locked {formatAmount(holdings.locked, { precision: 2, compact: true, approx: true })}</span>
           <span>reserved {formatAmount(holdings.reserved, { precision: 2, compact: true, approx: true })}</span>
         </div>
-      </div>
+      </CardContent>
 
-      <div className="mt-auto flex gap-2 pt-3">
-        <Button
-          type="button"
-          data-nodrag
-          className="flex-1"
-          disabled={!canSend(account)}
-          title={canSend(account) ? undefined : CANNOT_SEND[account.source]}
-          onClick={() => onSend(account)}
-        >
-          Send
-        </Button>
+      <CardFooter className="mt-auto flex-nowrap">
+        <Tip text={canSend(account) ? undefined : CANNOT_SEND[account.source]}>
+          <span className="flex flex-1 has-[:disabled]:cursor-not-allowed">
+            <Button
+              type="button"
+              data-nodrag
+              className="flex-1"
+              disabled={!canSend(account)}
+              onClick={() => onSend(account)}
+            >
+              Send
+            </Button>
+          </span>
+        </Tip>
         <Button type="button" variant="outline" data-nodrag className="flex-1" onClick={() => onReceive(account)}>
           Receive
         </Button>
-      </div>
+      </CardFooter>
     </>
   )
 }
@@ -487,7 +488,7 @@ function CardBody({
  */
 export const AccountCardBody = memo(CardBody)
 
-const CARD = 'flex flex-col transition-colors select-none touch-pan-y'
+const CARD = 'transition-colors select-none touch-pan-y'
 
 export function AccountCard(props: CardProps) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({

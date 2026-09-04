@@ -3,6 +3,7 @@ import { explorerAccount } from '@/chain/config'
 import { backing, channelsOf, labelOf, LABELS } from '@/chain/identity'
 import { useChain } from '@/chain/provider'
 import { useStanding } from '@/chain/queries'
+import { Tip } from '@/ui/Tip'
 
 /**
  * Who gets the money is the question this page is about, whether it is still
@@ -29,15 +30,16 @@ export function Beneficiary({ address }: { address: string }) {
   return (
     <span className="inline-flex items-center gap-1 align-bottom">
       {standing && <IdentityVerdict standing={standing} />}
-      <a
-        href={explorerAccount(network, address)}
-        target="_blank"
-        rel="noopener"
-        title={behind?.join('\n')}
-        className={`break-all text-primary hover:underline ${name ? 'font-semibold' : 'font-mono'}`}
-      >
-        {name || address}
-      </a>
+      <Tip text={behind?.join('\n')}>
+        <a
+          href={explorerAccount(network, address)}
+          target="_blank"
+          rel="noopener"
+          className={`break-all text-primary hover:underline ${name ? 'font-semibold' : 'font-mono'}`}
+        >
+          {name || address}
+        </a>
+      </Tip>
     </span>
   )
 }

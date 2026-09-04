@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useId, useState } from 'react'
 import { CallModal } from '@/accounts/Authorize'
 import { waitFor } from '@/lib/blocks'
 import { useFacts, useSymbol, useTracks } from '@/chain/queries'
@@ -14,9 +14,12 @@ import {
 } from '@/chain/types'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
+import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Check, X, Minus } from 'lucide-react'
-import { Field, Input, INSIDE } from '@/ui/Modal'
+import { Field, INSIDE } from '@/ui/Field'
+import { Input } from '@/components/ui/input'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
@@ -65,6 +68,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
   const { data: facts } = useFacts()
   const [address, setAddress] = useState(accounts[0].address)
   const [side, setSide] = useState<Side>('aye')
+  const sideId = useId()
   const [conviction, setConviction] = useState<Conviction>('Locked1x')
   const [amount, setAmount] = useState('')
   const [password, setPassword] = useState('')
@@ -116,8 +120,8 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
   return (
     <CallModal
       title={`Vote on referendum ${referendum.index}`}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
@@ -135,23 +139,21 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
-      <fieldset className="mt-3.5">
-        <legend className="caption mb-1.5 block">
-          Vote
-        </legend>
+      <FieldSet className="mt-3.5">
+        <FieldLegend>Vote</FieldLegend>
         <RadioGroup
           value={side}
           onValueChange={(value) => setSide(value as Side)}
           className="flex flex-wrap gap-x-3.5 gap-y-1.5"
         >
           {SIDES.map((option) => (
-            <label key={option.id} className="flex cursor-pointer items-center gap-1.5 text-[13.5px]">
-              <RadioGroupItem value={option.id} />
-              {option.label}
-            </label>
+            <Row key={option.id} orientation="horizontal" className="w-fit gap-1.5">
+              <RadioGroupItem id={`${sideId}-${option.id}`} value={option.id} />
+              <FieldLabel htmlFor={`${sideId}-${option.id}`}>{option.label}</FieldLabel>
+            </Row>
           ))}
         </RadioGroup>
-      </fieldset>
+      </FieldSet>
 
       {/* An abstain carries no conviction, so there is nothing to choose */}
       {side !== 'abstain' && (
@@ -225,8 +227,8 @@ export function RemoveVoteModal({
   return (
     <CallModal
       title={`Take back the vote on ${referendum.index}`}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
@@ -356,8 +358,8 @@ export function VoteManyModal({
   return (
     <CallModal
       title="Batch vote"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       width={640}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held, and the same amount rides every one of these`}
       from={voter.signer.address}
@@ -377,37 +379,38 @@ export function VoteManyModal({
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
-      <ul className="mt-3.5 rounded-lg border border-border">
-        {referenda.map((referendum) => {
+      <ItemGroup variant="outline" className="mt-3.5">
+        {referenda.map((referendum, index) => {
           const choice = choiceFor(sides[referendum.index])
 
           return (
-            <li
-              key={referendum.index}
-              className="flex items-center gap-2.5 border-t border-border px-2.5 py-1.5 first:border-t-0"
-            >
-              <span className="font-mono text-[12.5px] font-bold text-dim">#{referendum.index}</span>
-              <span className="min-w-0 flex-1 truncate text-[13px]">
-                {referendum.title ?? trackLabel(tracks, referendum.track)}
-              </span>
-              <Select
-                value={choice.value}
-                onValueChange={(value) =>
-                  setSides((held) => {
-                    const { [referendum.index]: gone, ...rest } = held
-                    return value === 'skip' ? rest : { ...rest, [referendum.index]: value as Side }
-                  })
-                }
-                options={CHOICE_OPTIONS}
-                label={`Vote on referendum ${referendum.index}`}
-                className={`w-[120px] justify-between rounded-md border border-input bg-muted px-2.5 py-1 text-[13px] ${choice.tone}`}
-              >
-                {marked(choice)}
-              </Select>
-            </li>
+            <Fragment key={referendum.index}>
+              {index > 0 && <ItemSeparator />}
+              <Item className="gap-2.5">
+                <span className="font-mono text-[12.5px] font-bold text-dim">#{referendum.index}</span>
+                <span className="min-w-0 flex-1 truncate text-[13px]">
+                  {referendum.title ?? trackLabel(tracks, referendum.track)}
+                </span>
+                <Select
+                  value={choice.value}
+                  onValueChange={(value) =>
+                    setSides((held) => {
+                      const { [referendum.index]: gone, ...rest } = held
+                      return value === 'skip' ? rest : { ...rest, [referendum.index]: value as Side }
+                    })
+                  }
+                  options={CHOICE_OPTIONS}
+                  label={`Vote on referendum ${referendum.index}`}
+                  variant="boxed"
+                  className={`w-[120px] ${choice.tone}`}
+                >
+                  {marked(choice)}
+                </Select>
+              </Item>
+            </Fragment>
           )
         })}
-      </ul>
+      </ItemGroup>
 
       <div className="mt-3.5 grid grid-cols-2 gap-x-3.5 gap-y-2.5 *:mt-0 max-[560px]:grid-cols-1">
         <Field label="Conviction">

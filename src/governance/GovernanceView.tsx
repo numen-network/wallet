@@ -25,11 +25,12 @@ import {
   useTracks,
 } from '@/chain/queries'
 import type { AccountBalance } from '@/chain/types'
-import { Empty } from '@/ui/Empty'
+import { Empty } from '@/components/ui/empty'
 import { ArrowUpRight, Coins, Plus, LockOpen, Vote } from 'lucide-react'
-import { PILL, Select } from '@/ui/Select'
+import { Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
-import { Tabs, type TabOption } from '@/ui/Tabs'
+import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
+import { Tip } from '@/ui/Tip'
 import { ToolButton, ToolLink } from '@/ui/ToolButton'
 import { voters } from './Voter'
 import {
@@ -135,30 +136,29 @@ export function GovernanceView({
   // The row keeps every button whatever the tab shows, so idle carries the
   // reason one has nothing to do
   const pill = (label: string, icon: ReactNode, opens: Modal, idle: string | null = null) => (
-    <ToolButton
-      icon={icon}
-      label={label}
-      disabled={!canSign || idle !== null}
-      title={canSign ? (idle ?? undefined) : 'No account here can sign'}
-      onClick={() => setModal(opens)}
-    />
+    <Tip text={canSign ? idle : 'No account here can sign'}>
+      <span className="inline-flex has-[:disabled]:cursor-not-allowed">
+        <ToolButton
+          icon={icon}
+          label={label}
+          disabled={!canSign || idle !== null}
+          onClick={() => setModal(opens)}
+        />
+      </span>
+    </Tip>
   )
 
   return (
-    <>
+    <Tabs value={tab} onChange={setTab}>
       <section className={`${SHELL} flex flex-wrap items-center gap-3 pt-6 pb-1.5`}>
-        <Tabs
-          value={tab}
-          options={TABS.map((option) => ({ ...option, count: counts[option.id] }))}
-          onChange={setTab}
-        />
+        <TabBar options={TABS.map((option) => ({ ...option, count: counts[option.id] }))} />
         {tab === 'referenda' && (
           <Select
             value={sort}
             onValueChange={(value) => setSort(value as Sort)}
             options={SORT_OPTIONS}
             label="Sort"
-            className={PILL}
+            variant="pill"
           />
         )}
         <div className="ml-auto flex flex-wrap gap-2 max-[560px]:ml-0">
@@ -193,8 +193,8 @@ export function GovernanceView({
       </section>
 
       <main className={`${SHELL} grow pt-1.5 pb-16`}>
-        {tab === 'referenda' &&
-          (isPending ? (
+        <TabPanel value="referenda">
+          {isPending ? (
             <Empty>Reading the chain…</Empty>
           ) : running.length === 0 ? (
             <Empty>
@@ -216,10 +216,11 @@ export function GovernanceView({
                 />
               ))}
             </section>
-          ))}
+          )}
+        </TabPanel>
 
-        {tab === 'spends' &&
-          (booked.length === 0 ? (
+        <TabPanel value="spends">
+          {booked.length === 0 ? (
             <Empty>
               Nothing to claim. A referendum that passed books its payment here, and somebody has to
               claim it before the window shuts.
@@ -236,10 +237,11 @@ export function GovernanceView({
                 />
               ))}
             </section>
-          ))}
+          )}
+        </TabPanel>
 
-        {tab === 'bounties' &&
-          (board.length === 0 ? (
+        <TabPanel value="bounties">
+          {board.length === 0 ? (
             <Empty>
               No bounties. A bounty sets treasury money aside for a job, and a curator hands it over
               once the job is done.
@@ -261,10 +263,11 @@ export function GovernanceView({
                 />
               ))}
             </section>
-          ))}
+          )}
+        </TabPanel>
 
-        {tab === 'deposits' &&
-          (owed.length === 0 ? (
+        <TabPanel value="deposits">
+          {owed.length === 0 ? (
             <Empty>
               Nothing to hand back. A referendum that is over, or a preimage nobody points at any
               more, still holds its deposit until somebody frees it.
@@ -300,7 +303,8 @@ export function GovernanceView({
                 />
               ))}
             </section>
-          ))}
+          )}
+        </TabPanel>
       </main>
 
       {signers && modal?.kind === 'vote' && (
@@ -378,6 +382,6 @@ export function GovernanceView({
       )}
 
       {signers && modal?.kind === 'propose' && <ProposeModal accounts={signers} onClose={close} />}
-    </>
+    </Tabs>
   )
 }

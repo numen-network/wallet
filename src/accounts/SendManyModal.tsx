@@ -7,7 +7,9 @@ import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
 import { Identicon } from '@/ui/Identicon'
 import { Plus, Trash2 } from 'lucide-react'
-import { BOX, FieldError, Input } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { CAPTION, FieldError } from '@/components/ui/field'
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { AddressField } from './AddressField'
 import { toast } from '@/ui/Toast'
 import { CallPage, useSigning } from './Authorize'
@@ -102,8 +104,8 @@ export function SendMany({
   return (
     <CallPage
       title="Batch send"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       aside={tabs}
       footNote={
         account.multisig &&
@@ -140,8 +142,8 @@ export function SendMany({
       )}
 
       <div className="mt-4 grid grid-cols-[1fr_200px_28px] gap-x-2">
-        <span className="caption">Address</span>
-        <span className="caption">Amount</span>
+        <span className={CAPTION}>Address</span>
+        <span className={CAPTION}>Amount</span>
         <span />
       </div>
 
@@ -162,20 +164,22 @@ export function SendMany({
               <FieldError>{problem}</FieldError>
             </span>
 
-            <span className="relative block">
-              <Input
-                className={`px-3 py-2 pr-14 font-mono ${BOX}`}
-                value={row.amount}
-                inputMode="decimal"
-                placeholder="0.0"
-                autoComplete="off"
-                aria-label={`Amount ${index + 1}`}
-                onChange={(event) => setRow(index, { amount: amountInput(event.target.value) })}
-              />
-              <span className="absolute top-1/2 right-2.5 -translate-y-1/2 text-[11.5px] font-bold tracking-wide text-dim">
-                {symbol}
-              </span>
-            </span>
+            <Field>
+              <InputGroup>
+                <InputGroupInput
+                  className="font-mono"
+                  value={row.amount}
+                  inputMode="decimal"
+                  placeholder="0.0"
+                  autoComplete="off"
+                  aria-label={`Amount ${index + 1}`}
+                  onChange={(event) => setRow(index, { amount: amountInput(event.target.value) })}
+                />
+                <InputGroupAddon>
+                  <InputGroupText>{symbol}</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
 
             <Button
               type="button"

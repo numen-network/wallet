@@ -56,7 +56,7 @@ function DialogContent({
         <DialogPrimitive.Content
           data-slot="dialog-content"
           className={cn(
-            'relative flex max-h-[calc(100dvh-40px)] w-full flex-col gap-4 rounded-lg border border-border bg-card p-4 text-sm text-card-foreground shadow-lift animation-duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 sm:max-w-sm',
+            'relative flex max-h-[calc(100dvh-40px)] w-full flex-col gap-4 rounded-lg border border-border bg-card p-4 text-sm text-card-foreground shadow-lift animation-duration-100 will-change-transform outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 sm:max-w-sm',
             className,
           )}
           {...props}
@@ -76,6 +76,27 @@ function DialogContent({
   )
 }
 
+function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="dialog-header"
+      className={cn('flex shrink-0 items-center gap-4', className)}
+      {...props}
+    />
+  )
+}
+
+/* Holds still under a body that scrolls, so a refusal lands beside its button. */
+function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="dialog-footer"
+      className={cn('flex shrink-0 flex-col border-t border-border', className)}
+      {...props}
+    />
+  )
+}
+
 function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
@@ -86,4 +107,14 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   )
 }
 
-export { Dialog, DialogClose, DialogContent, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger }
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+}

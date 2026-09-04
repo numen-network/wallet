@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { Field, FieldError, Input, Modal, PasswordFields } from '@/ui/Modal'
+import { Modal } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError, FieldSet } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
 import { GroupField } from './GroupField'
 import { UNGROUPED_ID } from './layout'
@@ -44,7 +47,7 @@ export function FromJsonModal({ onClose }: { onClose: () => void }) {
     <Modal
       title="Import from JSON"
       submitLabel="Import"
-      disabled={busy}
+      busy={busy}
       onClose={onClose}
       onSubmit={() => {
         setError('')
@@ -53,15 +56,15 @@ export function FromJsonModal({ onClose }: { onClose: () => void }) {
       }}
     >
       <Field label="Keystore file">
-        <input
+        <Input
           type="file"
           accept="application/json,.json"
-          className="w-full text-[13px] text-muted-foreground file:mr-2.5 file:rounded-lg file:border file:border-input file:bg-card file:px-2.5 file:py-1 file:text-[13px] file:font-semibold file:text-foreground"
+          className="text-[13px] text-muted-foreground"
           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
         />
       </Field>
 
-      <PasswordFields>
+      <FieldSet className="mt-5">
         <Field label="File password">
           <Input
             type="password"
@@ -70,7 +73,7 @@ export function FromJsonModal({ onClose }: { onClose: () => void }) {
             onChange={(event) => setPassword(event.target.value)}
           />
         </Field>
-      </PasswordFields>
+      </FieldSet>
 
       <GroupField value={groupId} onChange={setGroupId} />
       <FieldError>{error}</FieldError>

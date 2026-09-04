@@ -5,7 +5,10 @@ import {
   PLACEHOLDERS,
   type IdentityField,
 } from '@/chain/identity'
-import { Field, FieldError, Input, Textarea } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { FieldError } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 /**
  * One field of an identity, with the only rule the chain has about it. Kept out

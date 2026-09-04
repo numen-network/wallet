@@ -2,7 +2,7 @@ import type { NotedPreimage } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Beneficiary } from './Beneficiary'
 
 /**
@@ -23,16 +23,14 @@ export function PreimageCard({
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center gap-2">
+      <CardHeader>
         <span className="font-mono text-[13px] font-bold text-dim">
           {preimage.hash.slice(0, 12)}…
         </span>
-        <span className="text-[13px] font-semibold">
-          {preimage.len.toLocaleString('en-US')} bytes
-        </span>
-      </div>
+        <CardTitle>{preimage.len.toLocaleString('en-US')} bytes</CardTitle>
+      </CardHeader>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px]">
+      <CardContent className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-muted-foreground">Preimage deposit</span>
         <span className="font-mono font-semibold">
           {formatAmount(preimage.amount, { precision: 2 })} {symbol}
@@ -44,7 +42,7 @@ export function PreimageCard({
             Clear it
           </Button>
         )}
-      </div>
+      </CardContent>
     </Card>
   )
 }

@@ -12,7 +12,10 @@ import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
-import { BOX, Field, Input, INSIDE } from '@/ui/Modal'
+import { Field, INSIDE } from '@/ui/Field'
+import { Card } from '@/components/ui/card'
+import { FieldTitle } from '@/components/ui/field'
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { CROSS, MarkDisc, TICK } from '@/ui/JudgementBadge'
 import { Select } from '@/ui/Select'
 import { toast } from '@/ui/Toast'
@@ -103,8 +106,8 @@ export function JudgeModal({
   return (
     <CallModal
       title="Judge an identity"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={
         seat ? `Signing as registrar ${seat.index}` : 'This account is not a registrar'
       }
@@ -122,7 +125,7 @@ export function JudgeModal({
       {/* Exactly what is being vouched for. The chain hashes these fields and
           turns the call down if they have moved since this was read */}
       {target && (
-        <div className="mt-2.5 rounded-md border border-border bg-muted px-2.5 py-2">
+        <Card variant="muted" size="sm" className="mt-2.5">
           {registration === null ? (
             <p className="text-[12.5px] text-dim">
               Nothing on chain for this account, so there is nothing to judge.
@@ -139,14 +142,14 @@ export function JudgeModal({
               }))}
             />
           )}
-        </div>
+        </Card>
       )}
 
       {/* What the judgement is worth. An identity that never asked can still be
           judged, and that work goes unpaid */}
       {seat && registration && (
-        <div className={`mt-2.5 px-3 py-2 ${BOX}`}>
-          <span className="text-[11.5px] text-dim">Your fee</span>
+        <Field className="mt-2.5">
+          <FieldTitle>Your fee</FieldTitle>
           <p className="flex items-center gap-2 text-[15px] text-muted-foreground">
             <MarkDisc
               className="size-4"
@@ -160,7 +163,7 @@ export function JudgeModal({
               </span>
             )}
           </p>
-        </div>
+        </Field>
       )}
 
       <Field label="Judgement">
@@ -249,8 +252,8 @@ export function SetFeeModal({
   return (
     <CallModal
       title="Set the judgement fee"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       footNote={seat ? `Signing as registrar ${seat.index}` : 'This account is not a registrar'}
       from={signer.address}
       needsPassword={needsPassword}
@@ -267,19 +270,19 @@ export function SetFeeModal({
           seat && `charges ${formatAmount(seat.fee, { precision: 4 })} ${symbol} today`
         }
       >
-        <span className="relative block">
-          <Input
-            className="pr-16 font-mono"
+        <InputGroup>
+          <InputGroupInput
+            className="font-mono"
             value={fee}
             inputMode="decimal"
             placeholder="0.0"
             autoComplete="off"
             onChange={(event) => setFee(amountInput(event.target.value))}
           />
-          <span className="absolute top-1/2 right-2 -translate-y-1/2 text-[11.5px] font-bold tracking-wide text-dim">
-            {symbol}
-          </span>
-        </span>
+          <InputGroupAddon>
+            <InputGroupText>{symbol}</InputGroupText>
+          </InputGroupAddon>
+        </InputGroup>
       </Field>
       <p className="mt-1.5 text-[12.5px] text-dim">
         Whoever asks this registrar reserves the fee with the request, and it is handed over when

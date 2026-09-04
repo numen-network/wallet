@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { useChain } from '@/chain/provider'
 import { useFacts, useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import {
@@ -22,9 +22,10 @@ import type { Checks } from '@/chain/verify'
 import { formatAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { useDraft } from '@/ui/draft'
 import { ModalFrame } from '@/ui/Modal'
-import { Tabs, type TabOption } from '@/ui/Tabs'
+import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { toast } from '@/ui/Toast'
 import { CallModal, CallPage, SignerField, useSigning } from './Authorize'
 import { IdentityLine } from './IdentityLine'
@@ -83,22 +84,20 @@ export function IdentityModal({
 }) {
   // Keyed by account, so the same dialog opened on somebody else starts blank
   const [draft, patch, sent] = useDraft(`identity:${account.address}`, EMPTY_DRAFT)
-  const tabs = (
-    <Tabs
-      value={draft.mode}
-      options={MODES}
-      onChange={(mode) => patch({ mode })}
-      className="w-fit"
-    />
-  )
-
+  const tabs = <TabBar options={MODES} className="w-fit" />
   const parts = { account, signers, tabs, draft, patch, sent, onClose }
-  const manual = draft.mode === 'manual'
 
   return (
-    <ModalFrame width={manual ? 640 : 580} onClose={onClose}>
-      {manual ? <EditIdentity {...parts} /> : <VerifyIdentity {...parts} />}
-    </ModalFrame>
+    <Tabs value={draft.mode} onChange={(mode) => patch({ mode })}>
+      <ModalFrame width={draft.mode === 'manual' ? 640 : 580} onClose={onClose}>
+        <TabPanel value="verify">
+          <VerifyIdentity {...parts} />
+        </TabPanel>
+        <TabPanel value="manual">
+          <EditIdentity {...parts} />
+        </TabPanel>
+      </ModalFrame>
+    </Tabs>
   )
 }
 
@@ -128,6 +127,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
   const { info, chosen, ask } = draft
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const askId = useId()
   const [busy, setBusy] = useState(false)
 
   // The form owns the fields the moment somebody types, before that the chain does
@@ -205,8 +205,8 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
   return (
     <CallPage
       title="On chain identity"
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       aside={tabs}
       footNote={
         facts &&
@@ -241,24 +241,25 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
         </p>
       )}
       {registrar && askable && (
-        <>
-          <p className="caption mt-4">Checking</p>
+        <FieldSet className="mt-4">
+          <FieldLegend>Checking</FieldLegend>
           <RegistrarField
             registrars={askable}
             value={registrar.index}
             onChange={(next) => patch({ chosen: next })}
           />
-          <label className="mt-2 flex cursor-pointer items-start gap-2 text-[13px]">
+          <Field orientation="horizontal" className="mt-2 items-start">
             <Checkbox
+              id={askId}
               checked={asking}
               className="mt-0.5"
               onCheckedChange={(checked) => patch({ ask: checked === true })}
             />
-            <span>Ask this registrar to check it in the same signature</span>
-          </label>
+            <FieldLabel htmlFor={askId}>Ask this registrar to check it in the same signature</FieldLabel>
+          </Field>
 
           {/* The switch says what it does. This says where it leaves you. */}
-          <p className="mt-1.5 text-[12.5px] text-dim">
+          <FieldDescription>
             {asking ? (
               <>
                 The request goes on chain beside it, and the{' '}
@@ -276,8 +277,8 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
                 registrar charges then.
               </>
             )}
-          </p>
-        </>
+          </FieldDescription>
+        </FieldSet>
       )}
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
@@ -326,9 +327,9 @@ export function ClearIdentityModal({
   return (
     <CallModal
       title="Clear on chain identity"
-      submitLabel={busy ? 'Signing…' : 'Clear it'}
+      submitLabel="Clear it"
+      busy={busy}
       danger
-      disabled={busy}
       from={signer.address}
       needsPassword={needsPassword}
       operation={wrap({ kind: 'clearIdentity' })}

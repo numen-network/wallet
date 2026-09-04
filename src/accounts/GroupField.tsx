@@ -1,4 +1,4 @@
-import { Field, INSIDE } from '@/ui/Modal'
+import { Field, INSIDE } from '@/ui/Field'
 import { Select } from '@/ui/Select'
 import { useAccountsStore } from './store'
 

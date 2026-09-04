@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Field, Input, Modal } from './Modal'
+import { Modal } from './Modal'
+import { Field } from '@/ui/Field'
+import { Input } from '@/components/ui/input'
 
 interface PromptModalProps {
   title: string
@@ -46,11 +48,13 @@ export function PromptModal({
 interface ConfirmModalProps {
   title: string
   submitLabel: string
-  onConfirm: () => void
+  /** Return false to keep the modal open, the same way a form does. */
+  onConfirm: () => boolean | void
   onClose: () => void
   children: React.ReactNode
 }
 
+/** A yes or no, with nothing to type. */
 export function ConfirmModal({
   title,
   submitLabel,

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { DECIMALS } from '@/chain/config'
 import { useBalances, useFacts, useFeeEstimate, useSymbol } from '@/chain/queries'
 import { totalOf, type AccountBalance, type Operation } from '@/chain/types'
@@ -6,11 +6,20 @@ import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { VaultError } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldError, Input, ModalFrame } from '@/ui/Modal'
+import { ModalFrame } from '@/ui/Modal'
+import { Field } from '@/ui/Field'
+import { Field as Choice, FieldError, FieldLabel } from '@/components/ui/field'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from '@/components/ui/input-group'
 import { Identicon } from '@/ui/Identicon'
 import { toast } from '@/ui/Toast'
 import { useDraft } from '@/ui/draft'
-import { Tabs, type TabOption } from '@/ui/Tabs'
+import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'
 import { CallPage, useSigning } from './Authorize'
 import { BLANK, type Row } from './payments'
@@ -58,20 +67,19 @@ export function SendModal(props: SendModalProps) {
     mode: 'one' as Mode,
     rows: [BLANK],
   })
-  const tabs = (
-    <Tabs value={draft.mode} options={MODES} onChange={(mode) => patch({ mode })} className="w-fit" />
-  )
-
-  const many = draft.mode === 'many'
+  const tabs = <TabBar options={MODES} className="w-fit" />
 
   return (
-    <ModalFrame width={many ? 650 : 580} onClose={props.onClose}>
-      {many ? (
-        <SendMany {...props} tabs={tabs} draft={draft} patch={patch} sent={sent} />
-      ) : (
-        <SendOne {...props} tabs={tabs} />
-      )}
-    </ModalFrame>
+    <Tabs value={draft.mode} onChange={(mode) => patch({ mode })}>
+      <ModalFrame width={draft.mode === 'many' ? 650 : 580} onClose={props.onClose}>
+        <TabPanel value="one">
+          <SendOne {...props} tabs={tabs} />
+        </TabPanel>
+        <TabPanel value="many">
+          <SendMany {...props} tabs={tabs} draft={draft} patch={patch} sent={sent} />
+        </TabPanel>
+      </ModalFrame>
+    </Tabs>
   )
 }
 
@@ -88,6 +96,7 @@ function SendOne({
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
   const [everything, setEverything] = useState(false)
+  const everythingId = useId()
   const [password, setPassword] = useState('')
   const [toError, setToError] = useState('')
   const [amountError, setAmountError] = useState('')
@@ -182,8 +191,8 @@ function SendOne({
   return (
     <CallPage
       title={`Send ${symbol}`}
-      submitLabel={busy ? 'Signing…' : 'Sign and send'}
-      disabled={busy}
+      submitLabel="Sign and send"
+      busy={busy}
       aside={tabs}
       footNote={
         account.multisig &&
@@ -239,9 +248,9 @@ function SendOne({
       <FieldError>{toError}</FieldError>
 
       <Field label="Amount">
-        <span className="relative block">
-          <Input
-            className="pr-[106px] font-mono"
+        <InputGroup>
+          <InputGroupInput
+            className="font-mono"
             value={everything ? formatAmount(transferable, { precision: DECIMALS, grouped: false, pad: false }) : amount}
             inputMode="decimal"
             placeholder="0.0"
@@ -249,27 +258,26 @@ function SendOne({
             disabled={everything}
             onChange={(event) => setAmount(amountInput(event.target.value))}
           />
-          <span className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-[7px]">
-            <button
-              type="button"
-              className="rounded-md bg-primary-soft px-2 py-[3px] text-[11px] font-bold text-primary"
+          <InputGroupAddon>
+            <InputGroupButton
               onClick={() => setAmount(formatAmount(spendable, { precision: DECIMALS, grouped: false, pad: false }))}
             >
               MAX
-            </button>
-            <span className="text-[11.5px] font-bold tracking-wide text-dim">{symbol}</span>
-          </span>
-        </span>
+            </InputGroupButton>
+            <InputGroupText>{symbol}</InputGroupText>
+          </InputGroupAddon>
+        </InputGroup>
       </Field>
       <FieldError>{amountError}</FieldError>
 
-      <label className="mt-2.5 flex cursor-pointer items-center gap-2 text-[13px]">
+      <Choice orientation="horizontal" className="mt-2.5">
         <Checkbox
+          id={everythingId}
           checked={everything}
           onCheckedChange={(checked) => setEverything(checked === true)}
         />
-        Send the full balance, closing this account
-      </label>
+        <FieldLabel htmlFor={everythingId}>Send the full balance, closing this account</FieldLabel>
+      </Choice>
     </CallPage>
   )
 }
