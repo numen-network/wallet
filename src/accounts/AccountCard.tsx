@@ -429,7 +429,7 @@ export function AccountCard(props: CardProps) {
 /** What follows the pointer during a drag. */
 export function AccountCardGhost(props: CardProps) {
   return (
-    <Card className={cn(CARD, 'cursor-grabbing shadow-lift')}>
+    <Card className={cn(CARD, 'h-full cursor-grabbing shadow-lift')}>
       <AccountCardBody {...props} />
     </Card>
   )
