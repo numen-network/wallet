@@ -309,7 +309,7 @@ function CardBody({
 
   return (
     <>
-      <CardHeader className="flex-nowrap gap-2.5">
+      <CardHeader className="flex-nowrap items-start gap-2.5">
         <Identicon address={account.address} />
 
         <div className="min-w-0 flex-1">
@@ -356,7 +356,7 @@ function CardBody({
         </CardAction>
       </CardHeader>
 
-      <CardContent className="pt-1">
+      <CardContent className="mt-auto pt-1">
         {/* What the account holds, to the planck. The split under it is rounded
             for reading, and says so */}
         <div data-nodrag className={`font-mono text-xl font-semibold tracking-tight ${PICKABLE}`}>
@@ -373,7 +373,7 @@ function CardBody({
         </div>
       </CardContent>
 
-      <CardFooter className="mt-auto flex-nowrap">
+      <CardFooter className="flex-nowrap">
         <Tip text={canSend(account) ? undefined : CANNOT_SEND[account.source]}>
           <span className="flex flex-1 has-[:disabled]:cursor-not-allowed">
             <Button
