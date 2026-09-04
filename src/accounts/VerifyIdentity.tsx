@@ -24,11 +24,12 @@ import {
   VerifyError,
   type Provider,
 } from '@/chain/verify'
+import { cn } from '@/lib/cn'
 import { formatAmount } from '@/lib/balance'
 import { Button } from '@/components/ui/button'
 import { Facts, type Fact } from '@/ui/Facts'
 import { Trash2 } from 'lucide-react'
-import { FieldError } from '@/components/ui/field'
+import { FieldError, NOTE } from '@/components/ui/field'
 import { Item, ItemActions, ItemContent, ItemGroup } from '@/components/ui/item'
 import { toast } from '@/ui/Toast'
 import { CallPage, SignerField, useSigning } from './Authorize'
@@ -335,7 +336,7 @@ export function VerifyIdentity({
       </ItemGroup>
 
       {registrar === undefined ? (
-        <p className="mt-3 text-[12.5px] text-dim">
+        <p className={cn('mt-3', NOTE)}>
           Nobody on this chain checks sign ins automatically yet.
         </p>
       ) : emptied ? (

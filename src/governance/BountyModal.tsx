@@ -5,6 +5,7 @@ import { useSymbol } from '@/chain/queries'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
+import { LEDE } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 import { useVoter, VoterField, type Voters } from './Voter'
@@ -194,7 +195,7 @@ export function BountyModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">{ask.note}</p>
+      <p className={LEDE}>{ask.note}</p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
 
@@ -301,7 +302,7 @@ export function ProposeBountyModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         A bounty is work the treasury pays for once somebody has done it. Proposing one holds a
         bond until governance funds it or throws it out, and governance puts the curator on it.
       </p>

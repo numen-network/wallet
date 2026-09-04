@@ -3,12 +3,12 @@ import { trackLabel, type ClassLock } from '@/chain/governance'
 import { useFacts, useHead, useLocks, useReferenda, useSymbol, useTracks } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
+import { plural } from '@/lib/plural'
 import { waitFor } from '@/lib/blocks'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
+import { LEDE } from '@/ui/Modal'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
-
-const plural = (many: number, noun: string) => `${many} ${noun}${many === 1 ? '' : 's'}`
 
 /**
  * A vote holds its balance past the referendum by whatever the conviction said,
@@ -89,7 +89,7 @@ export function UnlockModal({
       onSubmit={form}
     >
       {held.length === 0 ? (
-        <p className="text-[13.5px] text-muted-foreground">{account.name} has nothing locked behind a vote.</p>
+        <p className={LEDE}>{account.name} has nothing locked behind a vote.</p>
       ) : (
         <>
           <ItemGroup variant="outline" className="bg-muted">

@@ -3,6 +3,7 @@ import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardMark } from '@/ui/CardMark'
 import { Beneficiary } from './Beneficiary'
 
 /**
@@ -24,9 +25,7 @@ export function PreimageCard({
   return (
     <Card>
       <CardHeader>
-        <span className="font-mono text-[13px] font-bold text-dim">
-          {preimage.hash.slice(0, 12)}…
-        </span>
+        <CardMark>{preimage.hash.slice(0, 12)}…</CardMark>
         <CardTitle>{preimage.len.toLocaleString('en-US')} bytes</CardTitle>
       </CardHeader>
 

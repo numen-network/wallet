@@ -13,6 +13,7 @@ import {
   type Referendum,
   type Track,
 } from '@/chain/governance'
+import { CardMark } from '@/ui/CardMark'
 import { Beneficiary } from './Beneficiary'
 import { formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
@@ -131,7 +132,7 @@ export function ReferendumCard({
   return (
     <Card>
       <CardHeader>
-        <span className="font-mono text-[13px] font-bold text-dim">#{referendum.index}</span>
+        <CardMark>#{referendum.index}</CardMark>
         {/* The track names it while its metadata does not, which is all a
             referendum nobody titled has to go by */}
         <CardTitle>

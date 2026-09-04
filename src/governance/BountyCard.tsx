@@ -15,6 +15,7 @@ import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardMark } from '@/ui/CardMark'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<Bounty['state'], BadgeVariant>> = {
@@ -132,7 +133,7 @@ export function BountyCard({
   return (
     <Card>
       <CardHeader>
-        <span className="font-mono text-[13px] font-bold text-dim">#{bounty.index}</span>
+        <CardMark>#{bounty.index}</CardMark>
         <CardTitle>{bounty.description || 'unnamed'}</CardTitle>
         <Badge variant={TONE[bounty.state] ?? 'default'}>{BOUNTY_LABELS[bounty.state]}</Badge>
       </CardHeader>

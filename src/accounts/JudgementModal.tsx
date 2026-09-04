@@ -3,7 +3,10 @@ import { useChain } from '@/chain/provider'
 import type { Operation } from '@/chain/types'
 import { useRegistrars, useStanding } from '@/chain/queries'
 import { botRegistrar, CHANNELS, isChecked, LABELS, pendingWith } from '@/chain/identity'
+import { cn } from '@/lib/cn'
 import { formatAmount } from '@/lib/balance'
+import { NOTE } from '@/components/ui/field'
+import { LEDE } from '@/ui/Modal'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import { RegistrarField } from './RegistrarField'
 import type { Account } from './types'
@@ -75,13 +78,13 @@ export function JudgementModal({
       onSubmit={form}
     >
       {pending !== null ? (
-        <p className="text-[13.5px] text-muted-foreground">
+        <p className={LEDE}>
           Registrar {pending} is being paid to check this identity. Withdrawing takes the fee back
           and leaves the identity as it is.
         </p>
       ) : (
         <>
-          <p className="text-[13.5px] text-muted-foreground">
+          <p className={LEDE}>
             The registrar checks that the handles on this identity are yours, then records that on
             chain. The fee is reserved with this signature and only handed over when the judgement
             lands.
@@ -92,13 +95,13 @@ export function JudgementModal({
               This identity claims no X, Telegram or Discord handle, so there is nothing to check.
             </p>
           ) : (
-            <p className="mt-2.5 text-[12.5px] text-dim">
+            <p className={cn('mt-2.5', NOTE)}>
               Claiming {claimed.map((channel) => LABELS[channel]).join(', ')}.
             </p>
           )}
 
           {checked && (
-            <p className="mt-2.5 text-[12.5px] text-dim">
+            <p className={cn('mt-2.5', NOTE)}>
               Registrar {checked.registrar} has already checked this one.
             </p>
           )}

@@ -1,5 +1,7 @@
 import { useId, useMemo, useState } from 'react'
+import { cn } from '@/lib/cn'
 import { evmToSubstrate, isEvmAddress, isSubstrateAddress, toNumenAddress } from '@/lib/address'
+import { plural } from '@/lib/plural'
 import { addressOf, newMnemonic, seedOf } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -8,7 +10,7 @@ import { Card } from '@/components/ui/card'
 import { Item, ItemActions, ItemContent, ItemMedia } from '@/components/ui/item'
 import { RefreshCw } from 'lucide-react'
 import { Identicon } from '@/ui/Identicon'
-import { Modal } from '@/ui/Modal'
+import { LEDE, Modal } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import {
   Field as Row,
@@ -16,6 +18,7 @@ import {
   FieldLabel,
   FieldLegend,
   FieldSet,
+  NOTE,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { toast, toastProblem } from '@/ui/Toast'
@@ -69,7 +72,7 @@ function MnemonicNotice({
       onSubmit={onDone}
       onClose={onClose}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         The secret seed value for this account. Ensure that you keep this in a safe place, with
         access to the seed you can re-create the account.
       </p>
@@ -130,7 +133,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
     setBusy(true)
     try {
       const count = await connectExtension()
-      toast(count ? `${count} account${count > 1 ? 's' : ''} imported` : 'The extension shared no accounts')
+      toast(count ? `${plural(count, 'account')} imported` : 'The extension shared no accounts')
       onClose()
     } catch (problem) {
       setError(
@@ -280,7 +283,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
       </FieldSet>
 
       {kind === 'extension' && (
-        <p className="mt-3.5 text-[13.5px] text-muted-foreground">
+        <p className={cn('mt-3.5', LEDE)}>
           Your extension holds the keys and signs every transfer. The wallet only ever sees the
           addresses it hands over.
         </p>
@@ -303,7 +306,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
           </Item>
           {passwordFields}
           <GroupField value={groupId} onChange={setGroupId} />
-          <p className="mt-3 text-[12.5px] text-dim">
+          <p className={cn('mt-3', NOTE)}>
             The account is kept in this browser, encrypted with this password. Losing both the
             password and the seed loses it.
           </p>

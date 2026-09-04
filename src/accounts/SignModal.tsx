@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 import { shorten } from '@/lib/address'
 import { signMessage, verifyMessage, type Verdict } from '@/signing/message'
 import { CopyButton } from '@/ui/CopyButton'
 import { ModalFrame, ModalPage } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
-import { FieldError } from '@/components/ui/field'
+import { FieldError, NOTE } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { useDraft } from '@/ui/draft'
@@ -153,7 +154,7 @@ function Sign({
           >
             <p className="font-mono text-[12.5px] break-all">{signature}</p>
           </Field>
-          <p className="mt-1.5 text-[12.5px] text-dim">
+          <p className={cn('mt-1.5', NOTE)}>
             Whoever you hand this to needs the message and {shorten(signing)} as well, since a
             signature on its own says nothing.
           </p>

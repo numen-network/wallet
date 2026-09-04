@@ -2,14 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { useChain } from '@/chain/provider'
 import { usePending, useSymbol } from '@/chain/queries'
 import type { Pending, ReadCall } from '@/chain/types'
+import { cn } from '@/lib/cn'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
+import { NOTE } from '@/components/ui/field'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty } from '@/components/ui/empty'
 import { Item, ItemActions, ItemGroup, ItemMedia, ItemTitle } from '@/components/ui/item'
-import { cn } from '@/lib/cn'
 import { CopyButton } from '@/ui/CopyButton'
 import { Facts } from '@/ui/Facts'
 import { Field } from '@/ui/Field'
@@ -227,7 +228,7 @@ function WaitingCall({
           <Facts rows={said?.fields ?? known.read.args} />
         </div>
       ) : (
-        <p className="mt-1.5 text-[12.5px] text-dim">
+        <p className={cn('mt-1.5', NOTE)}>
           Nobody has shown this wallet what that hash stands for. Whoever started it can copy the
           call data across.
         </p>
@@ -253,7 +254,7 @@ function WaitingCall({
         ))}
       </ItemGroup>
 
-      <p className="mt-1.5 text-[12.5px] text-dim">
+      <p className={cn('mt-1.5', NOTE)}>
         Holding {formatAmount(call.deposit, { precision: 2 })} {symbol} from whoever started it,
         until it lands or is called off
       </p>
@@ -293,7 +294,7 @@ function WaitingCall({
           </Button>
         )}
         {known && signed && call.approvals.length < threshold && (
-          <span className="text-[12.5px] text-dim">
+          <span className={NOTE}>
             You have signed this one. It runs once the rest have.
           </span>
         )}

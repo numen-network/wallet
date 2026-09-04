@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { Modal } from '@/ui/Modal'
+import { LEDE, Modal } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -49,7 +49,7 @@ export function EndpointModal({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Add an endpoint" submitLabel="Add" onClose={onClose} onSubmit={submit}>
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         A node of your own, for this chain. Point it somewhere else and the balances on screen will
         be that chain's, read with Numen's decimals.
       </p>

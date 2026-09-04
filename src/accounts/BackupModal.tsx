@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { exportKey } from '@/signing/vault'
 import { downloadJson } from '@/ui/download'
-import { Modal } from '@/ui/Modal'
+import { LEDE, Modal } from '@/ui/Modal'
 import { FieldError } from '@/components/ui/field'
 import { toast } from '@/ui/Toast'
 import { AccountPassword } from './Authorize'
@@ -38,7 +38,7 @@ export function BackupModal({ account, onClose }: { account: Account; onClose: (
       onClose={onClose}
       onSubmit={submit}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         The file carries this account under the same password, so it restores {account.name} into any
         wallet that reads the polkadot-js format.
       </p>

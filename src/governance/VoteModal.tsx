@@ -17,6 +17,7 @@ import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Check, X, Minus } from 'lucide-react'
+import { LEDE } from '@/ui/Modal'
 import { Field, INSIDE } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/ui/Select'
@@ -113,7 +114,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         {trackLabel(tracks, referendum.track)}. The balance behind the vote stays locked for as long
         as the conviction says, counted from the day the referendum ends.
       </p>
@@ -199,7 +200,7 @@ export function RemoveVoteModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         The vote stops counting. What it locked stays locked until the conviction runs out, and
         then has to be released on its own.
       </p>
@@ -313,7 +314,7 @@ export function VoteManyModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         The chain takes the largest vote across every track as the lock rather than the sum, so
         voting the same amount on all of these locks it once. It stays locked for as long as the
         conviction says, counted from the day each referendum ends.

@@ -10,6 +10,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 
+/** The paragraph a dialog opens with, saying what the form under it is for. */
+export const LEDE = 'text-[13.5px] text-muted-foreground'
+
 export interface ModalPageProps {
   title: string
   onClose: () => void

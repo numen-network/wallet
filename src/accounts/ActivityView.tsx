@@ -2,6 +2,7 @@ import { explorerAccount, explorerExtrinsic } from '@/chain/config'
 import { useChain } from '@/chain/provider'
 import { useSymbol } from '@/chain/queries'
 import { shorten } from '@/lib/address'
+import { NOTE } from '@/components/ui/field'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CopyButton } from '@/ui/CopyButton'
@@ -80,7 +81,7 @@ function Row({
               <span className="font-mono">{shorten(entry.address)}</span>
             </a>
           </Tip>
-          <span className="text-[12.5px] text-dim">{clock.format(entry.at)}</span>
+          <span className={NOTE}>{clock.format(entry.at)}</span>
         </CardAction>
       </CardHeader>
 
@@ -107,7 +108,7 @@ export function ActivityView({ accounts }: { accounts: Account[] }) {
       <section className={`${SHELL} flex flex-wrap items-center gap-3 pt-6 pb-1.5`}>
         <h2 className="text-[15px] font-bold tracking-tight">Sent from this tab</h2>
         <span className="flex-1" />
-        <span className="text-[12.5px] text-dim">Gone when the tab closes</span>
+        <span className={NOTE}>Gone when the tab closes</span>
       </section>
 
       <main className={`${SHELL} grow pt-1.5 pb-16`}>

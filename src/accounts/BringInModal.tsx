@@ -4,11 +4,12 @@ import { useChain } from '@/chain/provider'
 import { useBalances, useFacts } from '@/chain/queries'
 import { totalOf } from '@/chain/types'
 import { evmAccounts, metaMask, wasRejected, withdrawFee, withdrawToSubstrate } from '@/evm/metamask'
+import { cn } from '@/lib/cn'
 import { evmToSubstrate, publicKeyOf, shorten, shortenEvm } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
-import { Modal } from '@/ui/Modal'
+import { LEDE, Modal } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
-import { FieldError } from '@/components/ui/field'
+import { FieldError, NOTE } from '@/components/ui/field'
 import {
   InputGroup,
   InputGroupAddon,
@@ -116,7 +117,7 @@ export function BringInModal({
   if (metaMask() === null) {
     return (
       <Modal title="Bring in from MetaMask" submitLabel="Done" cancelLabel={null} onClose={onClose}>
-        <p className="text-[13.5px] text-muted-foreground">
+        <p className={LEDE}>
           No MetaMask on this browser. It holds the key to the EVM address, so nothing here can
           move those funds without it.
         </p>
@@ -176,7 +177,7 @@ export function BringInModal({
       </Field>
       <FieldError>{error}</FieldError>
 
-      <p className="mt-2.5 text-[12.5px] text-dim">
+      <p className={cn('mt-2.5', NOTE)}>
         Only the accounts MetaMask has been let into show up above.
         {fee !== null && ` MAX keeps ${formatAmount(fee, { precision: 6 })} ${facts?.symbol ?? ''} back for gas.`}
       </p>

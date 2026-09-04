@@ -10,10 +10,11 @@ import {
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { cn } from '@/lib/cn'
 import { Facts } from '@/ui/Facts'
 import { Field, INSIDE } from '@/ui/Field'
 import { Card } from '@/components/ui/card'
-import { FieldTitle } from '@/components/ui/field'
+import { FieldTitle, NOTE } from '@/components/ui/field'
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { CROSS, MarkDisc, TICK } from '@/ui/JudgementBadge'
 import { Select } from '@/ui/Select'
@@ -107,11 +108,11 @@ export function JudgeModal({
       {target && (
         <Card variant="muted" size="sm" className="mt-2.5">
           {registration === null ? (
-            <p className="text-[12.5px] text-dim">
+            <p className={NOTE}>
               Nothing on chain for this account, so there is nothing to judge.
             </p>
           ) : claimed.length === 0 ? (
-            <p className="text-[12.5px] text-dim">
+            <p className={NOTE}>
               An identity with every field empty. There is nothing here to check.
             </p>
           ) : (
@@ -155,7 +156,7 @@ export function JudgeModal({
           className={INSIDE}
         />
       </Field>
-      <p className="mt-1.5 text-[12.5px] text-dim">
+      <p className={cn('mt-1.5', NOTE)}>
         {VERDICTS.find((entry) => entry.value === verdict)?.says}
       </p>
 
@@ -246,7 +247,7 @@ export function SetFeeModal({
           </InputGroupAddon>
         </InputGroup>
       </Field>
-      <p className="mt-1.5 text-[12.5px] text-dim">
+      <p className={cn('mt-1.5', NOTE)}>
         Whoever asks this registrar reserves the fee with the request, and it is handed over when
         the judgement lands. Zero makes the work free.
       </p>

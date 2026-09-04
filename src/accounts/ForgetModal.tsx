@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { verifyPassword } from '@/signing/vault'
-import { Modal } from '@/ui/Modal'
+import { LEDE, Modal } from '@/ui/Modal'
 import { FieldError } from '@/components/ui/field'
 import { toast } from '@/ui/Toast'
 import { AccountPassword } from './Authorize'
@@ -49,7 +49,7 @@ export function ForgetModal({ account, onClose }: { account: Account; onClose: (
       onClose={onClose}
       onSubmit={forget}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         {local
           ? `This browser holds the only copy of ${account.name}. Without the seed or a backup file, the funds go with it.`
           : `This removes ${account.name} from the wallet view. Funds on chain are not affected.`}

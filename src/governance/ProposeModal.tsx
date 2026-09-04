@@ -16,14 +16,16 @@ import {
 import { isQualified, shortfall } from '@/chain/identity'
 import { format, parseISO } from 'date-fns'
 import { useFacts, useHead, useStanding, useSymbol, useTracks } from '@/chain/queries'
+import { cn } from '@/lib/cn'
 import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
 import { Button } from '@/components/ui/button'
+import { LEDE } from '@/ui/Modal'
 import { useDraft } from '@/ui/draft'
 import { Figure } from '@/ui/Figure'
 import { Field } from '@/ui/Field'
-import { CAPTION } from '@/components/ui/field'
+import { CAPTION, NOTE } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useVoter, VoterField, type Voters } from './Voter'
@@ -213,7 +215,7 @@ export function ProposeModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         A referendum here asks the treasury to pay somebody, in one go or against milestones. Which
         track it runs on follows from the whole ask, and the bigger the ask the longer it runs and
         the more it costs to start deciding.
@@ -334,14 +336,14 @@ export function ProposeModal({
         <Figure label="Submission deposit" value={depositLine} />
       </div>
 
-      <p className="mt-2.5 text-[12.5px] text-dim">
+      <p className={cn('mt-2.5', NOTE)}>
         Opening it holds a submission deposit, and putting the text on chain holds a smaller one
         that grows with its length. Nothing starts deciding until somebody also places the decision
         deposit, which can be you or anybody else.
       </p>
 
       {payouts.length > 1 && facts && track !== null && (
-        <p className="mt-2 text-[12.5px] text-dim">
+        <p className={cn('mt-2', NOTE)}>
           A date is read against today, not against the day the referendum passes, and this track
           can take {waitFor(runsFor, facts.blockSeconds)} to get there. Each payout is then
           claimable for {waitFor(facts.payoutPeriod, facts.blockSeconds)}, and whatever nobody
@@ -434,13 +436,13 @@ export function EditTextModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         This referendum is still running, so the account that opened it may swap what it says.
         What it pays and whom it pays are settled and stay settled. This rewrites the pitch and
         nothing else.
       </p>
 
-      <p className="mt-2.5 text-[12.5px] text-dim">
+      <p className={cn('mt-2.5', NOTE)}>
         The new text holds its own deposit by the byte.
         {oldBytes && ` ${oldBytes}`}
       </p>
@@ -518,13 +520,13 @@ export function PreimageModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         {preimage.len.toLocaleString('en-US')} bytes are on chain at this account's expense. Clearing
         them takes the bytes off and gives the deposit back, and only the account that put them
         there may ask, so this one signs.
       </p>
 
-      <p className="mt-2.5 text-[12.5px] text-dim">
+      <p className={cn('mt-2.5', NOTE)}>
         Anything still pointing at these bytes loses what they said. A referendum's title lives here
         while it runs, so wait until it is over.
       </p>
@@ -584,7 +586,7 @@ export function RefundModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         Referendum {poll} is over and the chain is still holding this. It goes back to the account
         that put it down whoever asks for it, so signing costs the fee and nothing else.
       </p>
@@ -632,7 +634,7 @@ export function PayoutModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         The referendum booked this and left the money where it was. Whoever signs pays only the fee,
         the amount comes out of the treasury and goes to the beneficiary either way.
       </p>
@@ -687,7 +689,7 @@ export function DepositModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         Nothing is counted until the decision deposit is down. The track sets what it costs, so
         there is no amount to pick here. It is held for the length of the referendum and returned
         afterwards, and it need not come from whoever opened it.

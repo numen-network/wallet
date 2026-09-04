@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useFeeEstimate, useSymbol } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { amountInput, formatAmount } from '@/lib/balance'
+import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2 } from 'lucide-react'
 import { Field } from '@/ui/Field'
-import { CAPTION, FieldError } from '@/components/ui/field'
+import { CAPTION, FieldError, NOTE } from '@/components/ui/field'
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { AddressField } from './AddressField'
 import { CallPage, useCall, useSigning } from './Authorize'
@@ -180,7 +181,7 @@ export function SendMany({
           <Plus />
           Add
         </Button>
-        <span className="ml-auto text-[12.5px] text-dim">
+        <span className={cn('ml-auto', NOTE)}>
           {rows.length === 1 ? '1 payment' : `${rows.length} payments`}, adding up to{' '}
           <b className="font-mono font-semibold text-foreground">
             {formatAmount(total)} {symbol}

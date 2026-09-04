@@ -20,10 +20,18 @@ import {
 } from '@/chain/identity'
 import type { Checks } from '@/chain/verify'
 import { formatAmount } from '@/lib/balance'
+import { cn } from '@/lib/cn'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  NOTE,
+} from '@/components/ui/field'
 import { useDraft } from '@/ui/draft'
-import { ModalFrame } from '@/ui/Modal'
+import { LEDE, ModalFrame } from '@/ui/Modal'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { CallModal, CallPage, SignerField, useCall, useSigning } from './Authorize'
 import { IdentityLine } from './IdentityLine'
@@ -206,14 +214,14 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
         </p>
       )}
 
-      <p className="text-[12.5px] text-dim">Anyone can read this.</p>
+      <p className={NOTE}>Anyone can read this.</p>
       {PROFILE.map(line)}
       {CONTACT.map(line)}
 
       {/* A chain with nobody to ask still takes an identity, it just cannot have
           one checked, and a form that stops here says none of that */}
       {askable?.length === 0 && (
-        <p className="mt-4 text-[12.5px] text-dim">
+        <p className={cn('mt-4', NOTE)}>
           No registrar takes a manual request on this chain. What goes on here is still public and
           still costs the deposit, there is simply nobody to ask about it from this tab.
         </p>
@@ -297,7 +305,7 @@ export function ClearIdentityModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         {account.name} goes back to being an address with nothing attached, and the{' '}
         {formatAmount(registration?.deposit ?? 0n, { precision: 2 })} {symbol} deposit is
         released. Anything that gates on a checked identity stops letting this account through.

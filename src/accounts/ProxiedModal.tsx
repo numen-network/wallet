@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { cn } from '@/lib/cn'
 import { isSubstrateAddress, shorten, toNumenAddress } from '@/lib/address'
 import { Modal } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
-import { FieldError } from '@/components/ui/field'
+import { FieldError, NOTE } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
 import { GroupField } from './GroupField'
@@ -81,7 +82,7 @@ export function ProxiedModal({ accounts, onClose }: { accounts: Account[]; onClo
 
       <GroupField value={groupId} onChange={setGroupId} />
 
-      <p className="mt-3 text-[12.5px] text-dim">
+      <p className={cn('mt-3', NOTE)}>
         The proxy has to have been granted on chain already. Nothing here checks that, and the
         chain rejects calls from a pairing it never saw.
       </p>

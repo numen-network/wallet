@@ -73,6 +73,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
     set({ submissions })
   }
 
+  const patch = (id: string, fields: Partial<Submission>) =>
+    save(get().submissions.map((entry) => (entry.id === id ? { ...entry, ...fields } : entry)))
+
   return {
     submissions: read().map((entry) => ({ ...entry, operation: reviveBigInt(entry.operation) })),
 
@@ -82,14 +85,11 @@ export const useSessionStore = create<SessionState>((set, get) => {
       return id
     },
 
-    encode: (id, call) =>
-      save(get().submissions.map((entry) => (entry.id === id ? { ...entry, call } : entry))),
+    encode: (id, call) => patch(id, { call }),
 
-    advance: (id, stage, hash) =>
-      save(get().submissions.map((entry) => (entry.id === id ? { ...entry, stage, hash } : entry))),
+    advance: (id, stage, hash) => patch(id, { stage, hash }),
 
-    fail: (id, error) =>
-      save(get().submissions.map((entry) => (entry.id === id ? { ...entry, error } : entry))),
+    fail: (id, error) => patch(id, { error }),
 
     forAccount: (address) => get().submissions.filter((entry) => entry.address === address),
   }

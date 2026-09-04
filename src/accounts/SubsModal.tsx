@@ -6,6 +6,7 @@ import { formatAmount } from '@/lib/balance'
 import { Button } from '@/components/ui/button'
 import { Item, ItemActions, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item'
 import { Plus, Trash2 } from 'lucide-react'
+import { LEDE } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 import { toastProblem } from '@/ui/Toast'
@@ -109,7 +110,7 @@ export function SubsModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         Each of these reads as this account's name over its own, and passes the identity standard
         on this account's record. The whole list goes up in one call, so nothing changes until it
         is signed.
@@ -208,7 +209,7 @@ export function QuitSubModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         <em>{account.name}</em> rejects <em>{named || shorten(parent?.parent ?? '')}</em>'s
         identity and takes their {facts && formatAmount(facts.subAccountDeposit, { precision: 2 })}{' '}
         {symbol} deposit as the penalty for it.

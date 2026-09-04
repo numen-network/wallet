@@ -4,12 +4,13 @@ import { CACHES, useFeeEstimate, useRefresh, useSymbol, type Cache } from '@/cha
 import { useRefusalStore } from '@/chain/RefusalModal'
 import { ChainError, ShownError } from '@/chain/refusal'
 import type { Operation } from '@/chain/types'
+import { cn } from '@/lib/cn'
 import { formatAmount } from '@/lib/balance'
 import type { WalletAccount } from '@/signing/types'
 import { unlockKey } from '@/signing/vault'
 import { ModalFrame, ModalPage, type ModalPageProps, type ModalProps } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
-import { FieldError } from '@/components/ui/field'
+import { FieldError, NOTE } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { toast, toastProblem, toastSettled, toastWorking } from '@/ui/Toast'
 import { AddressField } from './AddressField'
@@ -228,7 +229,7 @@ export function SignerField({
         accounts={bench}
         readOnly
       />
-      <p className="mt-1.5 text-[12.5px] text-dim">
+      <p className={cn('mt-1.5', NOTE)}>
         {account.multisig
           ? `One of ${account.multisig.threshold} signatures. Nothing runs until the rest are in, and starting it holds a small deposit from this account until it does.`
           : 'This account registered the one above as a proxy, so the chain runs the call as this account.'}

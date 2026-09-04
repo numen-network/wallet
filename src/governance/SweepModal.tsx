@@ -4,6 +4,8 @@ import { refundsSubmission, type NotedPreimage, type Settled, type Spend } from 
 import { useSymbol } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
+import { plural } from '@/lib/plural'
+import { LEDE } from '@/ui/Modal'
 import { useVoter, VoterField, type Voters } from './Voter'
 
 /**
@@ -11,8 +13,6 @@ import { useVoter, VoterField, type Voters } from './Voter'
  * where every card carries the same button, and pressing it a card at a time is
  * the chore they take away.
  */
-
-const count = (many: number, noun: string) => `${many} ${noun}${many === 1 ? '' : 's'}`
 
 interface Plan {
   calls: Operation[]
@@ -50,7 +50,7 @@ function Sweep({
       submitLabel="Sign and send"
       busy={call.busy}
       disabled={calls.length === 0}
-      footNote={`${formatAmount(worth, { precision: 0 })} ${symbol} over ${count(calls.length, 'call')}`}
+      footNote={`${formatAmount(worth, { precision: 0 })} ${symbol} over ${plural(calls.length, 'call')}`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={voter.wrap(operation)}
@@ -60,7 +60,7 @@ function Sweep({
       onClose={onClose}
       onSubmit={() => call.run(voter.submit(operation, call.password))}
     >
-      <p className="text-[13.5px] text-muted-foreground">{says}</p>
+      <p className={LEDE}>{says}</p>
 
       <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
     </CallModal>
@@ -85,7 +85,7 @@ export function ClaimAllModal({
       plan={() => ({
         calls: spends.map((spend) => ({ kind: 'payout', spend: spend.index })),
         worth: spends.reduce((sum, spend) => sum + spend.amount, 0n),
-        says: `The treasury has booked ${count(spends.length, 'payment')} nobody has claimed yet. Anybody may claim one and the money still goes only where the referendum sent it, so this costs whoever signs the fee and nothing else.`,
+        says: `The treasury has booked ${plural(spends.length, 'payment')} nobody has claimed yet. Anybody may claim one and the money still goes only where the referendum sent it, so this costs whoever signs the fee and nothing else.`,
       })}
     />
   )
@@ -135,7 +135,7 @@ export function ReturnAllModal({
             ...mine.map((preimage) => ({ kind: 'unnotePreimage' as const, hash: preimage.hash })),
           ],
           worth: owed + mine.reduce((sum, preimage) => sum + preimage.amount, 0n),
-          says: `${count(refunds.length, 'deposit')} from finished referenda, and ${count(mine.length, 'preimage')} this account noted. Each one goes back to whoever put it down, and only its own noter may clear a preimage.`,
+          says: `${plural(refunds.length, 'deposit')} from finished referenda, and ${plural(mine.length, 'preimage')} this account noted. Each one goes back to whoever put it down, and only its own noter may clear a preimage.`,
         }
       }}
     />

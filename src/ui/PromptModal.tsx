@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal } from './Modal'
+import { LEDE } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 
@@ -64,7 +65,7 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <Modal title={title} submitLabel={submitLabel} danger onClose={onClose} onSubmit={onConfirm}>
-      <p className="text-[13.5px] text-muted-foreground">{children}</p>
+      <p className={LEDE}>{children}</p>
     </Modal>
   )
 }

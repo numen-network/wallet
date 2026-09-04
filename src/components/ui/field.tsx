@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label'
 /* The small uppercase caption that heads a group of fields or a column of them. */
 const CAPTION = 'text-[11px] font-bold tracking-[0.07em] text-muted-foreground uppercase'
 
+/* The small dim line under a field, or under anything else that wants a note. */
+const NOTE = 'text-[12.5px] text-dim'
+
 function FieldSet({ className, ...props }: React.ComponentProps<'fieldset'>) {
   return <fieldset data-slot="field-set" className={cn('min-w-0', className)} {...props} />
 }
@@ -65,7 +68,7 @@ function FieldDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
       data-slot="field-description"
-      className={cn('mt-1.5 text-[12.5px] text-dim', className)}
+      className={cn('mt-1.5', NOTE, className)}
       {...props}
     />
   )
@@ -88,6 +91,7 @@ function FieldError({ className, children, ...props }: React.ComponentProps<'div
 
 export {
   CAPTION,
+  NOTE,
   Field,
   FieldDescription,
   FieldError,

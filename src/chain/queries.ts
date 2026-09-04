@@ -153,7 +153,6 @@ export function useRegistrars() {
   })
 }
 
-/** A runtime constant, so it is read once and held until the endpoint changes. */
 /**
  * The runtime's own constants. Nothing but a runtime upgrade moves them, so one
  * read serves the session and the cache never goes stale on its own.

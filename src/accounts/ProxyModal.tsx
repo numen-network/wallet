@@ -2,8 +2,10 @@ import { AddressField } from './AddressField'
 import { useState } from 'react'
 import { useFacts, useProxies, useSymbol } from '@/chain/queries'
 import { PROXY_TYPES, type Proxy, type ProxyType } from '@/chain/types'
+import { cn } from '@/lib/cn'
 import { resolveAddress, shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
+import { NOTE } from '@/components/ui/field'
 import { Empty } from '@/components/ui/empty'
 import { Field, INSIDE } from '@/ui/Field'
 import { Select } from '@/ui/Select'
@@ -100,7 +102,7 @@ export function AddProxyModal({
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
 
-      <p className="mt-3 text-[12.5px] text-dim">
+      <p className={cn('mt-3', NOTE)}>
         {deposit !== null && formatAmount(deposit, { precision: 2 })} {symbol} is reserved while this proxy
         stands, and returns when it is removed.
       </p>

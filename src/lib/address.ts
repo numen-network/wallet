@@ -54,15 +54,15 @@ export function shortenEvm(address: string): string {
   return shorten(address, 6, 4)
 }
 
-/**
- * Whatever was pasted in, as the address the chain takes. An EVM address maps
- * one way onto its Numen account, so either form is an answer here.
- */
 /** The 32 bytes an address encodes, which is what the EVM side asks for. */
 export function publicKeyOf(address: string): string {
   return u8aToHex(decodeAddress(address))
 }
 
+/**
+ * Whatever was pasted in, as the address the chain takes. An EVM address maps
+ * one way onto its Numen account, so either form is an answer here.
+ */
 export function resolveAddress(input: string): string | null {
   const trimmed = input.trim()
   if (isEvmAddress(trimmed)) return evmToSubstrate(trimmed)

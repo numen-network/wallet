@@ -8,6 +8,7 @@ import { quality, type Quality } from '@/chain/reach'
 import { lockedOf, totalOf } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
 import { formatAmount } from '@/lib/balance'
+import { plural } from '@/lib/plural'
 import { cn } from '@/lib/cn'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -94,8 +95,6 @@ type Modal =
   | { kind: 'newGroup' }
   | { kind: 'renameGroup'; id: string }
   | { kind: 'deleteGroup'; id: string }
-
-const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`
 
 /** How much of the signal is lit, in what colour, and what to call it. */
 const GRADE: Record<Quality, { lit: LucideIcon; tint: string; word: string }> = {

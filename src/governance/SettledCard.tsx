@@ -6,9 +6,11 @@ import {
 } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
 import { formatAmount } from '@/lib/balance'
+import { NOTE } from '@/components/ui/field'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { CardMark } from '@/ui/CardMark'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<Settled['outcome'], BadgeVariant>> = {
@@ -63,7 +65,7 @@ export function SettledCard({
   return (
     <Card>
       <CardHeader>
-        <span className="font-mono text-[13px] font-bold text-dim">#{settled.index}</span>
+        <CardMark>#{settled.index}</CardMark>
         <Badge variant={TONE[settled.outcome] ?? 'default'}>{OUTCOME_LABELS[settled.outcome]}</Badge>
       </CardHeader>
 
@@ -93,7 +95,7 @@ export function SettledCard({
                 </Button>
               )
             ) : (
-              <span className="text-[12.5px] text-dim">
+              <span className={NOTE}>
                 kept, which is what {OUTCOME_LABELS[settled.outcome]} costs
               </span>
             )

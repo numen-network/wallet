@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { shorten } from '@/lib/address'
+import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2 } from 'lucide-react'
 import { Modal } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
-import { FieldError, FieldLegend, FieldSet } from '@/components/ui/field'
+import { FieldError, FieldLegend, FieldSet, NOTE } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
 import { AddressField } from './AddressField'
@@ -120,7 +121,7 @@ export function MultisigModal({ accounts, onClose }: { accounts: Account[]; onCl
           'The address appears once the signatories and threshold add up'
         )}
       </p>
-      <p className="mt-1 text-[12.5px] text-dim">
+      <p className={cn('mt-1', NOTE)}>
         Sending starts with one signatory here and runs once enough of the others have signed.
         A multisig with no signatory here only holds and receives.
       </p>

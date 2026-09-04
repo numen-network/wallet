@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { useBalances, useStanding, useSymbol } from '@/chain/queries'
 import { labelOf } from '@/chain/identity'
+import { cn } from '@/lib/cn'
 import { resolveAddress, shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
-import { cn } from '@/lib/cn'
+import { NOTE } from '@/components/ui/field'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Identicon } from '@/ui/Identicon'
@@ -164,7 +165,7 @@ export function AddressField<T extends Pickable>({
             {/* Its own column whoever the address belongs to, so a table of
                 these reads down the right as well as across */}
             {resolved && (
-              <span className="shrink-0 font-mono text-[12.5px] text-dim">{shorten(resolved)}</span>
+              <span className={cn('shrink-0 font-mono', NOTE)}>{shorten(resolved)}</span>
             )}
           </span>
         </span>

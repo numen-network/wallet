@@ -4,6 +4,7 @@ import { formatAmount } from '@/lib/balance'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardMark } from '@/ui/CardMark'
 import { Beneficiary } from './Beneficiary'
 
 const TONE: Partial<Record<ReturnType<typeof spendState>, BadgeVariant>> = {
@@ -30,7 +31,7 @@ export function SpendCard({ spend, height, canSign, onPayout }: CardProps) {
   return (
     <Card>
       <CardHeader>
-        <span className="font-mono text-[13px] font-bold text-dim">#{spend.index}</span>
+        <CardMark>#{spend.index}</CardMark>
         <CardTitle>
           {formatAmount(spend.amount, { precision: 2 })} {symbol}
         </CardTitle>

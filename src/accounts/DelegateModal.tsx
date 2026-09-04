@@ -8,6 +8,7 @@ import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import { LEDE } from '@/ui/Modal'
 import { Field, INSIDE } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/ui/Select'
@@ -223,7 +224,7 @@ export function UndelegateModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className="text-[13.5px] text-muted-foreground">
+      <p className={LEDE}>
         The votes come back to {account.name}. The balance behind them stays locked for as long as
         the conviction it was delegated under.
       </p>
