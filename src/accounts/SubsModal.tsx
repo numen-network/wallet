@@ -3,7 +3,6 @@ import { byteLength, SUB_NAME_MAX_BYTES, type Sub } from '@/chain/identity'
 import { useFacts, useStanding, useSubs, useSymbol } from '@/chain/queries'
 import { isSubstrateAddress, shorten, toNumenAddress } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
 import { Item, ItemActions, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item'
 import { Plus, Trash2 } from 'lucide-react'
@@ -101,8 +100,7 @@ export function SubsModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -223,8 +221,7 @@ export function QuitSubModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain kept the link')
+      setError(problem instanceof Error ? problem.message : 'The chain kept the link')
     } finally {
       setBusy(false)
     }

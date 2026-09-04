@@ -4,7 +4,6 @@ import { useFacts, useHead, useLocks, useReferenda, useSymbol, useTracks } from 
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { waitFor } from '@/lib/blocks'
-import { VaultError } from '@/signing/vault'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { toast } from '@/ui/Toast'
 import { CallModal, SignerField, useSigning } from './Authorize'
@@ -86,8 +85,7 @@ export function UnlockModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain kept the lock')
+      setError(problem instanceof Error ? problem.message : 'The chain kept the lock')
     } finally {
       setBusy(false)
     }

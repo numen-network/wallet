@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { shorten } from '@/lib/address'
 import { signMessage, verifyMessage, type Verdict } from '@/signing/message'
-import { VaultError } from '@/signing/vault'
 import { CopyButton } from '@/ui/CopyButton'
 import { ModalFrame, ModalPage } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
@@ -93,8 +92,7 @@ function Sign({
       try {
         setSignature(await signMessage(signerFor(account, password), message))
       } catch (problem) {
-        if (problem instanceof VaultError) setError(problem.message)
-        else setError(problem instanceof Error ? problem.message : 'That account would not sign it')
+        setError(problem instanceof Error ? problem.message : 'That account would not sign it')
       } finally {
         setBusy(false)
       }

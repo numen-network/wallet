@@ -4,7 +4,6 @@ import type { Operation } from '@/chain/types'
 import { useRegistrars, useStanding } from '@/chain/queries'
 import { botRegistrar, CHANNELS, isChecked, LABELS, pendingWith } from '@/chain/identity'
 import { formatAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { toast } from '@/ui/Toast'
 import { CallModal, SignerField, useSigning } from './Authorize'
 import { RegistrarField } from './RegistrarField'
@@ -73,8 +72,7 @@ export function JudgementModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }

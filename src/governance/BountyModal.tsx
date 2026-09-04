@@ -5,7 +5,6 @@ import { useSymbol } from '@/chain/queries'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/ui/Toast'
@@ -196,8 +195,7 @@ export function BountyModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -323,8 +321,7 @@ export function ProposeBountyModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }

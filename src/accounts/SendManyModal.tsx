@@ -1,11 +1,8 @@
 import { useState } from 'react'
 import { useFeeEstimate, useSymbol } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
-import { shorten } from '@/lib/address'
 import { amountInput, formatAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
-import { Identicon } from '@/ui/Identicon'
 import { Plus, Trash2 } from 'lucide-react'
 import { Field } from '@/ui/Field'
 import { CAPTION, FieldError } from '@/components/ui/field'
@@ -89,13 +86,7 @@ export function SendMany({
       sent()
       onClose()
     } catch (problem) {
-      setError(
-        problem instanceof VaultError
-          ? problem.message
-          : problem instanceof Error
-            ? problem.message
-            : 'The chain refused it',
-      )
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }

@@ -25,7 +25,6 @@ import {
   type Provider,
 } from '@/chain/verify'
 import { formatAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
 import { Facts, type Fact } from '@/ui/Facts'
 import { Trash2 } from 'lucide-react'
@@ -227,8 +226,7 @@ export function VerifyIdentity({
       sent()
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The identity was refused')
+      setError(problem instanceof Error ? problem.message : 'The identity was refused')
     } finally {
       setBusy(null)
     }

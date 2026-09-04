@@ -4,7 +4,6 @@ import { refundsSubmission, type NotedPreimage, type Settled, type Spend } from 
 import { useSymbol } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { toast } from '@/ui/Toast'
 import { useVoter, VoterField, type Voters } from './Voter'
 
@@ -55,8 +54,7 @@ function Sweep({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }

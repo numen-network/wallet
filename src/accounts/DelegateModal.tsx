@@ -6,7 +6,6 @@ import type { ChainFacts } from '@/chain/types'
 import { batched, CONVICTIONS, totalOf, type AccountBalance, type Conviction } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Field, INSIDE } from '@/ui/Field'
@@ -149,8 +148,7 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
       toast('Delegation sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'Delegation failed')
+      setError(problem instanceof Error ? problem.message : 'Delegation failed')
     } finally {
       setBusy(false)
     }
@@ -242,8 +240,7 @@ export function UndelegateModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'Could not end the delegation')
+      setError(problem instanceof Error ? problem.message : 'Could not end the delegation')
     } finally {
       setBusy(false)
     }

@@ -4,7 +4,6 @@ import { useFacts, useProxies, useSymbol } from '@/chain/queries'
 import { PROXY_TYPES, type Proxy, type ProxyType } from '@/chain/types'
 import { resolveAddress, shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Empty } from '@/components/ui/empty'
 import { Field, INSIDE } from '@/ui/Field'
 import { Select } from '@/ui/Select'
@@ -76,8 +75,7 @@ export function AddProxyModal({
       toast('Proxy sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The proxy could not be added')
+      setError(problem instanceof Error ? problem.message : 'The proxy could not be added')
     } finally {
       setBusy(false)
     }
@@ -163,8 +161,7 @@ export function RemoveProxyModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The proxy could not be removed')
+      setError(problem instanceof Error ? problem.message : 'The proxy could not be removed')
     } finally {
       setBusy(false)
     }

@@ -10,7 +10,6 @@ import {
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
 import { Field, INSIDE } from '@/ui/Field'
 import { Card } from '@/components/ui/card'
@@ -96,8 +95,7 @@ export function JudgeModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -242,8 +240,7 @@ export function SetFeeModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }

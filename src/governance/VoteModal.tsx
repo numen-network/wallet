@@ -13,7 +13,6 @@ import {
   type Operation,
 } from '@/chain/types'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
@@ -110,8 +109,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The vote was refused')
+      setError(problem instanceof Error ? problem.message : 'The vote was refused')
     } finally {
       setBusy(false)
     }
@@ -217,8 +215,7 @@ export function RemoveVoteModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain kept the vote')
+      setError(problem instanceof Error ? problem.message : 'The chain kept the vote')
     } finally {
       setBusy(false)
     }
@@ -348,8 +345,7 @@ export function VoteManyModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The votes were refused')
+      setError(problem instanceof Error ? problem.message : 'The votes were refused')
     } finally {
       setBusy(false)
     }

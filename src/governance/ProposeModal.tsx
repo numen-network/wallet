@@ -19,7 +19,6 @@ import { useFacts, useHead, useStanding, useSymbol, useTracks } from '@/chain/qu
 import { resolveAddress, shorten } from '@/lib/address'
 import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
-import { VaultError } from '@/signing/vault'
 import { Button } from '@/components/ui/button'
 import { useDraft } from '@/ui/draft'
 import { Figure } from '@/ui/Figure'
@@ -211,8 +210,7 @@ export function ProposeModal({
       sent()
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -452,8 +450,7 @@ export function EditTextModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -556,8 +553,7 @@ export function PreimageModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -642,8 +638,7 @@ export function RefundModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -710,8 +705,7 @@ export function PayoutModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -781,8 +775,7 @@ export function DepositModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }

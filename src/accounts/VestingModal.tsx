@@ -13,7 +13,6 @@ import {
 import { resolveAddress } from '@/lib/address'
 import { amountInput, amountOrZero, formatAmount } from '@/lib/balance'
 import { waitFor } from '@/lib/blocks'
-import { VaultError } from '@/signing/vault'
 import { Facts } from '@/ui/Facts'
 import { Figure } from '@/ui/Figure'
 import { ModalFrame } from '@/ui/Modal'
@@ -104,8 +103,7 @@ function Release({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
@@ -257,8 +255,7 @@ function Grant({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }

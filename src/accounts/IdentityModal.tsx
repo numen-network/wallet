@@ -20,7 +20,6 @@ import {
 } from '@/chain/identity'
 import type { Checks } from '@/chain/verify'
 import { formatAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { useDraft } from '@/ui/draft'
@@ -186,8 +185,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
       sent()
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The identity was refused')
+      setError(problem instanceof Error ? problem.message : 'The identity was refused')
     } finally {
       setBusy(false)
     }
@@ -317,8 +315,7 @@ export function ClearIdentityModal({
       toast('Sent')
       onClose()
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain kept the identity')
+      setError(problem instanceof Error ? problem.message : 'The chain kept the identity')
     } finally {
       setBusy(false)
     }

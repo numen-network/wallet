@@ -4,7 +4,6 @@ import { usePending, useSymbol } from '@/chain/queries'
 import type { Pending, ReadCall } from '@/chain/types'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
-import { VaultError } from '@/signing/vault'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
@@ -66,8 +65,7 @@ export function PendingModal({
       await what
       toast('Sent')
     } catch (problem) {
-      if (problem instanceof VaultError) setError(problem.message)
-      else setError(problem instanceof Error ? problem.message : 'The chain refused it')
+      setError(problem instanceof Error ? problem.message : 'The chain refused it')
     } finally {
       setBusy(false)
     }
