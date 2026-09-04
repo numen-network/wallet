@@ -44,35 +44,40 @@ import { Menu, type MenuSection } from '@/ui/Menu'
 import { Tip } from '@/ui/Tip'
 import { canSend, signsAlone, type Account } from './types'
 
-export interface CardActions {
-  onSend: (account: Account) => void
-  onReceive: (account: Account) => void
-  onRename: (account: Account) => void
-  onForget: (account: Account) => void
-  onBackup: (account: Account) => void
-  onChangePassword: (account: Account) => void
-  onIdentity: (account: Account) => void
-  onJudgement: (account: Account) => void
-  onJudge: (account: Account) => void
-  onSetFee: (account: Account) => void
-  onClearIdentity: (account: Account) => void
-  onQuitSub: (account: Account) => void
-  onDerive: (account: Account) => void
-  onDelegate: (account: Account) => void
-  onUndelegate: (account: Account) => void
-  onAddProxy: (account: Account) => void
-  onRemoveProxy: (account: Account) => void
-  onUnlock: (account: Account) => void
-  onPending: (account: Account) => void
-  onSubs: (account: Account) => void
-  onVesting: (account: Account) => void
-  onSign: (account: Account) => void
-  onBringIn: (account: Account) => void
-}
+/**
+ * Which dialog a card asks the page to open. A card knows its own account, so
+ * the name is all the page needs.
+ */
+export type CardAction =
+  | 'send'
+  | 'receive'
+  | 'renameAccount'
+  | 'forget'
+  | 'backup'
+  | 'changePassword'
+  | 'identity'
+  | 'judgement'
+  | 'judge'
+  | 'setFee'
+  | 'clearIdentity'
+  | 'quitSub'
+  | 'derive'
+  | 'delegate'
+  | 'undelegate'
+  | 'addProxy'
+  | 'removeProxy'
+  | 'unlock'
+  | 'pending'
+  | 'subs'
+  | 'vesting'
+  | 'sign'
+  | 'bringIn'
 
-interface CardProps extends CardActions {
+interface CardProps {
   account: Account
   balance: AccountBalance | undefined
+  /** How a card asks for a dialog. Nothing in this file opens one itself. */
+  open: (action: CardAction, account: Account) => void
 }
 
 /** What kind of account this is, when it is not simply one the wallet can sign for. */
@@ -169,29 +174,7 @@ function AddressRow({
 function CardBody({
   account,
   balance,
-  onSend,
-  onReceive,
-  onRename,
-  onForget,
-  onBackup,
-  onChangePassword,
-  onIdentity,
-  onJudgement,
-  onJudge,
-  onSetFee,
-  onClearIdentity,
-  onQuitSub,
-  onDerive,
-  onDelegate,
-  onUndelegate,
-  onAddProxy,
-  onRemoveProxy,
-  onUnlock,
-  onPending,
-  onSubs,
-  onVesting,
-  onSign,
-  onBringIn,
+  open,
 }: CardProps) {
   const { network } = useChain()
   const symbol = useSymbol()
@@ -214,6 +197,8 @@ function CardBody({
   // Which registrar this account is, if the chain lists it as one
   const seat = registrars?.find((entry) => entry.account === account.address)
 
+  const ask = (action: CardAction) => () => open(action, account)
+
   // Everything the chain records about who holds this account, its own and
   // anybody else's. An account with none of it gets no heading for it
   const identityItems = [
@@ -222,7 +207,7 @@ function CardBody({
           {
             label: identity ? 'Edit the on chain identity' : 'Set an on chain identity',
             icon: <IdCard />,
-            onSelect: () => onIdentity(account),
+            onSelect: ask('identity'),
           },
         ]
       : []),
@@ -231,30 +216,16 @@ function CardBody({
           {
             label: asked ? 'Withdraw the request' : 'Ask a registrar',
             icon: <Stamp className="size-3.5" />,
-            onSelect: () => onJudgement(account),
+            onSelect: ask('judgement'),
           },
-          {
-            label: 'Sub accounts',
-            icon: <Award />,
-            onSelect: () => onSubs(account),
-          },
-          {
-            label: 'Clear on chain identity',
-            icon: <Trash2 />,
-            onSelect: () => onClearIdentity(account),
-          },
+          { label: 'Sub accounts', icon: <Award />, onSelect: ask('subs') },
+          { label: 'Clear on chain identity', icon: <Trash2 />, onSelect: ask('clearIdentity') },
         ]
       : []),
     // A parent has no say in being dropped, and a multisig gets named a sub as
     // easily as anything else, so this one takes whoever can sign for it
     ...(canSend(account) && standing?.sub
-      ? [
-          {
-            label: 'Reject the parent identity',
-            icon: <Ban />,
-            onSelect: () => onQuitSub(account),
-          },
-        ]
+      ? [{ label: 'Reject the parent identity', icon: <Ban />, onSelect: ask('quitSub') }]
       : []),
   ]
 
@@ -262,16 +233,8 @@ function CardBody({
   // account the chain has on its registrar list gets the heading
   const registrarItems = seat
     ? [
-        {
-          label: 'Judge an identity',
-          icon: <Stamp className="size-3.5" />,
-          onSelect: () => onJudge(account),
-        },
-        {
-          label: 'Set the judgement fee',
-          icon: <Coins />,
-          onSelect: () => onSetFee(account),
-        },
+        { label: 'Judge an identity', icon: <Stamp className="size-3.5" />, onSelect: ask('judge') },
+        { label: 'Set the judgement fee', icon: <Coins />, onSelect: ask('setFee') },
       ]
     : []
 
@@ -280,53 +243,33 @@ function CardBody({
       label: 'Account',
       // What gets done over and over sits above the set-once key admin
       items: [
-        { label: 'Rename this account', icon: <Pencil />, onSelect: () => onRename(account) },
+        { label: 'Rename this account', icon: <Pencil />, onSelect: ask('renameAccount') },
         ...(account.multisig
           ? [
               {
                 label: 'Multisig approvals',
                 icon: <Users className="size-3.5" />,
-                onSelect: () => onPending(account),
+                onSelect: ask('pending'),
               },
             ]
           : []),
         ...(canSend(account)
-          ? [
-              {
-                label: 'Vesting',
-                icon: <PiggyBank />,
-                onSelect: () => onVesting(account),
-              },
-            ]
+          ? [{ label: 'Vesting', icon: <PiggyBank />, onSelect: ask('vesting') }]
           : []),
         // A message signature comes from one key, so an account signing through
         // its signatories or its proxy has nothing to offer here
         ...(signsAlone(account)
-          ? [
-              {
-                label: 'Sign a message',
-                icon: <Signature />,
-                onSelect: () => onSign(account),
-              },
-            ]
+          ? [{ label: 'Sign a message', icon: <Signature />, onSelect: ask('sign') }]
           : []),
         ...(local
           ? [
               {
                 label: 'Change password',
                 icon: <KeyRound className="size-3.5" />,
-                onSelect: () => onChangePassword(account),
+                onSelect: ask('changePassword'),
               },
-              {
-                label: 'Create a backup file',
-                icon: <Download />,
-                onSelect: () => onBackup(account),
-              },
-              {
-                label: 'Derive an account',
-                icon: <GitBranch />,
-                onSelect: () => onDerive(account),
-              },
+              { label: 'Create a backup file', icon: <Download />, onSelect: ask('backup') },
+              { label: 'Derive an account', icon: <GitBranch />, onSelect: ask('derive') },
             ]
           : []),
       ],
@@ -336,11 +279,7 @@ function CardBody({
           {
             label: 'EVM',
             items: [
-              {
-                label: 'Bring in from MetaMask',
-                icon: <HandCoins />,
-                onSelect: () => onBringIn(account),
-              },
+              { label: 'Bring in from MetaMask', icon: <HandCoins />, onSelect: ask('bringIn') },
             ],
           },
         ]
@@ -352,43 +291,18 @@ function CardBody({
           {
             label: 'Delegate',
             items: [
-              {
-                label: 'Delegate votes',
-                icon: <Handshake />,
-                onSelect: () => onDelegate(account),
-              },
-              {
-                label: 'Take a delegation back',
-                icon: <Handshake />,
-                onSelect: () => onUndelegate(account),
-              },
-              {
-                label: 'Add proxy',
-                icon: <Waypoints />,
-                onSelect: () => onAddProxy(account),
-              },
-              {
-                label: 'Remove proxy',
-                icon: <Waypoints />,
-                onSelect: () => onRemoveProxy(account),
-              },
-              {
-                label: 'Release vote locks',
-                icon: <LockOpen />,
-                onSelect: () => onUnlock(account),
-              },
+              { label: 'Delegate votes', icon: <Handshake />, onSelect: ask('delegate') },
+              { label: 'Take a delegation back', icon: <Handshake />, onSelect: ask('undelegate') },
+              { label: 'Add proxy', icon: <Waypoints />, onSelect: ask('addProxy') },
+              { label: 'Remove proxy', icon: <Waypoints />, onSelect: ask('removeProxy') },
+              { label: 'Release vote locks', icon: <LockOpen />, onSelect: ask('unlock') },
             ],
           },
         ]
       : []),
     {
       items: [
-        {
-          label: 'Forget this account',
-          icon: <Trash2 />,
-          danger: true,
-          onSelect: () => onForget(account),
-        },
+        { label: 'Forget this account', icon: <Trash2 />, danger: true, onSelect: ask('forget') },
       ],
     },
   ]
@@ -467,13 +381,13 @@ function CardBody({
               data-nodrag
               className="flex-1"
               disabled={!canSend(account)}
-              onClick={() => onSend(account)}
+              onClick={ask('send')}
             >
               Send
             </Button>
           </span>
         </Tip>
-        <Button type="button" variant="outline" data-nodrag className="flex-1" onClick={() => onReceive(account)}>
+        <Button type="button" variant="outline" data-nodrag className="flex-1" onClick={ask('receive')}>
           Receive
         </Button>
       </CardFooter>

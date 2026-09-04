@@ -15,7 +15,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { AccountBalance } from '@/chain/types'
-import { AccountCardGhost, type CardActions } from './AccountCard'
+import { AccountCardGhost, type CardAction } from './AccountCard'
 import {
   GroupSection,
   groupIdFrom,
@@ -32,7 +32,7 @@ interface BoardProps {
   groups: GroupView[]
   byAddress: Map<string, Account>
   balances: Record<string, AccountBalance>
-  actions: CardActions
+  open: (action: CardAction, account: Account) => void
   onRenameGroup: (group: Group) => void
   onDeleteGroup: (group: Group) => void
 }
@@ -60,7 +60,7 @@ export function AccountBoard({
   groups,
   byAddress,
   balances,
-  actions,
+  open,
   onRenameGroup,
   onDeleteGroup,
 }: BoardProps) {
@@ -185,7 +185,7 @@ export function AccountBoard({
             key={view.group.id}
             view={view}
             balances={balances}
-            actions={actions}
+            open={open}
             dropTarget={dragging !== null && dropGroupId === view.group.id}
             alone={groups.length === 1}
             onToggle={(group) => toggleCollapse(group.id)}
@@ -200,7 +200,7 @@ export function AccountBoard({
           <AccountCardGhost
             account={dragging}
             balance={balances[dragging.address]}
-            {...actions}
+            open={open}
           />
         )}
       </DragOverlay>

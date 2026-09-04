@@ -60,6 +60,7 @@ import { isSystemGroup, UNGROUPED_ID } from '@/accounts/layout'
 import { useAccountsStore } from '@/accounts/store'
 import { useAccounts } from '@/accounts/useAccounts'
 import { signersFor, type Account } from '@/accounts/types'
+import type { CardAction } from '@/accounts/AccountCard'
 
 type Modal =
   | { kind: 'add' }
@@ -86,7 +87,7 @@ type Modal =
   | { kind: 'vesting'; address: string }
   | { kind: 'judge'; address: string }
   | { kind: 'setFee'; address: string }
-  | { kind: 'sign'; signer?: string }
+  | { kind: 'sign'; address?: string }
   | { kind: 'bringIn'; address: string }
   | { kind: 'endpoint' }
   | { kind: 'forget'; address: string }
@@ -250,7 +251,9 @@ export function App() {
     { total: 0n, transferable: 0n, locked: 0n, reserved: 0n },
   )
 
-  const selected = modal && 'address' in modal ? byAddress.get(modal.address) : undefined
+  const selected =
+    modal && 'address' in modal && modal.address ? byAddress.get(modal.address) : undefined
+  const signers = selected ? signersFor(selected, accounts) : []
   const targetGroup =
     modal && 'id' in modal ? store.layout.groups.find((group) => group.id === modal.id) : undefined
 
@@ -263,35 +266,9 @@ export function App() {
   }
 
   // Stable, so a card can skip re-rendering while a drag reflows the board
-  const actions = useMemo(
-    () => ({
-    onSend: (account: Account) => setModal({ kind: 'send', address: account.address }),
-    onReceive: (account: Account) => setModal({ kind: 'receive', address: account.address }),
-    onRename: (account: Account) => setModal({ kind: 'renameAccount', address: account.address }),
-    onForget: (account: Account) => setModal({ kind: 'forget', address: account.address }),
-    onChangePassword: (account: Account) =>
-      setModal({ kind: 'changePassword', address: account.address }),
-    onBackup: (account: Account) => setModal({ kind: 'backup', address: account.address }),
-    onIdentity: (account: Account) => setModal({ kind: 'identity', address: account.address }),
-    onJudgement: (account: Account) => setModal({ kind: 'judgement', address: account.address }),
-    onClearIdentity: (account: Account) =>
-      setModal({ kind: 'clearIdentity', address: account.address }),
-    onQuitSub: (account: Account) => setModal({ kind: 'quitSub', address: account.address }),
-    onDerive: (account: Account) => setModal({ kind: 'derive', address: account.address }),
-    onDelegate: (account: Account) => setModal({ kind: 'delegate', address: account.address }),
-    onUndelegate: (account: Account) => setModal({ kind: 'undelegate', address: account.address }),
-    onAddProxy: (account: Account) => setModal({ kind: 'addProxy', address: account.address }),
-    onRemoveProxy: (account: Account) =>
-      setModal({ kind: 'removeProxy', address: account.address }),
-    onUnlock: (account: Account) => setModal({ kind: 'unlock', address: account.address }),
-    onPending: (account: Account) => setModal({ kind: 'pending', address: account.address }),
-    onSubs: (account: Account) => setModal({ kind: 'subs', address: account.address }),
-    onVesting: (account: Account) => setModal({ kind: 'vesting', address: account.address }),
-    onSign: (account: Account) => setModal({ kind: 'sign', signer: account.address }),
-    onJudge: (account: Account) => setModal({ kind: 'judge', address: account.address }),
-    onSetFee: (account: Account) => setModal({ kind: 'setFee', address: account.address }),
-    onBringIn: (account: Account) => setModal({ kind: 'bringIn', address: account.address }),
-    }),
+  const open = useMemo(
+    () => (action: CardAction, account: Account) =>
+      setModal({ kind: action, address: account.address }),
     [],
   )
 
@@ -397,7 +374,7 @@ export function App() {
             groups={groups}
             byAddress={byAddress}
             balances={balances}
-            actions={actions}
+            open={open}
             onRenameGroup={(group) => setModal({ kind: 'renameGroup', id: group.id })}
             onDeleteGroup={(group) =>
               group.accounts.length === 0
@@ -428,7 +405,7 @@ export function App() {
           account={selected}
           accounts={accounts}
           balance={balances[selected.address]}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -438,7 +415,7 @@ export function App() {
         <PendingModal
           account={selected}
           accounts={accounts}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -447,24 +424,24 @@ export function App() {
         <SubsModal
           account={selected}
           accounts={accounts}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
 
       {modal?.kind === 'quitSub' && selected && (
-        <QuitSubModal account={selected} signers={signersFor(selected, accounts)} onClose={close} />
+        <QuitSubModal account={selected} signers={signers} onClose={close} />
       )}
 
       {modal?.kind === 'sign' && (
-        <SignModal accounts={accounts} initial={modal.signer} onClose={close} />
+        <SignModal accounts={accounts} initial={modal.address} onClose={close} />
       )}
 
       {modal?.kind === 'vesting' && selected && (
         <VestingModal
           account={selected}
           accounts={accounts}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           balance={balances[selected.address]}
           onClose={close}
         />
@@ -474,7 +451,7 @@ export function App() {
         <JudgeModal
           account={selected}
           accounts={accounts}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -482,7 +459,7 @@ export function App() {
       {modal?.kind === 'setFee' && selected && (
         <SetFeeModal
           account={selected}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -517,7 +494,7 @@ export function App() {
       {modal?.kind === 'identity' && selected && (
         <IdentityModal
           account={selected}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -525,7 +502,7 @@ export function App() {
       {modal?.kind === 'judgement' && selected && (
         <JudgementModal
           account={selected}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -533,7 +510,7 @@ export function App() {
       {modal?.kind === 'clearIdentity' && selected && (
         <ClearIdentityModal
           account={selected}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -546,7 +523,7 @@ export function App() {
         <DelegateModal
           account={selected}
           accounts={accounts}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           balance={balances[selected.address]}
           onClose={close}
         />
@@ -555,7 +532,7 @@ export function App() {
       {modal?.kind === 'undelegate' && selected && (
         <UndelegateModal
           account={selected}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -564,7 +541,7 @@ export function App() {
         <AddProxyModal
           account={selected}
           accounts={accounts}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -572,7 +549,7 @@ export function App() {
       {modal?.kind === 'removeProxy' && selected && (
         <RemoveProxyModal
           account={selected}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}
@@ -580,7 +557,7 @@ export function App() {
       {modal?.kind === 'unlock' && selected && (
         <UnlockModal
           account={selected}
-          signers={signersFor(selected, accounts)}
+          signers={signers}
           onClose={close}
         />
       )}

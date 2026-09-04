@@ -13,8 +13,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Empty } from '@/components/ui/empty'
 import { ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { Menu, type MenuSection } from '@/ui/Menu'
-import { AccountCard, type CardActions } from './AccountCard'
+import { AccountCard, type CardAction } from './AccountCard'
 import { isSystemGroup, type Group } from './layout'
+import type { Account } from './types'
 import type { GroupView } from './useAccounts'
 
 /**
@@ -32,7 +33,7 @@ export const groupIdFrom = (sortableId: string) => sortableId.slice('group:'.len
 interface GroupSectionProps {
   view: GroupView
   balances: Record<string, AccountBalance>
-  actions: CardActions
+  open: (action: CardAction, account: Account) => void
   dropTarget: boolean
   /** The only group on the board names nothing the header above it does not. */
   alone: boolean
@@ -44,7 +45,7 @@ interface GroupSectionProps {
 export function GroupSection({
   view,
   balances,
-  actions,
+  open,
   dropTarget,
   alone,
   onToggle,
@@ -138,7 +139,7 @@ export function GroupSection({
                   key={account.address}
                   account={account}
                   balance={balances[account.address]}
-                  {...actions}
+                  open={open}
                 />
               ))}
 

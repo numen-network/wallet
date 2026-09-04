@@ -19,7 +19,7 @@ import { Identicon } from '@/ui/Identicon'
 import { useDraft } from '@/ui/draft'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'
-import { CallPage, useCall, useSigning } from './Authorize'
+import { CallPage, SignerField, useCall, useSigning } from './Authorize'
 import { BLANK, type Row } from './payments'
 import { SendMany } from './SendManyModal'
 import type { Account } from './types'
@@ -200,22 +200,7 @@ function SendOne({
         readOnly
       />
 
-      {another && (
-        <>
-          <AddressField
-          label="Signing as"
-          value={signer.address}
-          onChange={choose}
-          accounts={bench}
-          readOnly
-        />
-          <p className="mt-1.5 text-[12.5px] text-dim">
-            {account.multisig
-              ? `One of ${account.multisig.threshold} signatures. Nothing moves until the rest are in, and starting it holds a small deposit from this account until it does.`
-              : 'This account registered the one above as a proxy, so the chain runs the call as this account.'}
-          </p>
-        </>
-      )}
+      <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
 
       <AddressField
         label="Address"
