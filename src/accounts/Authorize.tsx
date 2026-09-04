@@ -1,21 +1,6 @@
 import { useState } from 'react'
 import { useChain } from '@/chain/provider'
-import {
-  useFeeEstimate,
-  useRefreshIdentity,
-  useRefreshSubs,
-  useRefreshBounties,
-  useRefreshVesting,
-  useRefreshLocks,
-  useRefreshProxies,
-  useRefreshReferenda,
-  useRefreshPending,
-  useRefreshPreimages,
-  useRefreshRegistrars,
-  useRefreshSettled,
-  useRefreshSpends,
-  useSymbol,
-} from '@/chain/queries'
+import { CACHES, useFeeEstimate, useRefresh, useSymbol, type Cache } from '@/chain/queries'
 import { useRefusalStore } from '@/chain/RefusalModal'
 import { ChainError, ShownError } from '@/chain/refusal'
 import type { Operation } from '@/chain/types'
@@ -252,23 +237,6 @@ export function SignerField({
   )
 }
 
-const CACHES = [
-  'proxies',
-  'identity',
-  'subs',
-  'vesting',
-  'bounties',
-  'referenda',
-  'spends',
-  'settled',
-  'preimages',
-  'pending',
-  'locks',
-  'registrars',
-] as const
-
-type Cache = (typeof CACHES)[number]
-
 /** What a settled call leaves out of date, since the next screen would read it. */
 const STALE: Partial<Record<Operation['kind'], Cache[]>> = {
   addProxy: ['proxies'],
@@ -342,20 +310,7 @@ export function useSubmit(account: Account) {
   const advance = useSessionStore((state) => state.advance)
   const fail = useSessionStore((state) => state.fail)
   const raise = useRefusalStore((state) => state.raise)
-  const refresh: Record<Cache, () => void> = {
-    proxies: useRefreshProxies(),
-    identity: useRefreshIdentity(),
-    subs: useRefreshSubs(),
-    vesting: useRefreshVesting(),
-    bounties: useRefreshBounties(),
-    referenda: useRefreshReferenda(),
-    spends: useRefreshSpends(),
-    settled: useRefreshSettled(),
-    preimages: useRefreshPreimages(),
-    pending: useRefreshPending(),
-    locks: useRefreshLocks(),
-    registrars: useRefreshRegistrars(),
-  }
+  const refresh = useRefresh()
 
   return (operation: Operation, password: string) =>
     new Promise<void>((resolve, reject) => {
@@ -400,7 +355,7 @@ export function useSubmit(account: Account) {
         .then(() => {
           toastSettled(id)
           // What a screen reads is only wrong once the chain has agreed
-          for (const cache of staleFor(operation)) refresh[cache]()
+          refresh(staleFor(operation))
           toast(SETTLED[operation.kind])
         })
         .catch((problem: unknown) => {

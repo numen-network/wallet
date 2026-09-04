@@ -53,35 +53,65 @@ export function useHead(): ChainHead | null {
   return head
 }
 
-const proxiesKey = (network: string, address: string) => ['proxies', network, address]
+/**
+ * The query families a settled call can leave stale. A key starts with its
+ * family name, so the name on its own reaches every address held under it. The
+ * width is deliberate. A parent naming a sub and a registrar handing down a
+ * verdict both write a record the signer does not own.
+ */
+export const CACHES = [
+  'proxies',
+  'identity',
+  'subs',
+  'vesting',
+  'bounties',
+  'referenda',
+  'spends',
+  'settled',
+  'preimages',
+  'pending',
+  'locks',
+  'registrars',
+] as const
+
+export type Cache = (typeof CACHES)[number]
+
+/** A family whose name does not cover every key the chain writes under it. */
+const ALSO: Partial<Record<Cache, readonly string[]>> = {
+  bounties: ['childBounties'],
+}
+
+/** Drops what a settled call left stale, or the next screen reads the chain as it was. */
+export function useRefresh() {
+  const client = useQueryClient()
+  const { network } = useChain()
+
+  return (caches: readonly Cache[]) => {
+    for (const cache of caches) {
+      for (const family of [cache, ...(ALSO[cache] ?? [])]) {
+        void client.invalidateQueries({ queryKey: [family, network.id] })
+      }
+    }
+  }
+}
 
 /** Who can already act for this account. Read once a dialog needs it, not polled. */
 export function useProxies(address: string) {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: proxiesKey(network.id, address),
+    queryKey: ['proxies', network.id, address],
     queryFn: () => repository.proxies(address),
     staleTime: 10_000,
   })
 }
-
-/** Run once a proxy call lands, or the next dialog reads the list as it was. */
-export function useRefreshProxies() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: ['proxies', network.id] })
-}
-
-const identityKey = (network: string, address: string) => ['identity', network, address]
 
 /** Who the chain says this address is, its own record and the parent it hangs off. */
 export function useStanding(address: string) {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: identityKey(network.id, address),
+    queryKey: ['identity', network.id, address],
     queryFn: () => repository.standingOf(address),
     // A box being typed into has no address yet, and the chain has no answer
     // for one that is not an address
@@ -90,57 +120,26 @@ export function useStanding(address: string) {
   })
 }
 
-const subsKey = (network: string, address: string) => ['subs', network, address]
-
 /** The accounts hanging off this one, which only it may change. */
 export function useSubs(address: string) {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: subsKey(network.id, address),
+    queryKey: ['subs', network.id, address],
     queryFn: () => repository.subsOf(address),
     staleTime: 10_000,
   })
 }
-
-/** Every list on the network, since a sub quitting shortens one it does not own. */
-export function useRefreshSubs() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: ['subs', network.id] })
-}
-
-const vestingKey = (network: string, address: string) => ['vesting', network, address]
 
 /** What this account has vesting, which nothing thaws without being asked. */
 export function useVesting(address: string) {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: vestingKey(network.id, address),
+    queryKey: ['vesting', network.id, address],
     queryFn: () => repository.vesting(address),
     staleTime: 10_000,
   })
-}
-
-export function useRefreshVesting() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: ['vesting', network.id] })
-}
-
-/**
- * Every address on the network. A call to Identity writes somebody else's
- * record about as often as its own. A parent naming a sub and a registrar
- * handing down a verdict both leave the signer's own record alone.
- */
-export function useRefreshIdentity() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: ['identity', network.id] })
 }
 
 /** Who may check an identity. A chain with none has nobody to ask yet. */
@@ -152,13 +151,6 @@ export function useRegistrars() {
     queryFn: () => repository.registrars(),
     staleTime: 60_000,
   })
-}
-
-export function useRefreshRegistrars() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: ['registrars', network.id] })
 }
 
 /** A runtime constant, so it is read once and held until the endpoint changes. */
@@ -191,59 +183,37 @@ export function useTracks() {
   })
 }
 
-const referendaKey = (network: string) => ['referenda', network]
-
 export function useReferenda() {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: referendaKey(network.id),
+    queryKey: ['referenda', network.id],
     queryFn: () => repository.referenda(),
     staleTime: 10_000,
   })
 }
-
-const spendsKey = (network: string) => ['spends', network]
 
 /** What passed referenda booked and nobody has claimed yet. */
 export function useSpends() {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: spendsKey(network.id),
+    queryKey: ['spends', network.id],
     queryFn: () => repository.spends(),
     staleTime: 10_000,
   })
 }
-
-export function useRefreshSpends() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: spendsKey(network.id) })
-}
-
-const settledKey = (network: string) => ['settled', network]
 
 /** Finished referenda still holding a deposit somebody could free. */
 export function useSettled() {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: settledKey(network.id),
+    queryKey: ['settled', network.id],
     queryFn: () => repository.settled(),
     staleTime: 10_000,
   })
 }
-
-export function useRefreshSettled() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: settledKey(network.id) })
-}
-
-const preimagesKey = (network: string, owners: string[]) => ['preimages', network, ...owners]
 
 /** Bytes these accounts are paying to keep on chain and could stop paying for. */
 export function usePreimages(owners: string[]) {
@@ -251,21 +221,12 @@ export function usePreimages(owners: string[]) {
   const sorted = [...owners].sort()
 
   return useQuery({
-    queryKey: preimagesKey(network.id, sorted),
+    queryKey: ['preimages', network.id, ...sorted],
     queryFn: () => repository.preimages(sorted),
     enabled: sorted.length > 0,
     staleTime: 10_000,
   })
 }
-
-export function useRefreshPreimages() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: ['preimages', network.id] })
-}
-
-const pendingKey = (network: string, multisigs: string[]) => ['pending', network, ...multisigs]
 
 /** Calls these multisigs have started and not gathered enough signatures for. */
 export function usePending(multisigs: string[]) {
@@ -273,28 +234,19 @@ export function usePending(multisigs: string[]) {
   const sorted = [...multisigs].sort()
 
   return useQuery({
-    queryKey: pendingKey(network.id, sorted),
+    queryKey: ['pending', network.id, ...sorted],
     queryFn: () => repository.pending(sorted),
     enabled: sorted.length > 0,
     staleTime: 10_000,
   })
 }
 
-export function useRefreshPending() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: ['pending', network.id] })
-}
-
-const bountiesKey = (network: string) => ['bounties', network]
-
 /** Every bounty the treasury is still carrying. */
 export function useBounties() {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: bountiesKey(network.id),
+    queryKey: ['bounties', network.id],
     queryFn: () => repository.bounties(),
     staleTime: 10_000,
   })
@@ -311,41 +263,15 @@ export function useChildBounties() {
   })
 }
 
-export function useRefreshBounties() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => {
-    void client.invalidateQueries({ queryKey: bountiesKey(network.id) })
-    void client.invalidateQueries({ queryKey: ['childBounties', network.id] })
-  }
-}
-
-export function useRefreshReferenda() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: referendaKey(network.id) })
-}
-
-const locksKey = (network: string, address: string) => ['locks', network, address]
-
 /** What voting has tied up, which only this account can release. */
 export function useLocks(address: string) {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: locksKey(network.id, address),
+    queryKey: ['locks', network.id, address],
     queryFn: () => repository.locks(address),
     staleTime: 10_000,
   })
-}
-
-export function useRefreshLocks() {
-  const client = useQueryClient()
-  const { network } = useChain()
-
-  return () => void client.invalidateQueries({ queryKey: ['locks', network.id] })
 }
 
 /** The denominator support is measured against, which excludes the treasury. */
