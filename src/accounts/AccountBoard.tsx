@@ -4,6 +4,7 @@ import {
   DragOverlay,
   MeasuringStrategy,
   closestCenter,
+  defaultDropAnimationSideEffects,
   pointerWithin,
   rectIntersection,
   useSensor,
@@ -12,6 +13,7 @@ import {
   type DragEndEvent,
   type DragMoveEvent,
   type DragStartEvent,
+  type DropAnimation,
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { AccountBalance } from '@/chain/types'
@@ -54,6 +56,17 @@ const collision: CollisionDetection = (args) => {
   const candidates = hits.length ? hits : rectIntersection(args)
   const card = candidates.find((hit) => !isGroupSortableId(String(hit.id)))
   return card ? [card] : candidates.filter((hit) => isGroupSortableId(String(hit.id)))
+}
+
+const hideUnderGhost = defaultDropAnimationSideEffects({ styles: { active: { opacity: '0' } } })
+
+/**
+ * A card is hidden while its ghost flies onto it. Only a card has a ghost, so
+ * hiding a group leaves a hole for the length of a flight that never happens.
+ */
+const dropAnimation: DropAnimation = {
+  sideEffects: (args) =>
+    args.active.data.current?.type === 'card' ? hideUnderGhost(args) : undefined,
 }
 
 export function AccountBoard({
@@ -195,7 +208,7 @@ export function AccountBoard({
         ))}
       </SortableContext>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={dropAnimation}>
         {dragging && (
           <AccountCardGhost
             account={dragging}
