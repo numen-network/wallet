@@ -3,13 +3,8 @@ import { SiBitcoin, SiDiscord, SiGithub, SiTelegram, SiX, SiYoutube } from '@ico
 import { Button } from '@/components/ui/button'
 import { SHELL } from './shell'
 
-/**
- * The links the explorer carries, so both sites end the same way. A brand mark
- * stands for the thing it names and nothing else, which is what each of these
- * links to.
- */
 const SOCIAL: [label: string, href: string, Mark: IconType][] = [
-  ['GitHub', 'https://github.com/numen-network/numen', SiGithub],
+  ['GitHub', 'https://github.com/numen-network/wallet', SiGithub],
   ['Discord', 'https://discord.gg/ajPKdvrvJK', SiDiscord],
   ['X', 'https://x.com/numen_network', SiX],
   ['Telegram', 'https://t.me/numen_network', SiTelegram],
