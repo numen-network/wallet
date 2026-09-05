@@ -455,15 +455,15 @@ describe('governance', () => {
     expect(voted?.tally?.support).toBe(5_000n * UNIT)
 
     const locks = await repository.locks(alice.address)
-    // The poll it is holding, which is what the release dialog takes back
+    // The vote it is holding, which is what the release dialog takes back
     expect(locks.find((lock) => lock.track === 0)).toMatchObject({
       amount: 5_000n * UNIT,
-      polls: [index],
+      votes: [{ poll: index, side: 'aye', amount: 5_000n * UNIT, outcome: { kind: 'running' } }],
     })
 
     await send({ kind: 'removeVote', track: 0, poll: index })
     expect(
-      (await repository.locks(alice.address)).find((lock) => lock.track === 0)?.polls,
+      (await repository.locks(alice.address)).find((lock) => lock.track === 0)?.votes,
     ).toEqual([])
 
     // Three payouts run past what Referenda takes inline, so this one has to go

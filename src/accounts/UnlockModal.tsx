@@ -1,14 +1,39 @@
 import { Fragment } from 'react'
-import { trackLabel, type ClassLock } from '@/chain/governance'
-import { useFacts, useHead, useLocks, useReferenda, useSymbol, useTracks } from '@/chain/queries'
+import {
+  lockAfter,
+  releaseOf,
+  trackLabel,
+  trackRelease,
+  weightOf,
+  type CastVote,
+  type ClassLock,
+} from '@/chain/governance'
+import { useFacts, useHead, useLocks, useSymbol, useTracks } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { plural } from '@/lib/plural'
-import { waitFor } from '@/lib/blocks'
+import { daySpan } from '@/lib/blocks'
+import { cn } from '@/lib/cn'
+import { Empty } from '@/components/ui/empty'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { LEDE } from '@/ui/Modal'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
+
+const AMOUNT = 'font-mono text-[11.5px] tabular-nums'
+const STATE = 'text-[11.5px] w-[104px] text-right'
+
+/** What to say when a vote is free before its conviction would have let go. */
+const FREED: Record<'cancelled' | 'lost', string> = {
+  cancelled: 'free, cancelled',
+  lost: 'free, losing side',
+}
+
+/** How a vote reads back, which is the side it took and the conviction behind it. */
+function ballotOf(vote: CastVote): string {
+  const sided = vote.side === 'aye' || vote.side === 'nay'
+  return sided ? `${vote.side} ${weightOf(vote.conviction)}` : vote.side
+}
 
 /**
  * A vote holds its balance past the referendum by whatever the conviction said,
@@ -28,39 +53,69 @@ export function UnlockModal({
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
   const { data: locks } = useLocks(account.address)
-  const { data: referenda } = useReferenda()
   const { data: facts } = useFacts()
   const head = useHead()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const call = useCall(onClose)
 
   const height = head?.number ?? 0
+  const period = facts?.voteLockingPeriod ?? 0
+  // Every verdict below needs the locking period, so none of it is worth
+  // saying before the chain answers
+  const ready = facts !== undefined && locks !== undefined
   const held = locks ?? []
+  const stays = (lock: ClassLock) => lockAfter(lock, period, height)
   // A vote on a referendum that is still running is a say somebody still has,
   // and none of this is worth taking that away
-  const live = new Set((referenda ?? []).map((entry) => entry.index))
-  const counting = (lock: ClassLock) => lock.polls.filter((poll) => live.has(poll))
-  const finished = (lock: ClassLock) => lock.polls.filter((poll) => !live.has(poll))
+  const finished = (lock: ClassLock) => lock.votes.filter((vote) => vote.outcome.kind !== 'running')
 
-  const why = (lock: ClassLock): string | null => {
-    const still = counting(lock).length
-    if (still > 0) return `${plural(still, 'vote')} on a referendum still running`
-    if (lock.freeAt > height)
-      return facts
-        ? `${waitFor(lock.freeAt - height, facts.blockSeconds)} left on the conviction`
-        : 'still held by the conviction'
-    return null
+  const wait = (blocks: number) =>
+    facts ? `${daySpan(blocks, facts.blockSeconds)} left` : 'held by the conviction'
+
+  const trackWord = (lock: ClassLock): string => {
+    const release = trackRelease(lock, period, height)
+    switch (release.kind) {
+      case 'running':
+        return `${release.count} running`
+      case 'held':
+        return wait(release.until - height)
+      case 'free':
+        return 'free'
+    }
   }
 
-  const calls: Operation[] = [
-    ...held.flatMap((lock) =>
-      finished(lock).map((poll) => ({ kind: 'removeVote' as const, track: lock.track, poll })),
-    ),
-    // Nothing frees a track another vote is still holding, so it is left alone
-    ...held
-      .filter((lock) => counting(lock).length === 0)
-      .map((lock) => ({ kind: 'unlock' as const, track: lock.track, target: account.address })),
-  ]
+  const voteWord = (vote: CastVote): string => {
+    const release = releaseOf(vote, period, height)
+    switch (release.kind) {
+      case 'running':
+        return 'still running'
+      case 'held':
+        return wait(release.until - height)
+      case 'free':
+        return release.why === null ? 'free' : FREED[release.why]
+    }
+  }
+
+  const calls: Operation[] = !ready
+    ? []
+    : [
+        ...held.flatMap((lock) =>
+          finished(lock).map((vote) => ({
+            kind: 'removeVote' as const,
+            track: lock.track,
+            poll: vote.poll,
+          })),
+        ),
+        // remove_vote leaves the number on the account alone, so a track only
+        // lets go once update_lock has run
+        ...held
+          .filter((lock) => stays(lock) < lock.amount)
+          .map((lock) => ({
+            kind: 'unlock' as const,
+            track: lock.track,
+            target: account.address,
+          })),
+      ]
   const operation = batched(calls)
 
   const form = () => {
@@ -73,6 +128,10 @@ export function UnlockModal({
   }
 
   const takes = calls.filter((entry) => entry.kind === 'removeVote').length
+  // Locks overlap rather than stack, so the account is held by the largest of them
+  const most = (amounts: bigint[]) => amounts.reduce((top, one) => (one > top ? one : top), 0n)
+  const now = most(held.map((lock) => lock.amount))
+  const after = most(held.map(stays))
 
   return (
     <CallModal
@@ -88,38 +147,68 @@ export function UnlockModal({
       onClose={onClose}
       onSubmit={form}
     >
-      {held.length === 0 ? (
-        <p className={LEDE}>{account.name} has nothing locked behind a vote.</p>
+      {!ready ? (
+        <Empty className="mt-0 p-6">Reading the chain…</Empty>
+      ) : held.length === 0 ? (
+        <Empty className="mt-0 p-6">No vote is locking anything here.</Empty>
       ) : (
         <>
+          <p className={cn(LEDE, 'mb-2.5')}>Each track locks its largest vote, not the sum.</p>
+
           <ItemGroup variant="outline" className="bg-muted">
-            {held.map((lock, index) => {
-              const blocking = why(lock)
-              return (
-                <Fragment key={lock.track}>
-                  {index > 0 && <ItemSeparator />}
-                  <Item className="items-baseline">
+            {held.map((lock, index) => (
+              <Fragment key={lock.track}>
+                {index > 0 && <ItemSeparator />}
+                <Item className="flex-col items-stretch gap-1 py-2.5">
+                  <div className="flex items-baseline gap-2">
                     <span className="flex-1 text-[13px] font-semibold">
                       {trackLabel(tracks, lock.track)}
                     </span>
-                    <span className="font-mono text-[12.5px]">
+                    <span className="font-mono text-[12.5px] tabular-nums">
                       {formatAmount(lock.amount, { precision: 2 })} {symbol}
                     </span>
-                    <span className={`text-[11.5px] ${blocking ? 'text-dim' : 'text-primary'}`}>
-                      {blocking ?? 'free'}
-                    </span>
-                  </Item>
-                </Fragment>
-              )
-            })}
+                    <span className={cn(STATE, 'text-dim')}>{trackWord(lock)}</span>
+                  </div>
+
+                  {lock.votes.map((vote) => (
+                    <div key={vote.poll} className="flex items-baseline gap-2 pl-4">
+                      <span className="flex-1 text-[12px] text-dim">#{vote.poll}</span>
+                      <span className={cn(AMOUNT, 'text-dim')}>{ballotOf(vote)}</span>
+                      <span className={cn(AMOUNT, 'w-[70px] text-right')}>
+                        {formatAmount(vote.amount, { precision: 2 })}
+                      </span>
+                      <span className={cn(STATE, 'text-dim')}>{voteWord(vote)}</span>
+                    </div>
+                  ))}
+
+                  {lock.prior.amount > 0n && (
+                    <div className="flex items-baseline gap-2 pl-4">
+                      <span className="flex-1 text-[12px] text-dim italic">votes taken back</span>
+                      <span className={cn(AMOUNT, 'w-[70px] text-right text-dim')}>
+                        {formatAmount(lock.prior.amount, { precision: 2 })}
+                      </span>
+                      <span className={cn(STATE, 'text-dim')}>
+                        {lock.prior.until > height ? wait(lock.prior.until - height) : 'free'}
+                      </span>
+                    </div>
+                  )}
+                </Item>
+              </Fragment>
+            ))}
           </ItemGroup>
 
           {takes > 0 && (
-            <p className="mt-2.5 text-[12.5px] text-muted-foreground">
-              This takes back {plural(takes, 'vote')} on referenda that are over, since the chain
-              counts a vote as holding the balance until somebody says otherwise. A vote on anything
-              still running stays where it is.
-            </p>
+            <Item variant="muted" className="mt-2.5 flex-col items-stretch gap-0.5">
+              <span className="text-[12.5px]">
+                Unlocks {formatAmount(now - after, { precision: 2 })} {symbol} by taking back{' '}
+                {plural(takes, 'vote')}.
+              </span>
+              {after > 0n && (
+                <span className="text-[11.5px] text-dim">
+                  {formatAmount(after, { precision: 2 })} {symbol} stays locked.
+                </span>
+              )}
+            </Item>
           )}
         </>
       )}

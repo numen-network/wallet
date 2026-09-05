@@ -247,14 +247,103 @@ export interface NotedPreimage {
   amount: bigint
 }
 
+/** The side a vote took, if it took one. Only a side holds a conviction. */
+export type Side = 'aye' | 'nay' | 'abstain' | 'split'
+
+/**
+ * How the referendum a vote sits on came out. Cancelled, timed out and killed
+ * all read as void, which holds nothing.
+ */
+export type PollOutcome =
+  | { kind: 'running' }
+  | { kind: 'void' }
+  | { kind: 'ended'; approved: boolean; at: number }
+
+/** One vote a track still counts, with how the referendum it sits on ended. */
+export interface CastVote {
+  poll: number
+  side: Side
+  conviction: Conviction
+  amount: bigint
+  outcome: PollOutcome
+}
+
 /** What an account has locked behind its votes on one track. */
 export interface ClassLock {
   track: number
   amount: bigint
-  /** The polls still counting a vote here. Each has to be taken back before anything unlocks. */
-  polls: number[]
-  /** The block the conviction lock runs out, zero when nothing is waiting. */
-  freeAt: number
+  /** Every vote still on this track. Each has to be taken back before anything unlocks. */
+  votes: CastVote[]
+  /** What votes already taken back still hold, merged into one span. */
+  prior: { until: number; amount: bigint }
+}
+
+/** How many lock periods a conviction is worth. */
+export function periodsOf(conviction: Conviction): number {
+  return CONVICTIONS.find((entry) => entry.value === conviction)!.periods
+}
+
+/** The multiplier a conviction puts on a vote. */
+export function weightOf(conviction: Conviction): string {
+  return CONVICTIONS.find((entry) => entry.value === conviction)!.weight
+}
+
+export type Release =
+  | { kind: 'running' }
+  | { kind: 'free'; why: 'cancelled' | 'lost' | null }
+  | { kind: 'held'; until: number }
+
+/**
+ * When one vote lets go of its balance. A conviction only bites on the side the
+ * referendum agreed with, so a vote that lost is free the moment the count is in.
+ */
+export function releaseOf(vote: CastVote, lockingPeriod: number, height: number): Release {
+  switch (vote.outcome.kind) {
+    case 'running':
+      return { kind: 'running' }
+    case 'void':
+      return { kind: 'free', why: 'cancelled' }
+    case 'ended': {
+      const periods = periodsOf(vote.conviction)
+      const sided = vote.side === 'aye' || vote.side === 'nay'
+      if (periods === 0 || !sided) return { kind: 'free', why: null }
+      if ((vote.side === 'aye') !== vote.outcome.approved) return { kind: 'free', why: 'lost' }
+      const until = vote.outcome.at + lockingPeriod * periods
+      return until > height ? { kind: 'held', until } : { kind: 'free', why: null }
+    }
+  }
+}
+
+export type TrackRelease =
+  | { kind: 'running'; count: number }
+  | { kind: 'free' }
+  | { kind: 'held'; until: number }
+
+/**
+ * When a whole track lets go. A vote on a referendum that has not finished has
+ * no end to count from, so a track holding one of those can only say it waits.
+ */
+export function trackRelease(lock: ClassLock, lockingPeriod: number, height: number): TrackRelease {
+  const releases = lock.votes.map((vote) => releaseOf(vote, lockingPeriod, height))
+  const running = releases.filter((release) => release.kind === 'running').length
+  if (running > 0) return { kind: 'running', count: running }
+
+  const held = releases.flatMap((release) => (release.kind === 'held' ? [release.until] : []))
+  if (lock.prior.until > height) held.push(lock.prior.until)
+  return held.length === 0 ? { kind: 'free' } : { kind: 'held', until: Math.max(...held) }
+}
+
+/**
+ * What this track would still lock once every finished vote is taken back.
+ * Locks overlap rather than stack, so the largest of what stays is all of it.
+ */
+export function lockAfter(lock: ClassLock, lockingPeriod: number, height: number): bigint {
+  const holding = lock.votes.flatMap((vote) => {
+    const release = releaseOf(vote, lockingPeriod, height)
+    return release.kind === 'free' ? [] : [vote.amount]
+  })
+  if (lock.prior.until > height) holding.push(lock.prior.amount)
+  return holding.reduce((most, amount) => (amount > most ? amount : most), 0n)
 }
 
 export const STATE_LABELS: Record<ReferendumState, string> = {
@@ -389,6 +478,13 @@ export function voteByte(ballot: Ballot): number {
   if (ballot.kind === 'abstain') return 0
   const conviction = CONVICTIONS.findIndex((entry) => entry.value === ballot.conviction)
   return ballot.kind === 'aye' ? 0x80 + conviction : conviction
+}
+
+/** The other way round, for a vote read back off the chain. */
+export function readVoteByte(byte: number): { side: Side; conviction: Conviction } {
+  const entry = CONVICTIONS[byte & 0x7f]
+  if (!entry) throw new Error(`Vote byte ${byte} names no conviction`)
+  return { side: (byte & 0x80) === 0 ? 'nay' : 'aye', conviction: entry.value }
 }
 
 /** What share of the votes cast are ayes, which is the approval curve's input. */

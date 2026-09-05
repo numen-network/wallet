@@ -7,8 +7,11 @@ import {
   metadataDump,
   readMeta,
   refundsSubmission,
+  releaseOf,
+  type CastVote,
   type ClassLock,
   type NotedPreimage,
+  type PollOutcome,
   type Referendum,
   type Settled,
   type Spend,
@@ -494,6 +497,28 @@ const SEEDED_SETTLED: Settled[] = [
   },
 ]
 
+/**
+ * When each settled referendum finished, which is where a conviction lock counts
+ * from. The chain keeps this on the referendum itself.
+ */
+const SETTLED_AT: Record<number, number> = {
+  12: NOW - 5 * DAYS,
+  11: NOW - 20 * DAYS,
+  10: NOW - 40 * DAYS,
+  9: NOW - 8 * DAYS,
+}
+
+/** A vote as it was cast. How the referendum went is read back when asked. */
+type Cast = Omit<CastVote, 'outcome'>
+
+interface Held {
+  amount: bigint
+  cast: Cast[]
+  prior: { until: number; amount: bigint }
+}
+
+const NOTHING_PRIOR = { until: 0, amount: 0n }
+
 export function createMockRepository(): ChainRepository {
   let height = NOW
   const balances = new Map<string, AccountBalance>()
@@ -517,7 +542,7 @@ export function createMockRepository(): ChainRepository {
   const rewards = SEEDED_BOUNTIES.map((bounty) => ({ ...bounty }))
   const pieces = SEEDED_CHILDREN.map((child) => ({ ...child }))
   const waiting: Pending[] = []
-  const locks = new Map<string, Map<number, { amount: bigint; polls: number[]; freeAt: number }>>()
+  const locks = new Map<string, Map<number, Held>>()
 
   const poll = (index: number) => polls.find((referendum) => referendum.index === index)
 
@@ -534,9 +559,34 @@ export function createMockRepository(): ChainRepository {
   }
 
   const lockedBy = (address: string) => {
-    const held = locks.get(address) ?? new Map()
+    const held = locks.get(address) ?? new Map<number, Held>()
     locks.set(address, held)
     return held
+  }
+
+  const outcomeOf = (index: number): PollOutcome => {
+    if (poll(index)) return { kind: 'running' }
+    const settled = closed.find((entry) => entry.index === index)
+    const at = SETTLED_AT[index]
+    if (!settled || at === undefined) return { kind: 'void' }
+    if (settled.outcome === 'approved') return { kind: 'ended', approved: true, at }
+    if (settled.outcome === 'rejected') return { kind: 'ended', approved: false, at }
+    return { kind: 'void' }
+  }
+
+  const withOutcome = (entry: Cast): CastVote => ({ ...entry, outcome: outcomeOf(entry.poll) })
+
+  /** update_lock, which is the only thing that ever moves the number on the account. */
+  const relock = (address: string, track: number) => {
+    const held = lockedBy(address).get(track)
+    if (!held) return
+    const prior = held.prior.until > height ? held.prior : NOTHING_PRIOR
+    const need = held.cast.reduce(
+      (most, entry) => (entry.amount > most ? entry.amount : most),
+      prior.amount,
+    )
+    if (need === 0n) lockedBy(address).delete(track)
+    else lockedBy(address).set(track, { ...held, amount: need, prior })
   }
 
   const read = (address: string): AccountBalance => {
@@ -708,35 +758,44 @@ export function createMockRepository(): ChainRepository {
         if (operation.ballot.kind === 'nay') target.tally.nays += operation.ballot.amount * weight
         target.tally.support += operation.ballot.amount
         const standing = lockedBy(account.address).get(target.track)
+        const cast: Cast = {
+          poll: operation.poll,
+          side: operation.ballot.kind,
+          conviction: operation.ballot.kind === 'abstain' ? 'None' : operation.ballot.conviction,
+          amount: operation.ballot.amount,
+        }
+        const kept = (standing?.cast ?? []).filter((entry) => entry.poll !== operation.poll)
         lockedBy(account.address).set(target.track, {
-          // Conviction locks overlap rather than add, so the class holds the largest
-          amount:
-            standing && standing.amount > operation.ballot.amount
-              ? standing.amount
-              : operation.ballot.amount,
-          polls: [...new Set([...(standing?.polls ?? []), operation.poll])],
-          freeAt: 0,
+          amount: 0n,
+          cast: [...kept, cast],
+          prior: standing?.prior ?? NOTHING_PRIOR,
         })
+        relock(account.address, target.track)
         return
       }
       case 'removeVote': {
         const held = lockedBy(account.address).get(operation.track)
-        if (!held?.polls.includes(operation.poll)) throw new Error('ConvictionVoting: NotVoter')
-        // The vote goes, the lock stays until the conviction runs out
+        const gone = held?.cast.find((entry) => entry.poll === operation.poll)
+        if (!held || !gone) throw new Error('ConvictionVoting: NotVoter')
+        // The vote goes, and what its conviction still holds moves into the prior span
+        const release = releaseOf(withOutcome(gone), FACTS.voteLockingPeriod, height)
         lockedBy(account.address).set(operation.track, {
           ...held,
-          polls: held.polls.filter((poll: number) => poll !== operation.poll),
-          freeAt: height + 60_480,
+          cast: held.cast.filter((entry) => entry.poll !== operation.poll),
+          prior:
+            release.kind === 'held'
+              ? {
+                  until: Math.max(held.prior.until, release.until),
+                  amount: held.prior.amount > gone.amount ? held.prior.amount : gone.amount,
+                }
+              : held.prior,
         })
         return
       }
       case 'unlock': {
         // The chain never refuses this. update_lock frees whatever is free,
         // which is nothing at all while a vote or a conviction still holds it
-        const held = lockedBy(operation.target).get(operation.track)
-        if (held && held.polls.length === 0 && held.freeAt <= height) {
-          lockedBy(operation.target).delete(operation.track)
-        }
+        relock(operation.target, operation.track)
         return
       }
       case 'decisionDeposit': {
@@ -1168,7 +1227,12 @@ export function createMockRepository(): ChainRepository {
     },
 
     async locks(address: string): Promise<ClassLock[]> {
-      return [...(locks.get(address) ?? new Map())].map(([track, lock]) => ({ track, ...lock }))
+      return [...(locks.get(address) ?? new Map<number, Held>())].map(([track, held]) => ({
+        track,
+        amount: held.amount,
+        votes: held.cast.map(withOutcome),
+        prior: { ...held.prior },
+      }))
     },
 
     async activeIssuance(): Promise<bigint> {

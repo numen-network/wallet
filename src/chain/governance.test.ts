@@ -6,9 +6,12 @@ import {
   countdown,
   dumpBytes,
   hasRefund,
+  lockAfter,
   metadataDump,
   readMeta,
+  readVoteByte,
   readableTrack,
+  releaseOf,
   refundsSubmission,
   shutsTooSoon,
   SORTS,
@@ -18,7 +21,10 @@ import {
   TITLE_MAX,
   trackFor,
   trackLabel,
+  trackRelease,
   voteByte,
+  type CastVote,
+  type ClassLock,
   type Referendum,
   type ReferendumState,
   type Settled,
@@ -315,5 +321,145 @@ describe('what the two curves are compared against', () => {
   it('measures support against active issuance rather than everything minted', () => {
     expect(support(tally, 100n * UNIT)).toBe(25)
     expect(support(tally, 0n)).toBe(0)
+  })
+})
+
+const LOCKING = 60_480
+const HEIGHT = 1_000_000
+const ENDED = HEIGHT - 1_000
+
+const cast = (over: Partial<CastVote> = {}): CastVote => ({
+  poll: 1,
+  side: 'aye',
+  conviction: 'Locked3x',
+  amount: 100n * UNIT,
+  outcome: { kind: 'ended', approved: true, at: ENDED },
+  ...over,
+})
+
+const lock = (votes: CastVote[], prior = { until: 0, amount: 0n }): ClassLock => ({
+  track: 0,
+  amount: 0n,
+  votes,
+  prior,
+})
+
+describe('reading a vote back out of the byte the chain stores', () => {
+  it('takes the top bit for the side and the rest for the conviction', () => {
+    expect(readVoteByte(0x81)).toEqual({ side: 'aye', conviction: 'Locked1x' })
+    expect(readVoteByte(0x06)).toEqual({ side: 'nay', conviction: 'Locked6x' })
+    expect(readVoteByte(0x80)).toEqual({ side: 'aye', conviction: 'None' })
+  })
+
+  it('turns down a byte naming no conviction', () => {
+    expect(() => readVoteByte(0x07)).toThrow('names no conviction')
+  })
+})
+
+describe('when one vote lets go of its balance', () => {
+  it('says nothing about a referendum still running, which has no end to count from', () => {
+    expect(releaseOf(cast({ outcome: { kind: 'running' } }), LOCKING, HEIGHT)).toEqual({
+      kind: 'running',
+    })
+  })
+
+  it('frees a vote on a referendum that was called off', () => {
+    expect(releaseOf(cast({ outcome: { kind: 'void' } }), LOCKING, HEIGHT)).toEqual({
+      kind: 'free',
+      why: 'cancelled',
+    })
+  })
+
+  // Locked3x is four lock periods, which is where the multiplier stops matching
+  // the count of periods
+  it('holds the winning side for as many periods as the conviction bought', () => {
+    expect(releaseOf(cast(), LOCKING, HEIGHT)).toEqual({
+      kind: 'held',
+      until: ENDED + 4 * LOCKING,
+    })
+  })
+
+  it('holds a nay the referendum agreed with', () => {
+    const nay = cast({ side: 'nay', outcome: { kind: 'ended', approved: false, at: ENDED } })
+    expect(releaseOf(nay, LOCKING, HEIGHT)).toEqual({ kind: 'held', until: ENDED + 4 * LOCKING })
+  })
+
+  it('frees the losing side however heavy the conviction', () => {
+    const lost = cast({ conviction: 'Locked6x', outcome: { kind: 'ended', approved: false, at: ENDED } })
+    expect(releaseOf(lost, LOCKING, HEIGHT)).toEqual({ kind: 'free', why: 'lost' })
+  })
+
+  it('frees a vote cast without conviction', () => {
+    expect(releaseOf(cast({ conviction: 'None' }), LOCKING, HEIGHT)).toEqual({
+      kind: 'free',
+      why: null,
+    })
+  })
+
+  it('frees a split or an abstain, neither of which names a side', () => {
+    expect(releaseOf(cast({ side: 'split', conviction: 'None' }), LOCKING, HEIGHT)).toEqual({
+      kind: 'free',
+      why: null,
+    })
+    expect(releaseOf(cast({ side: 'abstain', conviction: 'None' }), LOCKING, HEIGHT)).toEqual({
+      kind: 'free',
+      why: null,
+    })
+  })
+
+  it('frees a vote whose conviction has already run out', () => {
+    const old = cast({ outcome: { kind: 'ended', approved: true, at: HEIGHT - 5 * LOCKING } })
+    expect(releaseOf(old, LOCKING, HEIGHT)).toEqual({ kind: 'free', why: null })
+  })
+})
+
+describe('when a whole track lets go', () => {
+  it('reports what it is waiting on rather than a time it cannot know', () => {
+    const held = lock([cast(), cast({ poll: 2, outcome: { kind: 'running' } })])
+    expect(trackRelease(held, LOCKING, HEIGHT)).toEqual({ kind: 'running', count: 1 })
+  })
+
+  it('waits on the last of its convictions to run out', () => {
+    const held = lock([cast(), cast({ poll: 2, conviction: 'Locked1x' })])
+    expect(trackRelease(held, LOCKING, HEIGHT)).toEqual({
+      kind: 'held',
+      until: ENDED + 4 * LOCKING,
+    })
+  })
+
+  it('counts what earlier votes still hold', () => {
+    const held = lock([cast({ conviction: 'None' })], { until: HEIGHT + 500, amount: 5n * UNIT })
+    expect(trackRelease(held, LOCKING, HEIGHT)).toEqual({ kind: 'held', until: HEIGHT + 500 })
+  })
+
+  it('is free once nothing is holding it', () => {
+    const held = lock([cast({ conviction: 'None' })], { until: HEIGHT - 1, amount: 5n * UNIT })
+    expect(trackRelease(held, LOCKING, HEIGHT)).toEqual({ kind: 'free' })
+  })
+})
+
+describe('what a track still locks once its finished votes are taken back', () => {
+  // Locks overlap rather than stack, so a 100 and a 300 hold 300 between them
+  it('holds the largest of what stays rather than adding them up', () => {
+    const held = lock([cast(), cast({ poll: 2, amount: 300n * UNIT })])
+    expect(lockAfter(held, LOCKING, HEIGHT)).toBe(300n * UNIT)
+  })
+
+  it('drops a vote that is free and keeps one still running', () => {
+    const held = lock([
+      cast({ amount: 900n * UNIT, conviction: 'None' }),
+      cast({ poll: 2, amount: 200n * UNIT, outcome: { kind: 'running' } }),
+    ])
+    expect(lockAfter(held, LOCKING, HEIGHT)).toBe(200n * UNIT)
+  })
+
+  it('goes on holding what a vote carried into the prior span', () => {
+    const held = lock([cast({ amount: 400n * UNIT })])
+    expect(lockAfter(held, LOCKING, HEIGHT)).toBe(400n * UNIT)
+  })
+
+  it('lets go of everything once every vote is free and the prior span has run out', () => {
+    const held = lock([cast({ conviction: 'None' })], { until: HEIGHT - 1, amount: 5n * UNIT })
+    expect(lockAfter(held, LOCKING, HEIGHT)).toBe(0n)
   })
 })

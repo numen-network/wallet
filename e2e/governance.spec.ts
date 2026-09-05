@@ -516,7 +516,10 @@ test('voting locks the balance and the lock says what holds it', async ({ page }
   await expect(dialog.getByText('Medium spender')).toBeVisible()
   // The vote is on a referendum that is still running, so nothing here takes it
   // back and there is nothing the track would free
-  await expect(dialog.getByText('1 vote on a referendum still running')).toBeVisible()
+  await expect(dialog.getByText('1 running')).toBeVisible()
+  await expect(dialog.getByText('#1')).toBeVisible()
+  await expect(dialog.getByText('aye 1x')).toBeVisible()
+  await expect(dialog.getByText('still running')).toBeVisible()
 
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(dialog.getByText('Nothing is free to unlock yet')).toBeVisible()
@@ -563,7 +566,7 @@ test('every ready spend is claimed at once', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Claim every ready spend' })).toBeDisabled()
 })
 
-test('one signature takes back the finished votes and frees the track', async ({ page }) => {
+test('one signature frees a track no vote is left on', async ({ page }) => {
   await createKey(page)
   await governance(page)
 
@@ -575,8 +578,8 @@ test('one signature takes back the finished votes and frees the track', async ({
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Vote counted')).toBeVisible()
 
-  // Taking it back by hand leaves the conviction holding the balance, which is
-  // the state the release dialog is for
+  // A vote off a referendum still running holds nothing back, so the track is
+  // left with a number and nothing behind it
   await referendum(page, 1).getByRole('button', { name: 'Take back' }).click()
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Account password').fill(PASSWORD)
@@ -592,8 +595,21 @@ test('one signature takes back the finished votes and frees the track', async ({
   await page.getByRole('menuitem', { name: 'Release vote locks' }).click()
 
   dialog = page.getByRole('dialog')
-  await expect(dialog.getByText(/left on the conviction/)).toBeVisible()
-  await expect(dialog.getByText(/takes back/)).toHaveCount(0)
+  await expect(dialog.getByText('Medium spender')).toBeVisible()
+  await expect(dialog.getByText('free', { exact: true })).toBeVisible()
+  await expect(dialog.getByText(/taking back/)).toHaveCount(0)
+
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Sent')).toBeVisible()
+
+  await page
+    .locator('article')
+    .filter({ hasText: 'Vault' })
+    .getByRole('button', { name: 'Account menu' })
+    .click()
+  await page.getByRole('menuitem', { name: 'Release vote locks' }).click()
+  await expect(page.getByRole('dialog').getByText(/No vote is locking anything here/)).toBeVisible()
 })
 
 test('one ballot covers several referenda at once', async ({ page }) => {

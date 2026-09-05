@@ -26,8 +26,10 @@ import {
   metadataDump,
   NO_METADATA,
   readMeta,
+  readVoteByte,
   readableTrack,
   voteByte,
+  type CastVote,
   type ClassLock,
   type Curve,
   type Metadata,
@@ -36,6 +38,7 @@ import {
   type ProposalSpend,
   type Referendum,
   type Outcome,
+  type PollOutcome,
   type ReferendumState,
   type Settled,
   type Spend,
@@ -101,6 +104,30 @@ const asCall = (call: TxCallData): NumenCallData => call as NumenCallData
 type ReferendumInfo = NonNullable<
   Awaited<ReturnType<Api['query']['Referenda']['ReferendumInfoFor']['getValue']>>
 >
+type AccountVote = Extract<
+  Awaited<ReturnType<Api['query']['ConvictionVoting']['VotingFor']['getValue']>>,
+  { type: 'Casting' }
+>['value']['votes'][number][1]
+
+/**
+ * A split vote names no side and carries no conviction, so the chain frees it
+ * as soon as the referendum is over.
+ */
+function toCast(vote: AccountVote): Pick<CastVote, 'side' | 'conviction' | 'amount'> {
+  switch (vote.type) {
+    case 'Standard':
+      return { ...readVoteByte(vote.value.vote), amount: vote.value.balance }
+    case 'Split':
+      return { side: 'split', conviction: 'None', amount: vote.value.aye + vote.value.nay }
+    case 'SplitAbstain':
+      return {
+        side: 'abstain',
+        conviction: 'None',
+        amount: vote.value.aye + vote.value.nay + vote.value.abstain,
+      }
+  }
+}
+
 type ReferendumStatus = Extract<ReferendumInfo, { type: 'Ongoing' }>['value']
 type TrackInfo = Awaited<ReturnType<Api['constants']['Referenda']['Tracks']>>[number][1]
 type BountyStatus = Awaited<
@@ -470,6 +497,24 @@ export function createPapiRepository(network: Network): ChainRepository {
    * means no metadata, which is the same answer as a referendum nobody wrote
    * any for.
    */
+  /**
+   * How the referendum a vote sits on came out. Anything but approved or
+   * rejected holds nothing, so it all reads as void.
+   */
+  const pollOutcome = async (index: number): Promise<PollOutcome> => {
+    const info = await api.query.Referenda.ReferendumInfoFor.getValue(index, BEST)
+    switch (info?.type) {
+      case 'Ongoing':
+        return { kind: 'running' }
+      case 'Approved':
+        return { kind: 'ended', approved: true, at: info.value[0] }
+      case 'Rejected':
+        return { kind: 'ended', approved: false, at: info.value[0] }
+      default:
+        return { kind: 'void' }
+    }
+  }
+
   const readMetaOf = async (index: number): Promise<Metadata & { metadataHash: string | null }> => {
     const hash = await api.query.Referenda.MetadataOf.getValue(index, BEST)
     if (!hash) return { ...NO_METADATA, metadataHash: null }
@@ -1323,14 +1368,21 @@ export function createPapiRepository(network: Network): ChainRepository {
     },
 
     async locks(address: string): Promise<ClassLock[]> {
-      const held = await api.query.ConvictionVoting.ClassLocksFor.getValue(address, BEST)
+      const classes = await api.query.ConvictionVoting.ClassLocksFor.getValue(address, BEST)
 
       return Promise.all(
-        held.map(async ([track, amount]) => {
+        classes.map(async ([track, amount]) => {
           const voting = await api.query.ConvictionVoting.VotingFor.getValue(address, track, BEST)
-          const [freeAt] = voting.value.prior
-          const polls = voting.type === 'Casting' ? voting.value.votes.map(([poll]) => poll) : []
-          return { track, amount, polls, freeAt }
+          const [until, carried] = voting.value.prior
+          const cast = voting.type === 'Casting' ? voting.value.votes : []
+          const votes = await Promise.all(
+            cast.map(async ([poll, vote]) => ({
+              poll,
+              ...toCast(vote),
+              outcome: await pollOutcome(poll),
+            })),
+          )
+          return { track, amount, votes, prior: { until, amount: carried } }
         }),
       )
     },
