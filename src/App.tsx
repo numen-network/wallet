@@ -463,8 +463,8 @@ export function App() {
         />
       )}
 
-      {modal?.kind === 'bringIn' && selected && (
-        <BringInModal account={selected} accounts={accounts} onClose={close} />
+      {modal?.kind === 'bringIn' && selected?.evmAddress && (
+        <BringInModal source={selected.evmAddress} accounts={accounts} onClose={close} />
       )}
 
       {modal?.kind === 'receive' && selected && (

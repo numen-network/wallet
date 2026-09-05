@@ -9,7 +9,6 @@ import { useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { useChain } from '@/chain/provider'
-import { metaMask } from '@/evm/metamask'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
@@ -20,7 +19,6 @@ import {
   Award,
   Ban,
   GitBranch,
-  HandCoins,
   Coins,
   Handshake,
   HardDrive,
@@ -192,8 +190,10 @@ function CardBody({
   // The menu writes to this account's own record, so a parent's is no answer here
   const identity = standing?.own ?? null
   const asked = pendingWith(identity) !== null
-  // Without MetaMask nothing can sign the EVM side, so the door stays shut
-  const evm = metaMask() !== null
+  // Nothing here holds the key to an EVM address, so spending from one is a
+  // withdrawal MetaMask signs rather than a transfer the wallet sends
+  const withdraws = account.evmAddress !== null
+  const shut = !withdraws && !canSend(account)
   // Which registrar this account is, if the chain lists it as one
   const seat = registrars?.find((entry) => entry.account === account.address)
 
@@ -277,16 +277,6 @@ function CardBody({
           : []),
       ],
     },
-    ...(evm
-      ? [
-          {
-            label: 'EVM',
-            items: [
-              { label: 'Bring in from MetaMask', icon: <HandCoins />, onSelect: ask('bringIn') },
-            ],
-          },
-        ]
-      : []),
     ...(identityItems.length > 0 ? [{ label: 'Identity', items: identityItems }] : []),
     ...(registrarItems.length > 0 ? [{ label: 'Registrar', items: registrarItems }] : []),
     ...(canSend(account)
@@ -376,14 +366,14 @@ function CardBody({
       </CardContent>
 
       <CardFooter className="flex-nowrap">
-        <Tip text={canSend(account) ? undefined : CANNOT_SEND[account.source]}>
+        <Tip text={shut ? CANNOT_SEND[account.source] : undefined}>
           <span className="flex flex-1 has-[:disabled]:cursor-not-allowed">
             <Button
               type="button"
               data-nodrag
               className="flex-1"
-              disabled={!canSend(account)}
-              onClick={ask('send')}
+              disabled={shut}
+              onClick={ask(withdraws ? 'bringIn' : 'send')}
             >
               Send
             </Button>
