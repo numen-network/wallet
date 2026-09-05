@@ -145,7 +145,9 @@ export function AddressField<T extends Pickable>({
           'data-[state=open]:border-primary',
         )}
       >
-        <Identicon address={resolved ?? ''} size={labelled ? 34 : 22} />
+        {/* Shorter than the text line rather than taller, so a row of boxes
+            comes out one height */}
+        <Identicon address={resolved ?? ''} size={labelled ? 34 : 20} />
 
         <span className="min-w-0 flex-1">
           {labelled && (
