@@ -56,6 +56,9 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      cn:
+        specifier: ^0.2.4
+        version: 0.2.4
       date-fns:
         specifier: ^4.4.0
         version: 4.4.0
@@ -74,6 +77,9 @@ importers:
       react:
         specifier: ^19.2.8
         version: 19.2.8
+      react-day-picker:
+        specifier: ^10.0.1
+        version: 10.0.1(@types/react@19.2.18)(react@19.2.8)
       react-dom:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
@@ -196,6 +202,9 @@ packages:
   '@csstools/css-tokenizer@4.0.0':
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
+
+  '@date-fns/tz@1.5.0':
+    resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
 
   '@dnd-kit/accessibility@3.1.1':
     resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
@@ -1993,6 +2002,11 @@ packages:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
 
+  cn@0.2.4:
+    resolution: {integrity: sha512-SzQvoh5FwizWtQg9+JueKdjWhlfCZMdu5DqNHm9q1wUlRVmKb9WXlepR9bTTbPwzEOyX1ujJ6lcCppmn3bNUCg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   colord@2.9.3:
     resolution: {integrity: sha512-jeC1axXpnb0/2nn/Y1LPuLdgXBLH7aDcHu4KEKfqw3CUhX7ZpfBSlPKyqXE6btIgEzfWtrX3/tyBCaCvXvMkOw==}
 
@@ -2525,6 +2539,16 @@ packages:
     resolution: {integrity: sha512-s+HrzLyJBxrpGTYXF15dTgMjAJpEPZT/Yp6NytAtZMRngejxt6Pt5WrfFxLAcsqUDU6sY1Jz6tyHwIicE1U2Xg==}
     peerDependencies:
       react: '>=15.3.0'
+
+  react-day-picker@10.0.1:
+    resolution: {integrity: sha512-eNh6BlwcYInWaJtRv18mXQ06Ys/H6rdTZAnTaSdOYJuTpwP1JMCHNd1FDRadA+gbeinq+psdULN5Xnowy9mV8w==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/react': '>=16.8.0'
+      react: '>=16.8.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   react-dom@19.2.8:
     resolution: {integrity: sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==}
@@ -3078,6 +3102,8 @@ snapshots:
       css-tree: 3.2.1
 
   '@csstools/css-tokenizer@4.0.0': {}
+
+  '@date-fns/tz@1.5.0': {}
 
   '@dnd-kit/accessibility@3.1.1(react@19.2.8)':
     dependencies:
@@ -4751,6 +4777,8 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
+  cn@0.2.4: {}
+
   colord@2.9.3: {}
 
   commander@15.0.0: {}
@@ -5292,6 +5320,14 @@ snapshots:
       copy-to-clipboard: 3.3.3
       prop-types: 15.8.1
       react: 19.2.8
+
+  react-day-picker@10.0.1(@types/react@19.2.18)(react@19.2.8):
+    dependencies:
+      '@date-fns/tz': 1.5.0
+      date-fns: 4.4.0
+      react: 19.2.8
+    optionalDependencies:
+      '@types/react': 19.2.18
 
   react-dom@19.2.8(react@19.2.8):
     dependencies:

@@ -14,7 +14,7 @@ import {
   type Spend,
 } from '@/chain/governance'
 import { isQualified, shortfall } from '@/chain/identity'
-import { format, parseISO } from 'date-fns'
+import { parseISO } from 'date-fns'
 import { useFacts, useHead, useStanding, useSymbol, useTracks } from '@/chain/queries'
 import { cn } from '@/lib/cn'
 import { resolveAddress, shorten } from '@/lib/address'
@@ -25,6 +25,7 @@ import { LEDE } from '@/ui/Modal'
 import { useDraft } from '@/ui/draft'
 import { Figure } from '@/ui/Figure'
 import { Field } from '@/ui/Field'
+import { DateField, stamp } from '@/ui/DateField'
 import { CAPTION, NOTE } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,9 +43,7 @@ interface PayoutDraft {
 
 const BLANK: PayoutDraft = { to: '', amount: '', on: '' }
 
-const COLUMNS = 'grid grid-cols-[1fr_9rem_9rem_28px] gap-x-2'
-
-const stamp = (on: Date) => format(on, 'yyyy-MM-dd')
+const COLUMNS = 'grid grid-cols-[1fr_144px_168px_28px] gap-x-2'
 
 /**
  * Every track on this chain is a spender track, so a referendum asks the
@@ -205,7 +204,7 @@ export function ProposeModal({
       submitLabel="Sign and send"
       busy={call.busy}
       disabled={!qualified || !head || !facts}
-      width={760}
+      width={800}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={track !== null ? voter.wrap({ kind: 'propose', track, payouts: booked, title, description, }) : null}
@@ -290,15 +289,12 @@ export function ProposeModal({
               />
             </Field>
 
-            <Field>
-              <Input
-                type="date"
-                value={row.on}
-                min={earliest}
-                aria-label={`Release date for payout ${index + 1}`}
-                onChange={(event) => editPayout(index, { on: event.target.value })}
-              />
-            </Field>
+            <DateField
+              label={`Release date for payout ${index + 1}`}
+              value={row.on}
+              min={earliest}
+              onChange={(on: string) => editPayout(index, { on })}
+            />
 
             <Button
               type="button"

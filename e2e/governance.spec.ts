@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { expectAddress, fillAddress, pickAddress } from './address'
 
 /**
@@ -14,6 +14,21 @@ const inDays = (days: number) => {
   const on = new Date()
   on.setDate(on.getDate() + days)
   return on.toISOString().slice(0, 10)
+}
+
+/** A day on the calendar, which is portalled to the page rather than the dialog. */
+const dayCell = (page: Page, on: string) => page.locator(`[role=gridcell][data-day="${on}"]`)
+
+/** Every day the calendar will take, in the order it draws them. */
+const offered = (page: Page) => page.locator('[role=gridcell]:not([data-disabled])')
+
+/** Opens the date box on a payout row and pages the calendar on until the day is drawn. */
+async function pickDay(page: Page, scope: Locator, index: number, on: string) {
+  await scope.getByLabel(`Release date for payout ${index}`).click()
+  for (let month = 0; month < 12 && (await dayCell(page, on).count()) === 0; month++) {
+    await page.getByRole('button', { name: 'Go to the Next Month' }).click()
+  }
+  await dayCell(page, on).click()
 }
 
 async function createKey(page: Page, name = 'Vault') {
@@ -332,7 +347,7 @@ test('the whole ask decides the track, not the largest payout', async ({ page })
   await dialog.getByRole('button', { name: 'Add', exact: true }).click()
   await fillAddress(page, dialog, 'Address 2', BENEFICIARY)
   await dialog.getByLabel('Amount 2').fill('150000')
-  await dialog.getByLabel('Release date for payout 2').fill(inDays(90))
+  await pickDay(page, dialog, 2, inDays(90))
   await expect(dialog.getByText('Medium spender', { exact: true })).toBeVisible()
 })
 
@@ -342,15 +357,17 @@ test('the date box will not offer a day the referendum would outlast', async ({ 
 
   await page.getByRole('button', { name: 'Referendum' }).click()
   const dialog = page.getByRole('dialog')
-  const date = dialog.getByLabel('Release date for payout 1')
 
   // Small spender finishes well inside the payout window, so today will do
   await dialog.getByLabel('Amount 1').fill('150000')
-  await expect(date).toHaveAttribute('min', inDays(0))
+  await dialog.getByLabel('Release date for payout 1').click()
+  await expect(offered(page).first()).toHaveAttribute('data-day', inDays(0))
+  await page.keyboard.press('Escape')
 
   // Big spender runs five days past it, and those five days are off the table
   await dialog.getByLabel('Amount 1').fill('5000000')
-  await expect(date).toHaveAttribute('min', inDays(5))
+  await dialog.getByLabel('Release date for payout 1').click()
+  await expect(offered(page).first()).toHaveAttribute('data-day', inDays(5))
 })
 
 test('every payout names its own account, starting on whoever opened it', async ({ page }) => {
