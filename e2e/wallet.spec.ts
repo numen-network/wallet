@@ -476,7 +476,7 @@ test('an address starts where the name above it does', async ({ page }) => {
   // with nothing to draw and used to cost the address a flex gap
   const vault = card(page, 'Vault')
   const name = await vault.getByText('Vault', { exact: true }).boundingBox()
-  const address = await vault.getByText('nu32czL…UJJ5U').boundingBox()
+  const address = await vault.getByText('nu32czL…JJ5U').boundingBox()
 
   expect(address?.x).toBe(name?.x)
 })

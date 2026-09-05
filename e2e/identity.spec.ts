@@ -949,6 +949,6 @@ test('the picker says what the chain calls an address, not only what this wallet
   // that, since a display name nobody checked is only a claim
   const row = page.getByRole('option', { name: /Vault/ })
   await expect(row).toContainText('Numen Foundation')
-  await expect(row).toContainText(/nu\w{5}…\w{5}/)
+  await expect(row).toContainText(/nu\w{5}…\w{4}/)
   await expect(row.getByRole('img', { name: /being paid to check/ })).toBeVisible()
 })

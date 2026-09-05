@@ -6,7 +6,7 @@ import { lockedOf, totalOf, ZERO_BALANCE } from '@/chain/types'
 import { backing, labelOf, pendingWith, type Standing } from '@/chain/identity'
 import { IdentityVerdict } from './IdentityVerdict'
 import { useRegistrars, useStanding, useSymbol } from '@/chain/queries'
-import { shorten, shortenEvm } from '@/lib/address'
+import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { useChain } from '@/chain/provider'
 import { metaMask } from '@/evm/metamask'
@@ -346,7 +346,7 @@ function CardBody({
               kind="EVM"
               label="EVM"
               full={account.evmAddress}
-              short={shortenEvm(account.evmAddress)}
+              short={shorten(account.evmAddress, { evm: true })}
             />
           )}
         </div>

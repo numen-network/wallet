@@ -72,7 +72,7 @@ async function importKey(page: Page, name: string, shown: string) {
   await expect(page.getByText(shown)).toBeVisible()
 }
 
-const importAlice = (page: Page) => importKey(page, 'Alice', 'nu7SVAy…pSUyb')
+const importAlice = (page: Page) => importKey(page, 'Alice', 'nu7SVAy…SUyb')
 
 test('a multisig sends once one of its signatories is in the wallet', async ({ page }) => {
   await importAlice(page)
@@ -113,7 +113,7 @@ test('a multisig sends once one of its signatories is in the wallet', async ({ p
  */
 test('the second signatory reads the call and runs it', async ({ page }) => {
   await importAlice(page)
-  await importKey(page, 'Bob', 'nu5sKtu…afKcv')
+  await importKey(page, 'Bob', 'nu5sKtu…fKcv')
 
   await page.getByRole('button', { name: 'Multisig' }).click()
   const setup = page.getByRole('dialog')

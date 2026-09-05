@@ -8,7 +8,6 @@ import {
   isSubstrateAddress,
   palletAccount,
   shorten,
-  shortenEvm,
   toNumenAddress,
 } from './address'
 
@@ -111,8 +110,12 @@ describe('address kinds', () => {
 
 describe('shortening', () => {
   it('keeps both ends readable', () => {
-    expect(shorten(ALICE_NUMEN)).toBe('nu7SVAy…pSUyb')
-    expect(shortenEvm(H160)).toBe('0x1234…5678')
+    expect(shorten(ALICE_NUMEN)).toBe('nu7SVAy…SUyb')
+    expect(shorten(H160, { evm: true })).toBe('0x1234…5678')
+  })
+
+  it('hands back the whole address when asked', () => {
+    expect(shorten(ALICE_NUMEN, { full: true })).toBe(ALICE_NUMEN)
   })
 
   it('leaves anything already short alone', () => {

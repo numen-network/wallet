@@ -294,7 +294,7 @@ test('an imported phrase restores a known account', async ({ page }) => {
   await dialog.getByLabel('Repeat password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Add', exact: true }).click()
 
-  await expect(page.getByText('nu7SVAy…pSUyb')).toBeVisible()
+  await expect(page.getByText('nu7SVAy…SUyb')).toBeVisible()
 })
 
 test('a phrase with a typo is refused rather than making a new account', async ({ page }) => {
@@ -502,7 +502,7 @@ test('one page carries what every account sent, not one account at a time', asyn
   // The first of them, since the transaction links to the explorer as well
   const signer = spare.getByRole('link').first()
   await expect(signer).toContainText('Spare')
-  await expect(signer).toContainText(/nu\w{5}…\w{5}/)
+  await expect(signer).toContainText(/nu\w{5}…\w{4}/)
   await expect(sent.locator('article').filter({ hasText: 'Vault' })).toHaveCount(1)
 
   // Every entry reads the same way whatever the call was. The name the runtime

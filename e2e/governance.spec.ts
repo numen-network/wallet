@@ -387,7 +387,7 @@ test('every payout names its own account, starting on whoever opened it', async 
 
   await fillAddress(page, dialog, 'Address 2', BENEFICIARY)
   await expectAddress(dialog, 'Address 1', 'One')
-  await expectAddress(dialog, 'Address 2', `${BENEFICIARY.slice(0, 7)}…${BENEFICIARY.slice(-5)}`)
+  await expectAddress(dialog, 'Address 2', `${BENEFICIARY.slice(0, 7)}…${BENEFICIARY.slice(-4)}`)
 })
 
 test('an approved spend pays nobody until somebody claims it', async ({ page }) => {

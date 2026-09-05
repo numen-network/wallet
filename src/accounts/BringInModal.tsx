@@ -5,7 +5,7 @@ import { useBalances, useFacts } from '@/chain/queries'
 import { totalOf } from '@/chain/types'
 import { evmAccounts, metaMask, wasRejected, withdrawFee, withdrawToSubstrate } from '@/evm/metamask'
 import { cn } from '@/lib/cn'
-import { evmToSubstrate, publicKeyOf, shorten, shortenEvm } from '@/lib/address'
+import { evmToSubstrate, publicKeyOf, shorten } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { LEDE, Modal } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
@@ -140,7 +140,7 @@ export function BringInModal({
         label="From"
         value={from}
         onChange={setFrom}
-        accounts={held.map((address) => ({ address, name: shortenEvm(address) }))}
+        accounts={held.map((address) => ({ address, name: shorten(address, { evm: true }) }))}
         aside={`holds ${formatAmount(there, { precision: 4 })} ${facts?.symbol ?? ''}`}
         readOnly
       />

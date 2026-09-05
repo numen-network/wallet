@@ -117,7 +117,7 @@ export function describe(
 ): Described {
   const named = (id: number) => trackLabel(tracks, id)
   const amount = (planck: bigint) => `${formatAmount(planck, { precision: 4 })} ${symbol}`
-  const who = (address: string) => (options.whole ? address : shorten(address))
+  const who = (address: string) => shorten(address, { full: options.whole })
 
   // How many of the set have to sign. This tab has no idea how many already
   // have, and a bare ratio here reads as though it did

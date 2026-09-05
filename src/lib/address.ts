@@ -45,13 +45,14 @@ export function palletAccount(palletId: Uint8Array): string {
 }
 
 /** Numen addresses are long. Show enough on each end to be checkable by eye. */
-export function shorten(address: string, head = 7, tail = 5): string {
+export function shorten(
+  address: string,
+  options: { full?: boolean | undefined; evm?: boolean | undefined } = {},
+): string {
+  if (options.full) return address
+  const [head, tail] = options.evm ? [6, 4] : [7, 4]
   if (address.length <= head + tail + 1) return address
   return `${address.slice(0, head)}…${address.slice(-tail)}`
-}
-
-export function shortenEvm(address: string): string {
-  return shorten(address, 6, 4)
 }
 
 /** The 32 bytes an address encodes, which is what the EVM side asks for. */

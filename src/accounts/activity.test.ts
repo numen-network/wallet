@@ -20,7 +20,7 @@ group('a call read out argument by argument', () => {
       title: 'Transfer',
       fields: [
         { name: 'amount', value: '1.0000 tNUMN' },
-        { name: 'to', value: 'nu3oNks…UCo98' },
+        { name: 'to', value: 'nu3oNks…Co98' },
       ],
     })
   })
@@ -34,8 +34,8 @@ group('a call read out argument by argument', () => {
       title: 'Transfer',
       fields: [
         { name: 'amount', value: '1.0000 tNUMN' },
-        { name: 'to', value: 'nu3oNks…UCo98' },
-        { name: 'as', value: 'nu2uaQW…fnASg' },
+        { name: 'to', value: 'nu3oNks…Co98' },
+        { name: 'as', value: 'nu2uaQW…nASg' },
       ],
     })
   })
@@ -47,8 +47,8 @@ group('a batch in the log', () => {
 
     expect(written.title).toBe('Transfer')
     expect(written.fields).toEqual([
-      { name: '1', value: '1.0000 tNUMN, nu3oNks…UCo98' },
-      { name: '2', value: '2.0000 tNUMN, nu2uaQW…fnASg' },
+      { name: '1', value: '1.0000 tNUMN, nu3oNks…Co98' },
+      { name: '2', value: '2.0000 tNUMN, nu2uaQW…nASg' },
     ])
   })
 
@@ -68,7 +68,7 @@ group('a batch in the log', () => {
     expect(written.title).toBe('2 calls')
     expect(written.fields).toEqual([
       { name: 'Take back the vote on 3', value: 'Track 0' },
-      { name: 'Unlock', value: 'Track 0, nu3oNks…UCo98' },
+      { name: 'Unlock', value: 'Track 0, nu3oNks…Co98' },
     ])
   })
 
@@ -82,7 +82,7 @@ group('addresses in full', () => {
     described.fields.find((field) => field.name === name)?.value
 
   it('shortens by default, since the log is a record rather than a check', () => {
-    expect(valueOf(said(pay(TO, 1n)), 'to')).toBe('nu3oNks…UCo98')
+    expect(valueOf(said(pay(TO, 1n)), 'to')).toBe('nu3oNks…Co98')
   })
 
   /** Two addresses sharing a head and a tail are cheap to come by. */
