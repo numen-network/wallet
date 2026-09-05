@@ -215,7 +215,7 @@ function CardBody({
       ? [
           {
             label: asked ? 'Withdraw the request' : 'Ask a registrar',
-            icon: <Stamp className="size-3.5" />,
+            icon: <Stamp />,
             onSelect: ask('judgement'),
           },
           { label: 'Sub accounts', icon: <Award />, onSelect: ask('subs') },
@@ -233,7 +233,7 @@ function CardBody({
   // account the chain has on its registrar list gets the heading
   const registrarItems = seat
     ? [
-        { label: 'Judge an identity', icon: <Stamp className="size-3.5" />, onSelect: ask('judge') },
+        { label: 'Judge an identity', icon: <Stamp />, onSelect: ask('judge') },
         { label: 'Set the judgement fee', icon: <Coins />, onSelect: ask('setFee') },
       ]
     : []
@@ -248,7 +248,7 @@ function CardBody({
           ? [
               {
                 label: 'Change password',
-                icon: <KeyRound className="size-3.5" />,
+                icon: <KeyRound />,
                 onSelect: ask('changePassword'),
               },
               { label: 'Create a backup file', icon: <Download />, onSelect: ask('backup') },
@@ -259,7 +259,7 @@ function CardBody({
           ? [
               {
                 label: 'Multisig approvals',
-                icon: <Users className="size-3.5" />,
+                icon: <Users />,
                 onSelect: ask('pending'),
               },
             ]
