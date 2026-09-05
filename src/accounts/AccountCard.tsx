@@ -241,26 +241,9 @@ function CardBody({
   const menu: MenuSection[] = [
     {
       label: 'Account',
-      // What gets done over and over sits above the set-once key admin
+      // The set-once key admin sits above what gets done over and over
       items: [
         { label: 'Rename this account', icon: <Pencil />, onSelect: ask('renameAccount') },
-        ...(account.multisig
-          ? [
-              {
-                label: 'Multisig approvals',
-                icon: <Users className="size-3.5" />,
-                onSelect: ask('pending'),
-              },
-            ]
-          : []),
-        ...(canSend(account)
-          ? [{ label: 'Vesting', icon: <PiggyBank />, onSelect: ask('vesting') }]
-          : []),
-        // A message signature comes from one key, so an account signing through
-        // its signatories or its proxy has nothing to offer here
-        ...(signsAlone(account)
-          ? [{ label: 'Sign a message', icon: <Signature />, onSelect: ask('sign') }]
-          : []),
         ...(local
           ? [
               {
@@ -270,6 +253,26 @@ function CardBody({
               },
               { label: 'Create a backup file', icon: <Download />, onSelect: ask('backup') },
               { label: 'Derive an account', icon: <GitBranch />, onSelect: ask('derive') },
+            ]
+          : []),
+        ...(account.multisig
+          ? [
+              {
+                label: 'Multisig approvals',
+                icon: <Users className="size-3.5" />,
+                onSelect: ask('pending'),
+              },
+            ]
+          : []),
+        // A message signature comes from one key, so an account signing through
+        // its signatories or its proxy has nothing to offer here
+        ...(signsAlone(account)
+          ? [{ label: 'Sign a message', icon: <Signature />, onSelect: ask('sign') }]
+          : []),
+        ...(canSend(account)
+          ? [
+              { label: 'Vesting', icon: <PiggyBank />, onSelect: ask('vesting') },
+              { label: 'Release vote locks', icon: <LockOpen />, onSelect: ask('unlock') },
             ]
           : []),
       ],
@@ -295,7 +298,6 @@ function CardBody({
               { label: 'Take a delegation back', icon: <Handshake />, onSelect: ask('undelegate') },
               { label: 'Add proxy', icon: <Waypoints />, onSelect: ask('addProxy') },
               { label: 'Remove proxy', icon: <Waypoints />, onSelect: ask('removeProxy') },
-              { label: 'Release vote locks', icon: <LockOpen />, onSelect: ask('unlock') },
             ],
           },
         ]
