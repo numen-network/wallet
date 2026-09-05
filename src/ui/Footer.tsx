@@ -17,6 +17,7 @@ export function Footer() {
     <footer className="border-t border-border bg-card">
       <div className={`${SHELL} flex flex-wrap items-center gap-x-8 gap-y-3 py-4 text-xs text-muted-foreground`}>
         <span>© 2026 Numen Network</span>
+        <span>Build {__COMMIT__.slice(0, 7)}</span>
         <div className="ml-auto flex items-center">
           {SOCIAL.map(([label, href, Mark]) => (
             <Button key={label} asChild variant="ghost" size="icon">
