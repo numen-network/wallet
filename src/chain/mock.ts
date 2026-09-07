@@ -1,6 +1,7 @@
 import { stringToU8a } from '@polkadot/util'
 import { encodeMultiAddress } from '@polkadot/util-crypto'
 import { palletAccount } from '@/lib/address'
+import { replaceBigInt, reviveBigInt } from '@/lib/json'
 import { DECIMALS, SS58_PREFIX, UNIT } from './config'
 import {
   hasRefund,
@@ -129,16 +130,8 @@ const receipt = (seed: string) => `0x${hash(seed).toString(16).padStart(64, '0')
  * Call data, mocked. A real chain SCALE encodes the call and hashes the bytes,
  * and what matters here is only that the bytes carry the whole call and read
  * back as the same call, so the operation itself goes in as text.
- *
- * Amounts are the reason this is not plain JSON. A balance that comes back a
- * string rather than a bigint is a wrong number waiting to be added to another.
  */
-const BIGINT = '#bigint:'
-
-const callText = (operation: Operation): string =>
-  JSON.stringify(operation, (_key, value: unknown) =>
-    typeof value === 'bigint' ? `${BIGINT}${value}` : value,
-  )
+const callText = (operation: Operation): string => JSON.stringify(operation, replaceBigInt)
 
 const encodeCall = (operation: Operation): string =>
   `0x${Array.from(new TextEncoder().encode(callText(operation)), (byte) =>
@@ -154,9 +147,7 @@ const callArgs = (operation: Operation): CallArg[] =>
 const decodeCall = (hex: string): Operation => {
   const bytes = hex.slice(2).match(/../g) ?? []
   const text = new TextDecoder().decode(Uint8Array.from(bytes, (pair) => parseInt(pair, 16)))
-  return JSON.parse(text, (_key, value: unknown) =>
-    typeof value === 'string' && value.startsWith(BIGINT) ? BigInt(value.slice(BIGINT.length)) : value,
-  ) as Operation
+  return JSON.parse(text, reviveBigInt) as Operation
 }
 
 const callHashOf = (operation: Operation) => receipt(callText(operation))
@@ -1108,10 +1099,6 @@ export function createMockRepository(): ChainRepository {
       return proxies.get(address) ?? []
     },
 
-    /**
-     * The first account asking is given one halfway through, since a real
-     * schedule only arrives from somebody who sent with one attached.
-     */
     async childBounties(): Promise<ChildBounty[]> {
       return pieces.map((child) => ({ ...child }))
     },

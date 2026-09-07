@@ -149,7 +149,7 @@ function EndpointPicker({ onAdd }: { onAdd: () => void }) {
       >
         <SignalBars
           lit={grade ? GRADE[grade].lit : SignalZero}
-          className={`size-3.5 shrink-0 ${grade ? GRADE[grade].tint : 'text-dim'}`}
+          className={cn('size-3.5 shrink-0', grade ? GRADE[grade].tint : 'text-dim')}
         />
         {reach && <span className="text-dim tabular-nums">{Math.round(reach.ms)} ms</span>}
       </Select>
@@ -213,12 +213,13 @@ function Stat({ label, planck, lead = false }: { label: string; planck: bigint; 
     <div>
       <div className={CAPTION}>{label}</div>
       <div
-        className={`mt-1 font-mono font-semibold tracking-tight ${
-          lead ? 'text-3xl max-[560px]:text-2xl' : 'text-xl text-muted-foreground'
-        }`}
+        className={cn(
+          'mt-1 font-mono font-semibold tracking-tight',
+          lead ? 'text-3xl max-[560px]:text-2xl' : 'text-xl text-muted-foreground',
+        )}
       >
         {formatAmount(planck, { precision: 2 })}
-        <span className={`ml-1 font-semibold ${lead ? 'text-sm text-muted-foreground' : 'text-[11px] text-dim'}`}>
+        <span className={cn('ml-1 font-semibold', lead ? 'text-sm text-muted-foreground' : 'text-[11px] text-dim')}>
           {facts?.symbol ?? ''}
         </span>
       </div>
@@ -274,7 +275,7 @@ export function App() {
   return (
     <Tabs value={view} onChange={setView}>
       <header className="sticky top-0 z-40 border-b border-border bg-card">
-        <div className={`${SHELL} flex flex-wrap items-center gap-3 py-2.5`}>
+        <div className={cn(SHELL, 'flex flex-wrap items-center gap-3 py-2.5')}>
           <div className="flex items-center gap-2.5 text-[15px] font-bold tracking-tight">
             <img src="/logo.svg" width={22} height={22} alt="" />
             Numen Wallet
@@ -290,7 +291,7 @@ export function App() {
       </header>
 
       {facts.isError ? (
-        <main className={`${SHELL} grow pt-20`}>
+        <main className={cn(SHELL, 'grow pt-20')}>
           <Empty className="mx-auto mt-0 max-w-md border-solid">
             <EmptyHeader>
               <EmptyTitle className="font-bold">This endpoint answers for a different chain.</EmptyTitle>
@@ -310,7 +311,7 @@ export function App() {
           </TabPanel>
 
           <TabPanel value="accounts">
-      <section className={`${SHELL} flex flex-wrap items-end gap-10 pt-6 pb-1.5 max-[560px]:gap-6`}>
+      <section className={cn(SHELL, 'flex flex-wrap items-end gap-10 pt-6 pb-1.5 max-[560px]:gap-6')}>
         <Stat label="Total balance" planck={summary.total} lead />
         <Stat label="Transferable" planck={summary.transferable} />
         <Stat label="Locked" planck={summary.locked} />
@@ -350,7 +351,7 @@ export function App() {
         </div>
       </section>
 
-      <main className={`${SHELL} grow pt-1.5 pb-16`}>
+      <main className={cn(SHELL, 'grow pt-1.5 pb-16')}>
         {/* A group the user just made has to show up, even with nothing in it */}
         {accounts.length === 0 && store.layout.groups.length === 1 ? (
           <Empty>

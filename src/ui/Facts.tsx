@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from 'react'
+import { cn } from '@/lib/cn'
 
 export interface Fact {
   name: string
@@ -22,7 +23,7 @@ export function Facts({ rows }: { rows: Fact[] }) {
         // Indexed, since two rows may share a name and neither is the odd one
         <Fragment key={index}>
           <dt className={row.bad ? 'text-destructive' : 'text-dim'}>{row.name}</dt>
-          <dd className={`font-mono break-all ${row.bad ? 'text-destructive' : 'text-muted-foreground'}`}>
+          <dd className={cn('font-mono break-all', row.bad ? 'text-destructive' : 'text-muted-foreground')}>
             {row.value}
           </dd>
         </Fragment>

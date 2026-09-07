@@ -2,6 +2,7 @@ import { explorerAccount, explorerExtrinsic } from '@/chain/config'
 import { useChain } from '@/chain/provider'
 import { useSymbol } from '@/chain/queries'
 import { shorten } from '@/lib/address'
+import { cn } from '@/lib/cn'
 import { NOTE } from '@/components/ui/field'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -105,13 +106,13 @@ export function ActivityView({ accounts }: { accounts: Account[] }) {
 
   return (
     <>
-      <section className={`${SHELL} flex flex-wrap items-center gap-3 pt-6 pb-1.5`}>
+      <section className={cn(SHELL, 'flex flex-wrap items-center gap-3 pt-6 pb-1.5')}>
         <h2 className="text-[15px] font-bold tracking-tight">Sent from this tab</h2>
         <span className="flex-1" />
         <span className={NOTE}>Gone when the tab closes</span>
       </section>
 
-      <main className={`${SHELL} grow pt-1.5 pb-16`}>
+      <main className={cn(SHELL, 'grow pt-1.5 pb-16')}>
         {submissions.length === 0 ? (
           <Empty>
             Nothing sent yet. Every call any account here signs lands on this page, which is all the

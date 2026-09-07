@@ -240,7 +240,7 @@ export function ProposeModal({
           </p>
         )}
 
-        <div className={`mt-4 ${COLUMNS}`}>
+        <div className={cn('mt-4', COLUMNS)}>
           <span className={CAPTION}>Address</span>
           <span className={CAPTION}>Amount</span>
           <span className={CAPTION}>Release</span>
@@ -248,7 +248,7 @@ export function ProposeModal({
         </div>
 
         {payouts.map((row, index) => (
-          <div key={index} className={`mt-1.5 items-start ${COLUMNS}`}>
+          <div key={index} className={cn('mt-1.5 items-start', COLUMNS)}>
             <AddressField
               label={`Address ${index + 1}`}
               value={row.to}

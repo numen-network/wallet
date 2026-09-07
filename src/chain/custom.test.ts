@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { addEndpoint, allNetworks, checkEndpoint, customNetworks, EndpointError, removeEndpoint } from './custom'
+import { addEndpoint, allNetworks, checkEndpoint, EndpointError, removeEndpoint } from './custom'
 import { NETWORKS } from './config'
 
 beforeEach(() => localStorage.clear())
@@ -42,10 +42,9 @@ describe('the endpoints a user adds', () => {
 
   it('survives a reload, and goes when forgotten', () => {
     const added = addEndpoint('Home', 'wss://node.example.com')
-    expect(customNetworks()).toHaveLength(1)
+    expect(allNetworks()).toHaveLength(Object.keys(NETWORKS).length + 1)
 
     removeEndpoint(added.id)
-    expect(customNetworks()).toEqual([])
     expect(allNetworks()).toHaveLength(Object.keys(NETWORKS).length)
   })
 })

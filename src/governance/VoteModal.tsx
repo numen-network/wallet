@@ -12,6 +12,7 @@ import {
   type Operation,
 } from '@/chain/types'
 import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
+import { cn } from '@/lib/cn'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
@@ -176,7 +177,7 @@ type Choice = (typeof CHOICES)[number]
 
 /** Skip keeps an empty box so every row reads from the same left edge. */
 const marked = (choice: Choice) => (
-  <span className={`flex size-3.5 shrink-0 ${choice.tone}`}>{choice.mark}</span>
+  <span className={cn('flex size-3.5 shrink-0', choice.tone)}>{choice.mark}</span>
 )
 
 const choiceFor = (side: Side | undefined): Choice =>
@@ -288,7 +289,7 @@ export function VoteManyModal({
                   options={CHOICE_OPTIONS}
                   label={`Vote on referendum ${referendum.index}`}
                   variant="boxed"
-                  className={`w-[120px] ${choice.tone}`}
+                  className={cn('w-[120px]', choice.tone)}
                 >
                   {marked(choice)}
                 </Select>

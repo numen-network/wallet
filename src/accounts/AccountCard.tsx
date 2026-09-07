@@ -116,7 +116,7 @@ function IdentityMark({ standing }: { standing: Standing }) {
   const name = labelOf(standing)
 
   return (
-    <span data-nodrag className={`flex min-w-0 shrink items-center gap-1 ${PICKABLE}`}>
+    <span data-nodrag className={cn('flex min-w-0 shrink items-center gap-1', PICKABLE)}>
       <IdentityVerdict standing={standing} />
       {/* Four cards to a row leaves a long name truncated, so it is reachable */}
       {name && (
@@ -150,7 +150,7 @@ function AddressRow({
       {label && (
         <Badge variant="muted">{label}</Badge>
       )}
-      <span data-nodrag className={`shrink-0 font-mono text-[12.5px] ${PICKABLE}`}>
+      <span data-nodrag className={cn('shrink-0 font-mono text-[12.5px]', PICKABLE)}>
         {short}
       </span>
       <CopyButton text={full} label={`Copy ${kind} address`} />
@@ -351,14 +351,14 @@ function CardBody({
       <CardContent className="mt-auto pt-1">
         {/* What the account holds, to the planck. The split under it is rounded
             for reading, and says so */}
-        <div data-nodrag className={`font-mono text-xl font-semibold tracking-tight ${PICKABLE}`}>
+        <div data-nodrag className={cn('font-mono text-xl font-semibold tracking-tight', PICKABLE)}>
           {formatAmount(totalOf(holdings), { precision: DECIMALS, pad: false })}
           <span className="ml-1 text-[11.5px] font-bold tracking-wide">{symbol}</span>
         </div>
         {/* The three the total is made of, the way the explorer splits it. A
             freeze and a deposit are not the same thing and do not come back the
             same way, so one figure over both says less than it looks */}
-        <div data-nodrag className={`mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground ${PICKABLE}`}>
+        <div data-nodrag className={cn('mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground', PICKABLE)}>
           <span>transferable {formatAmount(holdings.transferable, { precision: 2, compact: true, approx: true })}</span>
           <span>locked {formatAmount(holdings.locked, { precision: 2, compact: true, approx: true })}</span>
           <span>reserved {formatAmount(holdings.reserved, { precision: 2, compact: true, approx: true })}</span>

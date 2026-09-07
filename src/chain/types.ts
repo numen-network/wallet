@@ -342,17 +342,17 @@ export interface Reach {
   syncing: boolean
 }
 
-/**
- * A call somebody was handed as bytes. The chain keeps only the hash of a
- * waiting multisig call, so the bytes travel between signatories, and reading
- * them back is how a signatory sees what they are putting their name to.
- */
 /** One argument of a call, under the name the runtime gives it. */
 export interface CallArg {
   name: string
   value: string
 }
 
+/**
+ * A call somebody was handed as bytes. The chain keeps only the hash of a
+ * waiting multisig call, so the bytes travel between signatories, and reading
+ * them back is how a signatory sees what they are putting their name to.
+ */
 export interface ReadCall {
   /** What the chain would key it by, which is what it is checked against. */
   hash: string

@@ -158,9 +158,11 @@ export function AddressField<T extends Pickable>({
           )}
           <span className="flex items-baseline gap-3">
             <span
-              className={`min-w-0 flex-1 truncate text-[15px] ${
-                known ? 'font-semibold' : 'font-mono'
-              } ${value ? '' : 'text-hint'}`}
+              className={cn(
+                'min-w-0 flex-1 truncate text-[15px]',
+                known ? 'font-semibold' : 'font-mono',
+                !value && 'text-hint',
+              )}
             >
               {known?.name || (resolved ? shorten(resolved) : value) || placeholder}
             </span>
@@ -173,7 +175,7 @@ export function AddressField<T extends Pickable>({
         </span>
 
         {/* Kept in place rather than dropped, so a column of these lines up */}
-        <ChevronDown className={`size-4 shrink-0 text-dim ${offers ? '' : 'invisible'}`} strokeWidth={2.4} />
+        <ChevronDown className={cn('size-4 shrink-0 text-dim', !offers && 'invisible')} strokeWidth={2.4} />
       </PopoverTrigger>
 
       <PopoverContent

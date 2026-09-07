@@ -3,6 +3,7 @@ import { explorerAccount } from '@/chain/config'
 import { backing, channelsOf, labelOf, LABELS } from '@/chain/identity'
 import { useChain } from '@/chain/provider'
 import { useStanding } from '@/chain/queries'
+import { cn } from '@/lib/cn'
 import { Tip } from '@/ui/Tip'
 
 /**
@@ -35,7 +36,7 @@ export function Beneficiary({ address }: { address: string }) {
           href={explorerAccount(network, address)}
           target="_blank"
           rel="noopener"
-          className={`break-all text-primary hover:underline ${name ? 'font-semibold' : 'font-mono'}`}
+          className={cn('break-all text-primary hover:underline', name ? 'font-semibold' : 'font-mono')}
         >
           {name || address}
         </a>

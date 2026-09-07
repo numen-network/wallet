@@ -193,7 +193,7 @@ function WaitingCall({
 
   // Whole addresses, since this is the last look anybody gets before signing
   const said =
-    known && (known.read.operation ? describe(known.read.operation, symbol, undefined, { whole: true }) : null)
+    known && (known.read.operation ? describe(known.read.operation, symbol, { whole: true }) : null)
   const enough = call.approvals.length + (signed ? 0 : 1) >= threshold
 
   return (
@@ -213,7 +213,7 @@ function WaitingCall({
         // it where it does not. Either way the call is read out argument by
         // argument, since that is what is about to be signed
         <div className="mt-1.5 text-[13.5px]">
-          <b className={`font-semibold ${said ? '' : 'font-mono'}`}>
+          <b className={cn('font-semibold', !said && 'font-mono')}>
             {said?.title ?? known.read.label}
           </b>
           <Facts rows={said?.fields ?? known.read.args} />

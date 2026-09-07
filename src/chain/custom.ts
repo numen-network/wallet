@@ -54,10 +54,6 @@ function write(networks: Network[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(networks))
 }
 
-export function customNetworks(): Network[] {
-  return read()
-}
-
 /** Everything the wallet ships with, then everything the user added. */
 export function allNetworks(): Network[] {
   return [...Object.values(NETWORKS), ...read()]

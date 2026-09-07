@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useChain } from './provider'
+import { replaceBigInt } from '@/lib/json'
 import type { Registrar } from './identity'
 import type { AccountBalance, ChainHead, Operation, Reach } from './types'
 
@@ -307,6 +308,3 @@ export function useFeeEstimate(from: string | undefined, operation: Operation | 
     staleTime: 30_000,
   })
 }
-
-const replaceBigInt = (_key: string, value: unknown) =>
-  typeof value === 'bigint' ? value.toString() : value

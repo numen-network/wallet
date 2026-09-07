@@ -308,7 +308,6 @@ const toTrack = ([id, info]: [number, TrackInfo]): Track => ({
   supportCurve: toCurve(info.min_support),
 })
 
-/** Where a referendum has got to, which the chain splits over two fields. */
 /**
  * The four an Ongoing referendum passes through. Nothing has been decided until
  * `deciding` is set, and `in_queue` says whether it is waiting on its prepare
@@ -491,12 +490,6 @@ export function createPapiRepository(network: Network): ChainRepository {
   }
 
   /**
-   * The metadata names a preimage rather than holding the text, so what a
-   * referendum says about itself costs two more reads. Any step coming up empty
-   * means no metadata, which is the same answer as a referendum nobody wrote
-   * any for.
-   */
-  /**
    * How the referendum a vote sits on came out. Anything but approved or
    * rejected holds nothing, so it all reads as void.
    */
@@ -514,6 +507,12 @@ export function createPapiRepository(network: Network): ChainRepository {
     }
   }
 
+  /**
+   * The metadata names a preimage rather than holding the text, so what a
+   * referendum says about itself costs two more reads. Any step coming up empty
+   * means no metadata, which is the same answer as a referendum nobody wrote
+   * any for.
+   */
   const readMetaOf = async (index: number): Promise<Metadata & { metadataHash: string | null }> => {
     const hash = await api.query.Referenda.MetadataOf.getValue(index, BEST)
     if (!hash) return { ...NO_METADATA, metadataHash: null }
@@ -642,10 +641,6 @@ export function createPapiRepository(network: Network): ChainRepository {
     }
   }
 
-  /**
-   * Only a proposal has to reach for anything before it can be built, since it
-   * carries the call it would run and the track says how soon that may happen.
-   */
   /**
    * When the call being signed was first started, which every signature after
    * the first has to name. Nobody upstream carries it, so nobody upstream can
@@ -1010,15 +1005,15 @@ export function createPapiRepository(network: Network): ChainRepository {
   chainFacts().catch(() => {})
 
   return {
+    facts(): Promise<ChainFacts> {
+      return chainFacts()
+    },
+
     /**
      * One request timed end to end. system_health is asked for because it is
      * never served from a cache and brings back what the node makes of its own
      * position, which no round trip on its own would say.
      */
-    facts(): Promise<ChainFacts> {
-      return chainFacts()
-    },
-
     async reach(): Promise<Reach> {
       const ask = async () => {
         const at = performance.now()

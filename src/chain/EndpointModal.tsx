@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/item'
 import { Trash2 } from 'lucide-react'
 import { toast } from '@/ui/Toast'
-import { customNetworks } from './custom'
+import { NETWORKS } from './config'
 import { useChain } from './provider'
 
 /**
@@ -23,11 +23,11 @@ import { useChain } from './provider'
  * three that ship stay where they are, this only adds to them.
  */
 export function EndpointModal({ onClose }: { onClose: () => void }) {
-  const { addNetwork, forgetNetwork } = useChain()
+  const { networks, addNetwork, forgetNetwork } = useChain()
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
-  const [added, setAdded] = useState(customNetworks)
+  const added = networks.filter((network) => !(network.id in NETWORKS))
 
   const submit = () => {
     setError('')
@@ -40,11 +40,6 @@ export function EndpointModal({ onClose }: { onClose: () => void }) {
     }
 
     toast('Endpoint added')
-  }
-
-  const forget = (id: string) => {
-    forgetNetwork(id)
-    setAdded(customNetworks())
   }
 
   return (
@@ -92,7 +87,7 @@ export function EndpointModal({ onClose }: { onClose: () => void }) {
                     variant="ghost"
                     size="icon"
                     aria-label={`Forget ${network.name}`}
-                    onClick={() => forget(network.id)}
+                    onClick={() => forgetNetwork(network.id)}
                   >
                     <Trash2 />
                   </Button>

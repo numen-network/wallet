@@ -1,7 +1,7 @@
-import { trackLabel, weightOf, type Track } from '@/chain/governance'
+import { weightOf } from '@/chain/governance'
 import { IDENTITY_FIELDS, LABELS, type IdentityInfo } from '@/chain/identity'
-import type { Operation, TxStage } from '@/chain/types'
-import { endsAt, perDay } from '@/chain/vesting'
+import type { CallArg, Operation, TxStage } from '@/chain/types'
+import { endsAt } from '@/chain/vesting'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 
@@ -77,30 +77,15 @@ export interface DescribeOptions {
    * tail are cheap to come by.
    */
   whole?: boolean
-  /**
-   * Target seconds per block, which a vesting rate needs before it can be
-   * quoted per day. Without it the rate is left out rather than guessed.
-   */
-  blockSeconds?: number
-}
-
-/**
- * A call written out argument by argument, which is how the chain holds one and
- * how anything that reads a call it was handed has to show it. The same shape
- * as ChainRepository's ReadCall args, so one component draws either.
- */
-export interface CallField {
-  name: string
-  value: string
 }
 
 export interface Described {
   title: string
-  fields: CallField[]
+  fields: CallArg[]
 }
 
 /** Field order is the order it is written in, which is the order it reads in. */
-const row = (fields: Record<string, string>): CallField[] =>
+const row = (fields: Record<string, string>): CallArg[] =>
   Object.entries(fields).map(([name, value]) => ({ name, value }))
 
 /** A call folded onto one line, for a batch that would otherwise nest a table. */
@@ -109,10 +94,9 @@ const line = (part: Described) => part.fields.map((field) => field.value).join('
 export function describe(
   operation: Operation,
   symbol: string,
-  tracks?: Track[],
   options: DescribeOptions = {},
 ): Described {
-  const named = (id: number) => trackLabel(tracks, id)
+  const track = (id: number) => `Track ${id}`
   const amount = (planck: bigint) => `${formatAmount(planck, { precision: 4 })} ${symbol}`
   const who = (address: string) => shorten(address, { full: options.whole })
 
@@ -136,14 +120,14 @@ export function describe(
       return {
         title: 'Delegate votes',
         fields: row({
-          track: named(operation.delegation.track),
+          track: track(operation.delegation.track),
           to: who(operation.delegation.to),
           amount: amount(operation.delegation.amount),
           conviction: weightOf(operation.delegation.conviction),
         }),
       }
     case 'undelegate':
-      return { title: 'Take a delegation back', fields: row({ track: named(operation.track) }) }
+      return { title: 'Take a delegation back', fields: row({ track: track(operation.track) }) }
     case 'addProxy':
       return {
         title: 'Add proxy',
@@ -251,11 +235,6 @@ export function describe(
         fields: row({
           amount: amount(operation.schedule.locked),
           to: who(operation.to),
-          ...(options.blockSeconds === undefined
-            ? {}
-            : {
-                thaws: `${amount(perDay(operation.schedule, options.blockSeconds))} a day`,
-              }),
           ends: `block ${endsAt(operation.schedule).toLocaleString('en-US')}`,
         }),
       }
@@ -304,12 +283,12 @@ export function describe(
     case 'removeVote':
       return {
         title: `Take back the vote on ${operation.poll}`,
-        fields: row({ track: named(operation.track) }),
+        fields: row({ track: track(operation.track) }),
       }
     case 'unlock':
       return {
         title: 'Unlock',
-        fields: row({ track: named(operation.track), for: who(operation.target) }),
+        fields: row({ track: track(operation.track), for: who(operation.target) }),
       }
     case 'decisionDeposit':
       return { title: 'Place the decision deposit', fields: row({ referendum: String(operation.poll) }) }
@@ -328,7 +307,7 @@ export function describe(
     case 'unnotePreimage':
       return { title: 'Clear a preimage', fields: row({ preimage: operation.hash }) }
     case 'multisigApprove': {
-      const inner = describe(operation.call, symbol, tracks, options)
+      const inner = describe(operation.call, symbol, options)
       return {
         title: `Sign ${inner.title.toLowerCase()}`,
         fields: [
@@ -351,7 +330,7 @@ export function describe(
         fields: row({ call: operation.callHash }),
       }
     case 'asProxy': {
-      const inner = describe(operation.call, symbol, tracks, options)
+      const inner = describe(operation.call, symbol, options)
       return { title: inner.title, fields: [...inner.fields, { name: 'as', value: who(operation.real) }] }
     }
     case 'propose': {
@@ -366,7 +345,7 @@ export function describe(
           amount: amount(asked),
           ...staged,
           to: payees.size === 1 && only ? who(only) : `${payees.size} accounts`,
-          track: named(operation.track),
+          track: track(operation.track),
         }),
       }
     }
@@ -380,7 +359,7 @@ export function describe(
       // money went. A title carries what its own fields leave out, such as
       // which referendum a vote is on, so calls only let the header speak for
       // them when they all say the same thing
-      const parts = operation.calls.map((call) => describe(call, symbol, tracks, options))
+      const parts = operation.calls.map((call) => describe(call, symbol, options))
       const [first] = parts
       if (!first) return { title: 'Nothing', fields: [] }
       if (parts.length === 1) return first

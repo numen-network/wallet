@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { CallArg, Operation, TxStage } from '@/chain/types'
+import { replaceBigInt, reviveBigInt } from '@/lib/json'
 
 /**
  * What this tab has submitted, and how far each one got. It lives in
@@ -41,7 +42,7 @@ interface SessionState {
 function read(): Submission[] {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
-    const parsed: unknown = raw ? JSON.parse(raw) : []
+    const parsed: unknown = raw ? JSON.parse(raw, reviveBigInt) : []
     return Array.isArray(parsed) ? (parsed as Submission[]) : []
   } catch {
     return []
@@ -56,15 +57,6 @@ function write(submissions: Submission[]): void {
   }
 }
 
-// Amounts are bigint, and a bigint does not survive JSON on its own
-const replaceBigInt = (_key: string, value: unknown) =>
-  typeof value === 'bigint' ? `${value}n` : value
-
-const reviveBigInt = (operation: Operation): Operation =>
-  JSON.parse(JSON.stringify(operation), (_key, value: unknown) =>
-    typeof value === 'string' && /^\d+n$/.test(value) ? BigInt(value.slice(0, -1)) : value,
-  ) as Operation
-
 let counter = 0
 
 export const useSessionStore = create<SessionState>((set, get) => {
@@ -77,7 +69,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
     save(get().submissions.map((entry) => (entry.id === id ? { ...entry, ...fields } : entry)))
 
   return {
-    submissions: read().map((entry) => ({ ...entry, operation: reviveBigInt(entry.operation) })),
+    submissions: read(),
 
     record: (address, operation) => {
       const id = `s${(counter += 1)}-${Date.now()}`

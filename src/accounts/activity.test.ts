@@ -87,7 +87,7 @@ group('addresses in full', () => {
 
   /** Two addresses sharing a head and a tail are cheap to come by. */
   it('writes them out where somebody is about to sign', () => {
-    const written = describe(pay(TO, 1n), 'tNUMN', undefined, { whole: true })
+    const written = describe(pay(TO, 1n), 'tNUMN', { whole: true })
 
     expect(valueOf(written, 'to')).toBe(TO)
   })
@@ -96,7 +96,6 @@ group('addresses in full', () => {
     const written = describe(
       { kind: 'batch', calls: [pay(TO, 1n), pay(OTHER, 2n)] },
       'tNUMN',
-      undefined,
       { whole: true },
     )
 

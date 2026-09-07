@@ -311,7 +311,7 @@ export function VerifyIdentity({
                 {busy === provider ? `Waiting for ${name}…` : `Verify with ${name}`}
               </Button>
               <ItemContent className="text-[12.5px] leading-[1.5]">
-                <p className={`truncate ${stood && riding ? 'text-good' : 'text-dim'}`}>
+                <p className={cn('truncate', stood && riding ? 'text-good' : 'text-dim')}>
                   {stood ? `Checked on chain as ${stood}` : 'Never checked'}
                 </p>
                 <p className={trouble ? 'text-destructive' : 'truncate text-dim'}>{trouble ?? state}</p>

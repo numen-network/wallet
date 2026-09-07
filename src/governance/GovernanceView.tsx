@@ -24,6 +24,7 @@ import {
   useTracks,
 } from '@/chain/queries'
 import type { AccountBalance } from '@/chain/types'
+import { cn } from '@/lib/cn'
 import { Empty } from '@/components/ui/empty'
 import { ArrowUpRight, Coins, Plus, LockOpen, Vote } from 'lucide-react'
 import { Select } from '@/ui/Select'
@@ -149,7 +150,7 @@ export function GovernanceView({
 
   return (
     <Tabs value={tab} onChange={setTab}>
-      <section className={`${SHELL} flex flex-wrap items-center gap-3 pt-6 pb-1.5`}>
+      <section className={cn(SHELL, 'flex flex-wrap items-center gap-3 pt-6 pb-1.5')}>
         <TabBar options={TABS.map((option) => ({ ...option, count: counts[option.id] }))} />
         {tab === 'referenda' && (
           <Select
@@ -191,7 +192,7 @@ export function GovernanceView({
         </div>
       </section>
 
-      <main className={`${SHELL} grow pt-1.5 pb-16`}>
+      <main className={cn(SHELL, 'grow pt-1.5 pb-16')}>
         <TabPanel value="referenda">
           {isPending ? (
             <Empty>Reading the chain…</Empty>
