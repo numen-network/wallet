@@ -12,7 +12,7 @@ import {
   type Conviction,
   type Operation,
 } from '@/chain/types'
-import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
@@ -81,18 +81,10 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
     side === 'abstain' ? { kind: 'abstain', amount: planck } : { kind: side, conviction, amount: planck }
 
   const form = () => {
-    let planck = 0n
-    try {
-      planck = parseAmount(amount)
-    } catch (problem) {
-      call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
-      return false
-    }
-
-    if (planck <= 0n || planck > held) {
-      call.setError('Enter an amount within what this account holds')
-      return false
-    }
+    const problem = amountProblem(amount)
+    if (problem) return call.refuse(problem)
+    const planck = parseAmount(amount)
+    if (planck > held) return call.refuse('Enter an amount within what this account holds')
 
     return call.run(
       voter.submit({ kind: 'vote', poll: referendum.index, ballot: ballotFor(planck) }, call.password),
@@ -276,23 +268,12 @@ export function VoteManyModal({
     }))
 
   const form = () => {
-    if (chosen.length === 0) {
-      call.setError('Say how at least one of these should go')
-      return false
-    }
+    if (chosen.length === 0) return call.refuse('Say how at least one of these should go')
 
-    let planck = 0n
-    try {
-      planck = parseAmount(amount)
-    } catch (problem) {
-      call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
-      return false
-    }
-
-    if (planck <= 0n || planck > held) {
-      call.setError('Enter an amount within what this account holds')
-      return false
-    }
+    const problem = amountProblem(amount)
+    if (problem) return call.refuse(problem)
+    const planck = parseAmount(amount)
+    if (planck > held) return call.refuse('Enter an amount within what this account holds')
 
     return call.run(voter.submit(batched(callsFor(planck)), call.password))
   }

@@ -9,7 +9,7 @@ import {
 } from '@/chain/identity'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
 import { Facts } from '@/ui/Facts'
 import { Field, INSIDE } from '@/ui/Field'
@@ -69,16 +69,10 @@ export function JudgeModal({
         }
       : null
 
-  const fail = (message: string) => {
-    call.setError(message)
-    return false
-  }
-
   const form = () => {
-    if (!seat) return fail('This account is not a registrar on this chain')
-    if (!target) return fail('Enter a Numen or EVM address')
-    if (!registration) return fail('That account has no identity to judge')
-    if (needsPassword && !call.password) return fail('Enter the password for this account')
+    if (!seat) return call.refuse('This account is not a registrar on this chain')
+    if (!target) return call.refuse('Enter a Numen or EVM address')
+    if (!registration) return call.refuse('That account has no identity to judge')
     if (!operation) return false
 
     return call.run(submit(operation, call.password))
@@ -193,21 +187,12 @@ export function SetFeeModal({
     ? { kind: 'setFee', registrar: seat.index, fee: seat.fee }
     : null
 
-  const fail = (message: string) => {
-    call.setError(message)
-    return false
-  }
-
   const form = () => {
-    if (!seat) return fail('This account is not a registrar on this chain')
+    if (!seat) return call.refuse('This account is not a registrar on this chain')
 
-    let planck: bigint
-    try {
-      planck = parseAmount(fee)
-    } catch (problem) {
-      return fail(problem instanceof AmountError ? problem.message : 'Enter an amount')
-    }
-    if (needsPassword && !call.password) return fail('Enter the password for this account')
+    const problem = amountProblem(fee, 0n)
+    if (problem) return call.refuse(problem)
+    const planck = parseAmount(fee)
 
     return call.run(submit({ kind: 'setFee', registrar: seat.index, fee: planck }, call.password))
   }

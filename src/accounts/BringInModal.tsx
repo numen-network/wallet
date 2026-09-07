@@ -6,7 +6,7 @@ import { totalOf } from '@/chain/types'
 import { evmAccounts, metaMask, wasRejected, withdrawFee, withdrawToSubstrate } from '@/evm/metamask'
 import { cn } from '@/lib/cn'
 import { evmToSubstrate, publicKeyOf, shorten } from '@/lib/address'
-import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { LEDE, Modal } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { FieldError, NOTE } from '@/components/ui/field'
@@ -74,18 +74,12 @@ export function BringInModal({
   const send = () => {
     setError('')
 
-    let planck: bigint
-    try {
-      planck = parseAmount(amount)
-    } catch (problem) {
-      setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
+    const problem = amountProblem(amount)
+    if (problem) {
+      setError(problem)
       return false
     }
-
-    if (planck <= 0n) {
-      setError('Enter an amount')
-      return false
-    }
+    const planck = parseAmount(amount)
     if (planck > there) {
       setError('More than that address holds')
       return false

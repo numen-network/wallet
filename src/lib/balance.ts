@@ -37,6 +37,21 @@ export function amountOrZero(input: string): bigint {
 }
 
 /**
+ * What is wrong with an amount box, or null when the chain could take what it
+ * says. An empty box is not a number nobody can read, it is a box nobody filled
+ * in. Nothing moves by less than a planck, so that is the floor unless zero is
+ * an answer in its own right, the way it is for a fee.
+ */
+export function amountProblem(input: string, least = 1n): string | null {
+  if (input.trim() === '') return 'Enter an amount'
+  try {
+    return parseAmount(input) < least ? 'Enter an amount' : null
+  } catch (problem) {
+    return (problem as AmountError).message
+  }
+}
+
+/**
  * What an amount box may hold, which is the shape parseAmount takes and nothing
  * else. Typing is filtered rather than rejected afterwards, since a box that
  * swallows letters and then complains has already wasted the keystroke.

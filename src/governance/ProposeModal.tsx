@@ -18,7 +18,7 @@ import { parseISO } from 'date-fns'
 import { useFacts, useHead, useStanding, useSymbol, useTracks } from '@/chain/queries'
 import { cn } from '@/lib/cn'
 import { resolveAddress, shorten } from '@/lib/address'
-import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, amountOrZero, amountProblem, formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
 import { Button } from '@/components/ui/button'
 import { LEDE } from '@/ui/Modal'
@@ -134,49 +134,32 @@ export function ProposeModal({
   const form = () => {
     // Without a head every date reads as no date at all, which would sign away
     // the schedule and pay the lot at once
-    if (!head || !facts) {
-      call.setError('Still reading the chain, so give it a moment')
-      return false
-    }
-
-    if (!qualified) {
-      call.setError('This account does not clear the identity standard')
-      return false
-    }
+    if (!head || !facts) return call.refuse('Still reading the chain, so give it a moment')
+    if (!qualified) return call.refuse('This account does not clear the identity standard')
 
     if (title.trim() === '') {
-      call.setError('Give it a title, since that is what the list shows')
-      return false
+      return call.refuse('Give it a title, since that is what the list shows')
     }
 
     if (bytes > facts.preimageMaxSize) {
-      call.setError(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
-      return false
+      return call.refuse(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
     }
 
     if (booked.length !== payouts.length) {
       // A named complaint about an amount beats the general one
       for (const row of payouts) {
-        try {
-          parseAmount(row.amount)
-        } catch (problem) {
-          if (problem instanceof AmountError) {
-            call.setError(problem.message)
-            return false
-          }
-        }
+        const problem = amountProblem(row.amount)
+        if (problem) return call.refuse(problem)
       }
-      call.setError('Every payout needs an amount and an address to pay it to')
-      return false
+      return call.refuse('Every payout needs an amount and an address to pay it to')
     }
 
     if (track === null) {
-      const biggest = (facts?.spenders ?? []).reduce(
+      const biggest = facts.spenders.reduce(
         (most, spender) => (spender.cap > most ? spender.cap : most),
         0n,
       )
-      call.setError(`One referendum can ask for at most ${formatAmount(biggest, { precision: 0 })}`)
-      return false
+      return call.refuse(`One referendum can ask for at most ${formatAmount(biggest, { precision: 0 })}`)
     }
 
     // pallet_treasury throws out a spend whose claim window has already shut by
@@ -186,8 +169,7 @@ export function ProposeModal({
     )
     if (shut) {
       const least = daySpan(Math.max(0, runsFor - facts.payoutPeriod), facts.blockSeconds)
-      call.setError(`A payout has to be dated at least ${least} out, or its claim window shuts before the referendum enacts`)
-      return false
+      return call.refuse(`A payout has to be dated at least ${least} out, or its claim window shuts before the referendum enacts`)
     }
 
     return call.run(
@@ -397,20 +379,17 @@ export function EditTextModal({
 
   const form = () => {
     if (title.trim() === '') {
-      call.setError('Give it a title, since that is what the list shows')
-      return false
+      return call.refuse('Give it a title, since that is what the list shows')
     }
 
     if (facts && bytes > facts.preimageMaxSize) {
-      call.setError(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
-      return false
+      return call.refuse(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
     }
 
     // The chain refuses to note the very same bytes twice, and there is
     // nothing to change anyway
     if (metadataDump(title, description) === metadataDump(referendum.title ?? '', referendum.description ?? '')) {
-      call.setError('It already says exactly that')
-      return false
+      return call.refuse('It already says exactly that')
     }
 
     return call.run(voter.submit(operation, call.password))

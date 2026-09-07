@@ -52,13 +52,9 @@ export function AddProxyModal({
 
   const form = () => {
     const target = resolveAddress(delegate)
-    if (!target) {
-      call.setError('Enter the Numen or EVM address to act for this account')
-      return false
-    }
+    if (!target) return call.refuse('Enter the Numen or EVM address to act for this account')
     if (facts && (held?.length ?? 0) >= facts.maxProxies) {
-      call.setError(`This account already has ${facts.maxProxies} proxies`)
-      return false
+      return call.refuse(`This account already has ${facts.maxProxies} proxies`)
     }
 
     const proxy: Proxy = { delegate: target, type }

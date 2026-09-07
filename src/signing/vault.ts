@@ -81,6 +81,7 @@ function find(address: string): KeyringPair$Json {
 
 /** The one place a key is decrypted. The pair is the caller's to lock. */
 function open(json: KeyringPair$Json, password: string, wrong = 'Wrong password'): KeyringPair {
+  if (password === '') throw new VaultError('Enter the password for this account')
   try {
     const pair = keyring.createFromJson(json)
     pair.decodePkcs8(password)

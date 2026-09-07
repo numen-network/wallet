@@ -5,7 +5,7 @@ import { useFacts, useSymbol, useTracks } from '@/chain/queries'
 import type { ChainFacts } from '@/chain/types'
 import { batched, CONVICTIONS, totalOf, type AccountBalance, type Conviction } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { LEDE } from '@/ui/Modal'
@@ -109,28 +109,14 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
 
   const form = () => {
     const target = resolveAddress(to)
-    if (!target) {
-      call.setError('Enter the Numen or EVM address to delegate to')
-      return false
-    }
+    if (!target) return call.refuse('Enter the Numen or EVM address to delegate to')
 
-    let planck = 0n
-    try {
-      planck = parseAmount(amount)
-    } catch (problem) {
-      call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
-      return false
-    }
+    const problem = amountProblem(amount)
+    if (problem) return call.refuse(problem)
+    const planck = parseAmount(amount)
+    if (planck > held) return call.refuse('Enter an amount within what this account holds')
 
-    if (planck <= 0n || planck > held) {
-      call.setError('Enter an amount within what this account holds')
-      return false
-    }
-
-    if (chosen.length === 0) {
-      call.setError('Pick at least one track')
-      return false
-    }
+    if (chosen.length === 0) return call.refuse('Pick at least one track')
 
     return call.run(submit(delegating(target, planck), call.password), 'Delegation sent')
   }
@@ -201,10 +187,7 @@ export function UndelegateModal({
   const ending = batched(chosen.map((track) => ({ kind: 'undelegate' as const, track })))
 
   const form = () => {
-    if (chosen.length === 0) {
-      call.setError('Pick at least one track')
-      return false
-    }
+    if (chosen.length === 0) return call.refuse('Pick at least one track')
 
     return call.run(submit(ending, call.password))
   }

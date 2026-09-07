@@ -119,10 +119,7 @@ export function UnlockModal({
   const operation = batched(calls)
 
   const form = () => {
-    if (calls.length === 0) {
-      call.setError('Nothing is free to unlock yet')
-      return false
-    }
+    if (calls.length === 0) return call.refuse('Nothing is free to unlock yet')
 
     return call.run(submit(operation, call.password))
   }

@@ -4,7 +4,7 @@ import type { Bounty, ChildBounty } from '@/chain/bounties'
 import { useSymbol } from '@/chain/queries'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, amountOrZero, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { LEDE } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
@@ -139,41 +139,25 @@ export function BountyModal({
   const form = () => {
     if (ask.wants === 'beneficiary') {
       const paid = resolveAddress(beneficiary)
-      if (!paid) {
-        call.setError('Enter the Numen or EVM address it would go to')
-        return false
-      }
+      if (!paid) return call.refuse('Enter the Numen or EVM address it would go to')
       return call.run(voter.submit(build(paid, 0n), call.password))
     }
 
     if (ask.wants === 'piece') {
       if (description.trim() === '') {
-        call.setError('Say what the piece is for, since that is all the list shows')
-        return false
+        return call.refuse('Say what the piece is for, since that is all the list shows')
       }
-      try {
-        if (parseAmount(amount) <= 0n) throw new AmountError('Enter an amount')
-      } catch (problem) {
-        call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
-        return false
-      }
+      const problem = amountProblem(amount)
+      if (problem) return call.refuse(problem)
       return call.run(voter.submit(build(address, parseAmount(amount)), call.password))
     }
 
     if (ask.wants === 'curator') {
       const named = resolveAddress(curator)
-      if (!named) {
-        call.setError('Enter the Numen or EVM address that would run it')
-        return false
-      }
-      let asked = 0n
-      try {
-        asked = parseAmount(fee)
-      } catch {
-        call.setError('Enter the fee it would take')
-        return false
-      }
-      return call.run(voter.submit(build(named, asked), call.password))
+      if (!named) return call.refuse('Enter the Numen or EVM address that would run it')
+      const problem = amountProblem(fee, 0n)
+      if (problem) return call.refuse(problem)
+      return call.run(voter.submit(build(named, parseAmount(fee)), call.password))
     }
 
     return call.run(voter.submit(probe, call.password))
@@ -272,16 +256,11 @@ export function ProposeBountyModal({
 
   const form = () => {
     if (description.trim() === '') {
-      call.setError('Say what the bounty is for, since that is all the list shows')
-      return false
+      return call.refuse('Say what the bounty is for, since that is all the list shows')
     }
 
-    try {
-      if (parseAmount(amount) <= 0n) throw new AmountError('Enter an amount')
-    } catch (problem) {
-      call.setError(problem instanceof AmountError ? problem.message : 'Enter an amount')
-      return false
-    }
+    const problem = amountProblem(amount)
+    if (problem) return call.refuse(problem)
 
     return call.run(voter.submit(operation, call.password))
   }

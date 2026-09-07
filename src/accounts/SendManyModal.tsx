@@ -64,13 +64,7 @@ export function SendMany({
     if (!calls) return false
 
     if (total > spendable) {
-      call.setError('The rows come to more than this account can send, fee included')
-      return false
-    }
-
-    if (needsPassword && !call.password) {
-      call.setError('Enter the password for this account')
-      return false
+      return call.refuse('The rows come to more than this account can send, fee included')
     }
 
     return call.run(

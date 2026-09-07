@@ -3,7 +3,7 @@ import { DECIMALS } from '@/chain/config'
 import { useBalances, useFacts, useFeeEstimate, useSymbol } from '@/chain/queries'
 import { totalOf, type AccountBalance, type Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
+import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ModalFrame } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
@@ -128,15 +128,13 @@ function SendOne({
       operation = destination ? { kind: 'transferAll', to: destination } : null
       setAmountError('')
     } else {
-      let planck = 0n
-      try {
-        planck = parseAmount(amount)
-      } catch (error) {
-        setAmountError(error instanceof AmountError ? error.message : 'Enter an amount')
+      const problem = amountProblem(amount)
+      if (problem) {
+        setAmountError(problem)
         return false
       }
-
-      if (planck <= 0n || planck > spendable) {
+      const planck = parseAmount(amount)
+      if (planck > spendable) {
         setAmountError('Enter an amount within the transferable balance, fee included')
         return false
       }
@@ -150,9 +148,7 @@ function SendOne({
       operation = destination ? { kind: 'transfer', to: destination, amount: planck } : null
     }
 
-    const missing = needsPassword && !call.password
-    call.setError(missing ? 'Enter the password for this account' : '')
-    if (!operation || missing) return false
+    if (!operation) return false
 
     return call.run(submit(operation, call.password), 'Transfer sent')
   }

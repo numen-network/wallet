@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { amountInput, AmountError, amountOrZero, formatAmount, parseAmount } from './balance'
+import {
+  amountInput,
+  AmountError,
+  amountOrZero,
+  amountProblem,
+  formatAmount,
+  parseAmount,
+} from './balance'
 import { UNIT } from '@/chain/config'
 
 describe('parseAmount', () => {
@@ -123,6 +130,30 @@ describe('round trip', () => {
       const formatted = formatAmount(parseAmount(s), { precision: 18, grouped: false, pad: false })
       expect(parseAmount(formatted)).toBe(parseAmount(s))
     }
+  })
+})
+
+describe('amountProblem', () => {
+  it('is null for an amount the chain could take', () => {
+    expect(amountProblem('1.5')).toBeNull()
+    expect(amountProblem('0.000000000000000001')).toBeNull()
+  })
+
+  it('asks for an amount when the box is empty or would move nothing', () => {
+    expect(amountProblem('')).toBe('Enter an amount')
+    expect(amountProblem('   ')).toBe('Enter an amount')
+    expect(amountProblem('0')).toBe('Enter an amount')
+    expect(amountProblem('0.00')).toBe('Enter an amount')
+  })
+
+  it('says what parseAmount would have refused it for', () => {
+    expect(amountProblem('abc')).toBe('Not a number: abc')
+    expect(amountProblem('1.0000000000000000001')).toMatch(/decimals/)
+  })
+
+  it('takes zero where zero is an answer', () => {
+    expect(amountProblem('0', 0n)).toBeNull()
+    expect(amountProblem('', 0n)).toBe('Enter an amount')
   })
 })
 

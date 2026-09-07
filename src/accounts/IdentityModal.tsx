@@ -161,20 +161,12 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
 
   const form = () => {
     if (isEmpty(current)) {
-      call.setError('Fill in at least one field, or clear the identity instead')
-      return false
+      return call.refuse('Fill in at least one field, or clear the identity instead')
     }
-
-    if (!named(current.display)) {
-      call.setError('The record needs a display name')
-      return false
-    }
+    if (!named(current.display)) return call.refuse('The record needs a display name')
 
     const [long] = overlong(current)
-    if (long) {
-      call.setError(`${LABELS[long]} is longer than ${MAX_BYTES[long]} bytes`)
-      return false
-    }
+    if (long) return call.refuse(`${LABELS[long]} is longer than ${MAX_BYTES[long]} bytes`)
 
     return call.run(submit(operation, call.password).then(sent), 'Identity sent')
   }

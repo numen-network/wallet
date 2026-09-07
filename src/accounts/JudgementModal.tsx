@@ -49,14 +49,8 @@ export function JudgementModal({
         : null
 
   const form = () => {
-    if (!registration) {
-      call.setError('Set an identity first, there is nothing to check yet')
-      return false
-    }
-    if (!operation) {
-      call.setError('This chain has no registrar to ask')
-      return false
-    }
+    if (!registration) return call.refuse('Set an identity first, there is nothing to check yet')
+    if (!operation) return call.refuse('This chain has no registrar to ask')
 
     return call.run(submit(operation, call.password))
   }

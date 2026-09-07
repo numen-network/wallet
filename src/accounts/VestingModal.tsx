@@ -205,20 +205,14 @@ function Grant({
       mark > height && facts ? `, ${waitFor(mark - height, facts.blockSeconds)}` : ''
     }`
 
-  const fail = (message: string) => {
-    call.setError(message)
-    return false
-  }
-
   const form = () => {
-    if (!target) return fail('Enter a Numen or EVM address')
+    if (!target) return call.refuse('Enter a Numen or EVM address')
     // An empty box parses as nothing, so this is the only amount error there is
     if (facts && locked < facts.minVestedTransfer) {
-      return fail(`A grant has to be at least ${shown(facts.minVestedTransfer)}`)
+      return call.refuse(`A grant has to be at least ${shown(facts.minVestedTransfer)}`)
     }
-    if (locked > transferable) return fail('More than this account can send')
-    if (!(over > 0)) return fail('Say how many days it unlocks over')
-    if (needsPassword && !call.password) return fail('Enter the password for this account')
+    if (locked > transferable) return call.refuse('More than this account can send')
+    if (!(over > 0)) return call.refuse('Say how many days it unlocks over')
 
     if (!operation) return false
 

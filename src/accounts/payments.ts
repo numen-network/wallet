@@ -1,6 +1,6 @@
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { AmountError, amountOrZero, parseAmount } from '@/lib/balance'
+import { amountOrZero, amountProblem, parseAmount } from '@/lib/balance'
 
 /**
  * One account paying several, which the chain takes as one call over a list of
@@ -18,16 +18,7 @@ export const BLANK: Row = { to: '', amount: '' }
 /** Null for a row the chain would take, otherwise what is wrong with it. */
 export function rowProblem(row: Row): string | null {
   if (resolveAddress(row.to) === null) return 'Enter a Numen or EVM address'
-  // An empty box is not a number nobody can read, it is a box nobody filled in
-  if (row.amount.trim() === '') return 'Enter an amount'
-
-  try {
-    if (parseAmount(row.amount) <= 0n) return 'Enter an amount'
-  } catch (problem) {
-    return problem instanceof AmountError ? problem.message : 'Enter an amount'
-  }
-
-  return null
+  return amountProblem(row.amount)
 }
 
 /** Every row as a call, or null while any of them is still wrong. */

@@ -85,8 +85,7 @@ export function SubsModal({
       return false
     }
     if (!standing?.own) {
-      call.setError('This account has no identity of its own for a sub to hang off')
-      return false
+      return call.refuse('This account has no identity of its own for a sub to hang off')
     }
 
     return call.run(submit(operation, call.password))

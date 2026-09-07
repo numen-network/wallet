@@ -126,6 +126,11 @@ describe('unlocking', () => {
     expect(() => unlockKey(address, 'wrong')).toThrow(VaultError)
   })
 
+  it('asks for a password rather than calling an empty one wrong', () => {
+    const address = newKey()
+    expect(() => unlockKey(address, '')).toThrow('Enter the password for this account')
+  })
+
   it('refuses an address it never stored', () => {
     expect(() => unlockKey(ALICE_NUMEN, 'password')).toThrow(VaultError)
   })

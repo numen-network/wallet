@@ -133,6 +133,11 @@ export function useCall(onClose?: () => void) {
     error,
     setError,
     busy,
+    /** Keeps the dialog open and says why in the footer. */
+    refuse(message: string) {
+      setError(message)
+      return false
+    },
     /**
      * Sends one call and sees it through, closing the dialog once it is out.
      * Returns false, which is what a form hands back to stay open until the
