@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { hexToU8a, stringToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
 import { blake2AsU8a, cryptoWaitReady, decodeAddress } from '@polkadot/util-crypto'
-import { SS58_PREFIX } from '@/chain/config'
 import {
   evmToSubstrate,
   isEvmAddress,

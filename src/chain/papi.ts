@@ -42,7 +42,6 @@ import {
   type ReferendumState,
   type Settled,
   type Spend,
-  type Tally,
   type Track,
 } from './governance'
 

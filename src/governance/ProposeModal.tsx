@@ -73,7 +73,6 @@ export function ProposeModal({
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
-  const account = voter.account
   const { data: standing } = useStanding(address)
   const qualified = isQualified(standing ?? null)
 
@@ -496,7 +495,6 @@ export function PreimageModal({
 
   // Only the noter is allowed, so there is nobody to choose between
   const voter = useVoter(accounts, preimage.who)
-  const account = voter.account
   const operation = { kind: 'unnotePreimage', hash: preimage.hash } as const
 
   const form = () => call.run(voter.submit(operation, call.password))
@@ -561,7 +559,6 @@ export function RefundModal({
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
-  const account = voter.account
   const operation = { kind, poll } as const
   const what = kind === 'refundSubmission' ? 'submission' : 'decision'
 
@@ -610,7 +607,6 @@ export function PayoutModal({
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
-  const account = voter.account
   const operation = { kind: 'payout', spend: spend.index } as const
 
   const form = () => call.run(voter.submit(operation, call.password))
@@ -659,7 +655,6 @@ export function DepositModal({
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
-  const account = voter.account
   const operation = { kind: 'decisionDeposit', poll: referendum.index } as const
   // The call takes an index and nothing else, since the track fixes what it costs
   const deposit = tracks?.find((entry) => entry.id === referendum.track)?.decisionDeposit ?? null

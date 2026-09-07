@@ -36,9 +36,3 @@ export function deriveMultisig(input: readonly string[], threshold: number): Mul
 export function otherSignatories(signatories: string[], signer: string): string[] {
   return signatories.filter((entry) => entry !== signer).sort()
 }
-
-/** Which accounts here could put a signature on this multisig's calls. */
-export function signersFor(signatories: string[], mine: string[]): string[] {
-  const held = new Set(mine)
-  return signatories.filter((entry) => held.has(entry))
-}

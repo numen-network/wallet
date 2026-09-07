@@ -177,7 +177,6 @@ export function RemoveVoteModal({
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
-  const account = voter.account
   const operation = {
     kind: 'removeVote',
     track: referendum.track,

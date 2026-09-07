@@ -123,9 +123,6 @@ const PREIMAGE_LEN = 214
 const same = (one: Proxy, other: Proxy) =>
   one.delegate === other.delegate && one.type === other.type
 
-const stringifyBigInt = (_key: string, value: unknown) =>
-  typeof value === 'bigint' ? value.toString() : value
-
 const receipt = (seed: string) => `0x${hash(seed).toString(16).padStart(64, '0')}`
 
 /**
@@ -626,7 +623,7 @@ export function createMockRepository(): ChainRepository {
    * get there. batch_all is atomic on a real chain. This is not one, so a call
    * that throws part way leaves whatever ran before it standing.
    */
-  const apply = async (account: WalletAccount, operation: Operation, hash: string) => {
+  const apply = async (account: WalletAccount, operation: Operation) => {
     const from = read(account.address)
 
     switch (operation.kind) {
@@ -968,7 +965,7 @@ export function createMockRepository(): ChainRepository {
         return
       }
       case 'batch': {
-        for (const call of operation.calls) await apply(account, call, hash)
+        for (const call of operation.calls) await apply(account, call)
         return
       }
       case 'asProxy': {
@@ -977,23 +974,19 @@ export function createMockRepository(): ChainRepository {
           throw new Error('Proxy: NotProxy')
         }
         // The call runs as the account being acted for, not as the signer
-        await apply({ ...account, address: operation.real }, operation.call, hash)
+        await apply({ ...account, address: operation.real }, operation.call)
         return
       }
       case 'multisigApproveData':
         // The bytes are the call, so the mock reads them back into one and
         // takes the same path a call it built itself would take
-        await apply(
-          account,
-          {
-            kind: 'multisigApprove',
-            threshold: operation.threshold,
-            others: operation.others,
-            multisig: operation.multisig,
-            call: decodeCall(operation.hex),
-          },
-          hash,
-        )
+        await apply(account, {
+          kind: 'multisigApprove',
+          threshold: operation.threshold,
+          others: operation.others,
+          multisig: operation.multisig,
+          call: decodeCall(operation.hex),
+        })
         return
       case 'multisigApprove': {
         // The address the chain would read off the set, which is the one the
@@ -1022,7 +1015,7 @@ export function createMockRepository(): ChainRepository {
             waiting.splice(waiting.indexOf(held), 1)
             // The call runs as the multisig, not as whoever put the last
             // signature on it, which is the whole point of the account
-            await apply({ ...account, address: multisig }, operation.call, hash)
+            await apply({ ...account, address: multisig }, operation.call)
           }
         }
 
@@ -1255,7 +1248,7 @@ export function createMockRepository(): ChainRepository {
         onProgress?.({ stage, hash })
       }
 
-      await apply(account, operation, hash)
+      await apply(account, operation)
       onProgress?.({ stage: 'finalized', hash })
       return hash
     },

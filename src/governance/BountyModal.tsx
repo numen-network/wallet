@@ -97,7 +97,6 @@ export function BountyModal({
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
-  const account = voter.account
 
   // A fee is quoted against a call the form may not have filled in yet, so the
   // probe carries the signer wherever an address is still to be typed
@@ -268,7 +267,6 @@ export function ProposeBountyModal({
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
-  const account = voter.account
 
   const operation = { kind: 'proposeBounty' as const, value: amountOrZero(amount), description }
 

@@ -2,7 +2,7 @@ import { useId, useState, type ReactNode } from 'react'
 import { DECIMALS } from '@/chain/config'
 import { useBalances, useFacts, useFeeEstimate, useSymbol } from '@/chain/queries'
 import { totalOf, type AccountBalance, type Operation } from '@/chain/types'
-import { resolveAddress, shorten } from '@/lib/address'
+import { resolveAddress } from '@/lib/address'
 import { amountInput, AmountError, formatAmount, parseAmount } from '@/lib/balance'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ModalFrame } from '@/ui/Modal'
@@ -15,7 +15,6 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@/components/ui/input-group'
-import { Identicon } from '@/ui/Identicon'
 import { useDraft } from '@/ui/draft'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'

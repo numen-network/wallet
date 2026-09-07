@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@/lib/cn'
-import { isSubstrateAddress, shorten, toNumenAddress } from '@/lib/address'
+import { isSubstrateAddress, toNumenAddress } from '@/lib/address'
 import { Modal } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { FieldError, NOTE } from '@/components/ui/field'

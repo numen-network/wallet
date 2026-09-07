@@ -54,7 +54,6 @@ export function TrackField({
   onChange: (tracks: number[]) => void
 }) {
   const { data: tracks } = useTracks()
-  const { data: facts } = useFacts()
   const trackId = useId()
 
   return (

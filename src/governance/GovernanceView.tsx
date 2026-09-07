@@ -7,7 +7,6 @@ import {
   type Held,
   type NotedPreimage,
   type Referendum,
-  type Settled,
   type Sort,
   type Spend,
 } from '@/chain/governance'
