@@ -1,8 +1,6 @@
 import { useId, type ReactNode } from 'react'
-import { useChain } from '@/chain/provider'
-import { useFacts, useRegistrars, useStanding, useSymbol } from '@/chain/queries'
+import { useAskableRegistrars, useFacts, useStanding, useSymbol } from '@/chain/queries'
 import {
-  botRegistrar,
   CONTACT,
   depositFor,
   EMPTY_IDENTITY,
@@ -123,11 +121,10 @@ export interface IdentityFormProps {
  * rides the same signature.
  */
 function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: IdentityFormProps) {
-  const { network } = useChain()
   const symbol = useSymbol()
   const { data: standing } = useStanding(account.address)
   const registration = standing?.own ?? null
-  const { data: registrars } = useRegistrars()
+  const askable = useAskableRegistrars()
   const { data: facts } = useFacts()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const { info, chosen, ask } = draft
@@ -138,11 +135,6 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
   const current = info ?? registration?.info ?? EMPTY_IDENTITY
   const set = (field: IdentityField, value: string) =>
     patch({ info: { ...current, [field]: value } })
-
-  // The automated one only takes the transfer riding the other tab, a manual
-  // request to it would sit unjudged forever, so this list leaves it out
-  const bot = botRegistrar(registrars ?? [], network.registrar)
-  const askable = registrars?.filter((entry) => entry.index !== bot?.index)
 
   // The first is where the list starts, not a decision anybody made
   const registrar: Registrar | undefined =

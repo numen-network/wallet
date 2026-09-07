@@ -15,9 +15,8 @@ import { CopyButton } from '@/ui/CopyButton'
 import { Facts } from '@/ui/Facts'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
-import { AddressField } from './AddressField'
 import { describe } from './activity'
-import { CallModal, useCall, useSigning } from './Authorize'
+import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import { readAgainst, useCallsStore } from './calls'
 import { otherSignatories } from './multisig'
 import type { Account } from './types'
@@ -47,7 +46,7 @@ export function PendingModal({
   const calls = useCallsStore((state) => state.calls)
   const call = useCall()
 
-  const { signer, choose, send: submit, needsPassword } = useSigning(account, signers)
+  const { signer, bench, choose, send: submit, needsPassword } = useSigning(account, signers)
   const threshold = account.multisig?.threshold ?? 0
   const waiting = pending ?? []
   const others = otherSignatories(account.multisig?.signatories ?? [], signer.address)
@@ -124,15 +123,7 @@ export function PendingModal({
         </div>
       )}
 
-      {signers.length > 1 && (
-        <AddressField
-          label="Signing as"
-          value={signer.address}
-          onChange={choose}
-          accounts={signers}
-          readOnly
-        />
-      )}
+      <SignerField account={account} signer={signer} bench={bench} onChange={choose} note={null} />
     </CallModal>
   )
 }

@@ -4,21 +4,22 @@ import {
   feePaidTo,
   IDENTITY_FIELDS,
   LABELS,
+  seatOf,
   VERDICTS,
   type Ruling,
 } from '@/chain/identity'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
+import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
 import { Facts } from '@/ui/Facts'
 import { Field, INSIDE } from '@/ui/Field'
 import { Card } from '@/components/ui/card'
 import { FieldTitle, NOTE } from '@/components/ui/field'
-import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { CROSS, MarkDisc, TICK } from '@/ui/JudgementBadge'
 import { Select } from '@/ui/Select'
 import { AddressField } from './AddressField'
+import { AmountField } from './AmountField'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
@@ -51,7 +52,7 @@ export function JudgeModal({
   const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
-  const seat = registrars?.find((entry) => entry.account === account.address)
+  const seat = seatOf(registrars ?? [], account.address)
   const target = resolveAddress(to)
   const { data: standing } = useStanding(target ?? '')
   const registration = target ? (standing?.own ?? null) : null
@@ -179,7 +180,7 @@ export function SetFeeModal({
   const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
-  const seat = registrars?.find((entry) => entry.account === account.address)
+  const seat = seatOf(registrars ?? [], account.address)
 
   // What the estimate is quoted against. The call costs the same whatever
   // amount it carries, so the current fee stands in while the box is typed in
@@ -212,26 +213,12 @@ export function SetFeeModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <Field
+      <AmountField
         label="Fee"
-        aside={
-          seat && `charges ${formatAmount(seat.fee, { precision: 4 })} ${symbol} today`
-        }
-      >
-        <InputGroup>
-          <InputGroupInput
-            className="font-mono"
-            value={fee}
-            inputMode="decimal"
-            placeholder="0.0"
-            autoComplete="off"
-            onChange={(event) => setFee(amountInput(event.target.value))}
-          />
-          <InputGroupAddon>
-            <InputGroupText>{symbol}</InputGroupText>
-          </InputGroupAddon>
-        </InputGroup>
-      </Field>
+        value={fee}
+        onChange={setFee}
+        aside={seat && `charges ${formatAmount(seat.fee, { precision: 4 })} ${symbol} today`}
+      />
       <p className={cn('mt-1.5', NOTE)}>
         Whoever asks this registrar reserves the fee with the request, and it is handed over when
         the judgement lands. Zero makes the work free.

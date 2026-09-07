@@ -1,6 +1,6 @@
-import { trackLabel, type Track } from '@/chain/governance'
+import { trackLabel, weightOf, type Track } from '@/chain/governance'
 import { IDENTITY_FIELDS, LABELS, type IdentityInfo } from '@/chain/identity'
-import { CONVICTIONS, type Conviction, type Operation, type TxStage } from '@/chain/types'
+import type { Operation, TxStage } from '@/chain/types'
 import { endsAt, perDay } from '@/chain/vesting'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
@@ -106,9 +106,6 @@ const row = (fields: Record<string, string>): CallField[] =>
 /** A call folded onto one line, for a batch that would otherwise nest a table. */
 const line = (part: Described) => part.fields.map((field) => field.value).join(', ')
 
-const held = (conviction: Conviction) =>
-  CONVICTIONS.find((entry) => entry.value === conviction)?.weight ?? conviction
-
 export function describe(
   operation: Operation,
   symbol: string,
@@ -142,7 +139,7 @@ export function describe(
           track: named(operation.delegation.track),
           to: who(operation.delegation.to),
           amount: amount(operation.delegation.amount),
-          conviction: held(operation.delegation.conviction),
+          conviction: weightOf(operation.delegation.conviction),
         }),
       }
     case 'undelegate':
@@ -300,7 +297,7 @@ export function describe(
             : {
                 vote: operation.ballot.kind,
                 amount: amount(operation.ballot.amount),
-                conviction: held(operation.ballot.conviction),
+                conviction: weightOf(operation.ballot.conviction),
               },
         ),
       }

@@ -11,7 +11,7 @@ import {
   type VestingSchedule,
 } from '@/chain/vesting'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, amountOrZero, formatAmount } from '@/lib/balance'
+import { amountOrZero, formatAmount } from '@/lib/balance'
 import { waitFor } from '@/lib/blocks'
 import { Facts } from '@/ui/Facts'
 import { Figure } from '@/ui/Figure'
@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { useDraft } from '@/ui/draft'
 import { AddressField } from './AddressField'
+import { AmountField } from './AmountField'
 import { CallPage, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
@@ -242,16 +243,12 @@ function Grant({
         aside={target === account.address ? 'this account, locking its own balance' : undefined}
       />
 
-      <Field label="Amount" aside={`${shown(transferable)} to send`}>
-        <Input
-          className="font-mono"
-          value={amount}
-          inputMode="decimal"
-          placeholder="0.0"
-          autoComplete="off"
-          onChange={(event) => setAmount(amountInput(event.target.value))}
-        />
-      </Field>
+      <AmountField
+        label="Amount"
+        value={amount}
+        onChange={setAmount}
+        aside={`${shown(transferable)} to send`}
+      />
 
       {/* Where the days land, since a schedule runs until the last planck is
           out rather than for a round number of blocks */}

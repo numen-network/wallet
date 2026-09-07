@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import { AmountField } from '@/accounts/AmountField'
 import { CallModal, useCall } from '@/accounts/Authorize'
 import type { Bounty, ChildBounty } from '@/chain/bounties'
 import { useSymbol } from '@/chain/queries'
 import type { Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, amountOrZero, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
+import { amountOrZero, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { LEDE } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
@@ -201,15 +202,7 @@ export function BountyModal({
               onChange={(event) => setDescription(event.target.value)}
             />
           </Field>
-          <Field label="Amount">
-            <Input
-              value={amount}
-              inputMode="decimal"
-              placeholder={`0.0 ${symbol}`}
-              autoComplete="off"
-              onChange={(event) => setAmount(amountInput(event.target.value))}
-            />
-          </Field>
+          <AmountField label="Amount" value={amount} onChange={setAmount} />
         </>
       )}
 
@@ -221,15 +214,7 @@ export function BountyModal({
           onChange={setCurator}
           accounts={accounts}
         />
-          <Field label="Their fee">
-            <Input
-              value={fee}
-              inputMode="decimal"
-              placeholder={`0.0 ${symbol}`}
-              autoComplete="off"
-              onChange={(event) => setFee(amountInput(event.target.value))}
-            />
-          </Field>
+          <AmountField label="Their fee" value={fee} onChange={setFee} />
         </>
       )}
     </CallModal>
@@ -244,7 +229,6 @@ export function ProposeBountyModal({
   accounts: Voters
   onClose: () => void
 }) {
-  const symbol = useSymbol()
   const [address, setAddress] = useState(accounts[0].address)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
@@ -295,15 +279,7 @@ export function ProposeBountyModal({
         />
       </Field>
 
-      <Field label="Amount">
-        <Input
-          value={amount}
-          inputMode="decimal"
-          placeholder={`0.0 ${symbol}`}
-          autoComplete="off"
-          onChange={(event) => setAmount(amountInput(event.target.value))}
-        />
-      </Field>
+      <AmountField label="Amount" value={amount} onChange={setAmount} />
     </CallModal>
   )
 }

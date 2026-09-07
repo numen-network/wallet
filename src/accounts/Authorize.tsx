@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useChain } from '@/chain/provider'
 import { CACHES, useFeeEstimate, useRefresh, useSymbol, type Cache } from '@/chain/queries'
 import { useRefusalStore } from '@/chain/RefusalModal'
@@ -217,13 +217,23 @@ export function SignerField({
   signer,
   bench,
   onChange,
+  note,
 }: {
   account: Account
   signer: Account
   bench: Account[]
   onChange: (address: string) => void
+  /** What signing for this account means here. Null where the dialog has said it already. */
+  note?: ReactNode
 }) {
   if (bench.length === 0) return null
+
+  const says =
+    note !== undefined
+      ? note
+      : account.multisig
+        ? `One of ${account.multisig.threshold} signatures. Nothing runs until the rest are in, and starting it holds a small deposit from this account until it does.`
+        : 'This account registered the one above as a proxy, so the chain runs the call as this account.'
 
   return (
     <>
@@ -234,11 +244,7 @@ export function SignerField({
         accounts={bench}
         readOnly
       />
-      <p className={cn('mt-1.5', NOTE)}>
-        {account.multisig
-          ? `One of ${account.multisig.threshold} signatures. Nothing runs until the rest are in, and starting it holds a small deposit from this account until it does.`
-          : 'This account registered the one above as a proxy, so the chain runs the call as this account.'}
-      </p>
+      {says && <p className={cn('mt-1.5', NOTE)}>{says}</p>}
     </>
   )
 }

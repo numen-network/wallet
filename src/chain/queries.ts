@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useChain } from './provider'
+import type { Registrar } from './identity'
 import type { AccountBalance, ChainHead, Operation, Reach } from './types'
 
 /**
@@ -151,6 +152,17 @@ export function useRegistrars() {
     queryFn: () => repository.registrars(),
     staleTime: 60_000,
   })
+}
+
+/**
+ * Registrars a request made by hand may go to. The automated one only judges a
+ * record that paid it through the identity dialog, so a request sent to it any
+ * other way would sit unjudged forever, and the list leaves it out.
+ */
+export function useAskableRegistrars(): Registrar[] | undefined {
+  const { network } = useChain()
+  const { data: registrars } = useRegistrars()
+  return registrars?.filter((entry) => entry.account !== network.registrar)
 }
 
 /**

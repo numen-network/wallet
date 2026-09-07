@@ -1,25 +1,22 @@
 import { Fragment, useId, useState } from 'react'
+import { AmountField } from '@/accounts/AmountField'
 import { CallModal, useCall } from '@/accounts/Authorize'
-import { waitFor } from '@/lib/blocks'
-import { useFacts, useSymbol, useTracks } from '@/chain/queries'
-import type { ChainFacts } from '@/chain/types'
+import { ConvictionField } from '@/accounts/ConvictionField'
+import { useSymbol, useTracks } from '@/chain/queries'
 import { trackLabel, type Ballot, type Referendum } from '@/chain/governance'
 import {
   batched,
-  CONVICTIONS,
   totalOf,
   type AccountBalance,
   type Conviction,
   type Operation,
 } from '@/chain/types'
-import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
+import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Check, X, Minus } from 'lucide-react'
 import { LEDE } from '@/ui/Modal'
-import { Field, INSIDE } from '@/ui/Field'
-import { Input } from '@/components/ui/input'
 import { Select } from '@/ui/Select'
 import { useVoter, VoterField, type Voters } from './Voter'
 
@@ -31,22 +28,6 @@ const SIDES = [
 ] as const
 
 type Side = (typeof SIDES)[number]['id']
-
-/**
- * How long each conviction holds the vote for. The lock is a runtime constant,
- * so the labels cannot be written out until the chain has answered.
- */
-const convictionOptions = (facts: ChainFacts | undefined) =>
-  CONVICTIONS.map((conviction) => ({
-    value: conviction.value,
-    label: conviction.periods
-      ? `${conviction.weight}, locked ${
-          facts
-            ? waitFor(conviction.periods * facts.voteLockingPeriod, facts.blockSeconds)
-            : 'while it stands'
-        }`
-      : `${conviction.weight}, no lock`,
-  }))
 
 interface VoteProps {
   referendum: Referendum
@@ -64,7 +45,6 @@ interface VoteProps {
 export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps) {
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
-  const { data: facts } = useFacts()
   const [address, setAddress] = useState(accounts[0].address)
   const [side, setSide] = useState<Side>('aye')
   const sideId = useId()
@@ -131,26 +111,10 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
 
       {/* An abstain carries no conviction, so there is nothing to choose */}
       {side !== 'abstain' && (
-        <Field label="Conviction">
-          <Select
-            value={conviction}
-            onValueChange={(value) => setConviction(value as Conviction)}
-            options={convictionOptions(facts)}
-            label="Conviction"
-            className={INSIDE}
-          />
-        </Field>
+        <ConvictionField value={conviction} onChange={setConviction} />
       )}
 
-      <Field label="Amount">
-        <Input
-          value={amount}
-          inputMode="decimal"
-          placeholder={`0.0 ${symbol}`}
-          autoComplete="off"
-          onChange={(event) => setAmount(amountInput(event.target.value))}
-        />
-      </Field>
+      <AmountField label="Amount" value={amount} onChange={setAmount} />
     </CallModal>
   )
 }
@@ -242,7 +206,6 @@ export function VoteManyModal({
 }) {
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
-  const { data: facts } = useFacts()
   const [address, setAddress] = useState(accounts[0].address)
   const [conviction, setConviction] = useState<Conviction>('Locked1x')
   const [amount, setAmount] = useState('')
@@ -336,25 +299,9 @@ export function VoteManyModal({
       </ItemGroup>
 
       <div className="mt-3.5 grid grid-cols-2 gap-x-3.5 gap-y-2.5 *:mt-0 max-[560px]:grid-cols-1">
-        <Field label="Conviction">
-          <Select
-            value={conviction}
-            onValueChange={(value) => setConviction(value as Conviction)}
-            options={convictionOptions(facts)}
-            label="Conviction"
-            className={INSIDE}
-          />
-        </Field>
+        <ConvictionField value={conviction} onChange={setConviction} />
 
-        <Field label="Amount">
-          <Input
-            value={amount}
-            inputMode="decimal"
-            placeholder={`0.0 ${symbol}`}
-            autoComplete="off"
-            onChange={(event) => setAmount(amountInput(event.target.value))}
-          />
-        </Field>
+        <AmountField label="Amount" value={amount} onChange={setAmount} />
       </div>
     </CallModal>
   )

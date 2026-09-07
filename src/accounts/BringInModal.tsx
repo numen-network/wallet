@@ -1,24 +1,16 @@
 import { useEffect, useState } from 'react'
-import { DECIMALS } from '@/chain/config'
 import { useChain } from '@/chain/provider'
 import { useBalances, useFacts } from '@/chain/queries'
 import { totalOf } from '@/chain/types'
 import { evmAccounts, metaMask, wasRejected, withdrawFee, withdrawToSubstrate } from '@/evm/metamask'
 import { cn } from '@/lib/cn'
 import { evmToSubstrate, publicKeyOf, shorten } from '@/lib/address'
-import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
+import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { LEDE, Modal } from '@/ui/Modal'
-import { Field } from '@/ui/Field'
 import { FieldError, NOTE } from '@/components/ui/field'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-  InputGroupText,
-} from '@/components/ui/input-group'
 import { toast, toastProblem } from '@/ui/Toast'
 import { AddressField } from './AddressField'
+import { AmountField } from './AmountField'
 import type { Account } from './types'
 
 
@@ -144,29 +136,7 @@ export function BringInModal({
         </p>
       )}
 
-      <Field label="Amount">
-        <InputGroup>
-          <InputGroupInput
-            className="font-mono"
-            value={amount}
-            inputMode="decimal"
-            placeholder="0.0"
-            autoComplete="off"
-            onChange={(event) => setAmount(amountInput(event.target.value))}
-          />
-          <InputGroupAddon>
-            <InputGroupButton
-              disabled={sendable === 0n}
-              onClick={() =>
-                setAmount(formatAmount(sendable, { precision: DECIMALS, grouped: false, pad: false }))
-              }
-            >
-              MAX
-            </InputGroupButton>
-            <InputGroupText>{facts?.symbol ?? ''}</InputGroupText>
-          </InputGroupAddon>
-        </InputGroup>
-      </Field>
+      <AmountField label="Amount" value={amount} onChange={setAmount} max={sendable} />
       <FieldError>{error}</FieldError>
 
       {fee !== null && (

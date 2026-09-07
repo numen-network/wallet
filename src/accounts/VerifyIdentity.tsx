@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IDENTITY_CHECK_FEE } from '@/chain/config'
 import {
-  botRegistrar,
   carriedBy,
   depositFor,
   dropped,
@@ -10,6 +9,7 @@ import {
   named,
   overlong,
   pictured,
+  seatOf,
   type Profile,
   type Proven,
 } from '@/chain/identity'
@@ -101,7 +101,7 @@ export function VerifyIdentity({
   const checks = alive(draft.checks, now)
   const loses = dropped(registration ?? null)
 
-  const registrar = botRegistrar(registrars ?? [], network.registrar)
+  const registrar = seatOf(registrars ?? [], network.registrar)
 
   // A handle the bot already stands behind opens proved and rides for free,
   // only a sign in past what the chain holds is on the bill

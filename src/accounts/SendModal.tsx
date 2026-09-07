@@ -3,21 +3,14 @@ import { DECIMALS } from '@/chain/config'
 import { useBalances, useFacts, useFeeEstimate, useSymbol } from '@/chain/queries'
 import { totalOf, type AccountBalance, type Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
+import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ModalFrame } from '@/ui/Modal'
-import { Field } from '@/ui/Field'
 import { Field as Choice, FieldError, FieldLabel } from '@/components/ui/field'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-  InputGroupText,
-} from '@/components/ui/input-group'
 import { useDraft } from '@/ui/draft'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'
+import { AmountField } from './AmountField'
 import { CallPage, SignerField, useCall, useSigning } from './Authorize'
 import { BLANK, spendableOf, type Row } from './payments'
 import { SendMany } from './SendManyModal'
@@ -197,27 +190,13 @@ function SendOne({
       />
       <FieldError>{toError}</FieldError>
 
-      <Field label="Amount">
-        <InputGroup>
-          <InputGroupInput
-            className="font-mono"
-            value={everything ? formatAmount(transferable, { precision: DECIMALS, grouped: false, pad: false }) : amount}
-            inputMode="decimal"
-            placeholder="0.0"
-            autoComplete="off"
-            disabled={everything}
-            onChange={(event) => setAmount(amountInput(event.target.value))}
-          />
-          <InputGroupAddon>
-            <InputGroupButton
-              onClick={() => setAmount(formatAmount(spendable, { precision: DECIMALS, grouped: false, pad: false }))}
-            >
-              MAX
-            </InputGroupButton>
-            <InputGroupText>{symbol}</InputGroupText>
-          </InputGroupAddon>
-        </InputGroup>
-      </Field>
+      <AmountField
+        label="Amount"
+        value={everything ? formatAmount(transferable, { precision: DECIMALS, grouped: false, pad: false }) : amount}
+        onChange={setAmount}
+        max={spendable}
+        disabled={everything}
+      />
       <FieldError>{amountError}</FieldError>
 
       <Choice orientation="horizontal" className="mt-2.5">

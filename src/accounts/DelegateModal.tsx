@@ -1,18 +1,15 @@
 import { AddressField } from './AddressField'
 import { useId, useState } from 'react'
-import { waitFor } from '@/lib/blocks'
-import { useFacts, useSymbol, useTracks } from '@/chain/queries'
-import type { ChainFacts } from '@/chain/types'
-import { batched, CONVICTIONS, totalOf, type AccountBalance, type Conviction } from '@/chain/types'
+import { useSymbol, useTracks } from '@/chain/queries'
+import { batched, totalOf, type AccountBalance, type Conviction } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
-import { amountInput, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
+import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { LEDE } from '@/ui/Modal'
-import { Field, INSIDE } from '@/ui/Field'
-import { Input } from '@/components/ui/input'
-import { Select } from '@/ui/Select'
+import { AmountField } from './AmountField'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
+import { ConvictionField } from './ConvictionField'
 import type { Account } from './types'
 
 interface DelegateProps {
@@ -24,22 +21,6 @@ interface DelegateProps {
   onClose: () => void
 }
 
-
-/**
- * How long each conviction holds the vote for. The lock is a runtime constant,
- * so the labels cannot be written out until the chain has answered.
- */
-const convictionOptions = (facts: ChainFacts | undefined) =>
-  CONVICTIONS.map((conviction) => ({
-    value: conviction.value,
-    label: conviction.periods
-      ? `${conviction.weight}, locked ${
-          facts
-            ? waitFor(conviction.periods * facts.voteLockingPeriod, facts.blockSeconds)
-            : 'while it stands'
-        }`
-      : `${conviction.weight}, no lock`,
-  }))
 
 /**
  * The tracks come from the chain, so the list is whatever this runtime carries.
@@ -87,7 +68,6 @@ export function TrackField({
  */
 export function DelegateModal({ account, accounts, signers, balance, onClose }: DelegateProps) {
   const symbol = useSymbol()
-  const { data: facts } = useFacts()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const [chosen, setChosen] = useState([0])
   // Delegating to yourself is a call that does nothing
@@ -145,25 +125,9 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
         accounts={others}
       />
 
-      <Field label="Conviction">
-        <Select
-          value={conviction}
-          onValueChange={(value) => setConviction(value as Conviction)}
-          options={convictionOptions(facts)}
-          label="Conviction"
-          className={INSIDE}
-        />
-      </Field>
+      <ConvictionField value={conviction} onChange={setConviction} />
 
-      <Field label="Amount">
-        <Input
-          value={amount}
-          inputMode="decimal"
-          placeholder={`0.0 ${symbol}`}
-          autoComplete="off"
-          onChange={(event) => setAmount(amountInput(event.target.value))}
-        />
-      </Field>
+      <AmountField label="Amount" value={amount} onChange={setAmount} />
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
     </CallModal>

@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { AccountBalance } from '@/chain/types'
 import { totalOf, ZERO_BALANCE } from '@/chain/types'
-import { backing, labelOf, pendingWith, type Standing } from '@/chain/identity'
+import { backing, labelOf, pendingWith, seatOf, type Standing } from '@/chain/identity'
 import { IdentityVerdict } from './IdentityVerdict'
 import { useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import { shorten } from '@/lib/address'
@@ -195,7 +195,7 @@ function CardBody({
   const withdraws = account.evmAddress !== null
   const shut = !withdraws && !canSend(account)
   // Which registrar this account is, if the chain lists it as one
-  const seat = registrars?.find((entry) => entry.account === account.address)
+  const seat = seatOf(registrars ?? [], account.address)
 
   const ask = (action: CardAction) => () => open(action, account)
 

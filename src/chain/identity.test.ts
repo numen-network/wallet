@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { UNIT } from './config'
 import {
   backing,
-  botRegistrar,
+  seatOf,
   carriedBy,
   byteLength,
   depositFor,
@@ -41,21 +41,21 @@ const checked = registration({
   judgements: [{ registrar: 0, judgement: 'Reasonable' }],
 })
 
-describe('finding the automated registrar', () => {
+describe('the registrar seat an account holds', () => {
   const sits = (index: number, account: string): Registrar => ({
     index,
     account,
     fee: UNIT,
   })
 
-  it('is the account the network names, wherever it sits', () => {
-    const found = botRegistrar([sits(0, 'nuRegistrar'), sits(1, 'nuBot')], 'nuBot')
+  it('is found by the account, wherever it sits in the list', () => {
+    const found = seatOf([sits(0, 'nuRegistrar'), sits(1, 'nuBot')], 'nuBot')
     expect(found?.index).toBe(1)
   })
 
   it('is nobody on a chain whose list does not hold it', () => {
-    expect(botRegistrar([sits(0, 'nuRegistrar')], 'nuBot')).toBeUndefined()
-    expect(botRegistrar([], 'nuBot')).toBeUndefined()
+    expect(seatOf([sits(0, 'nuRegistrar')], 'nuBot')).toBeUndefined()
+    expect(seatOf([], 'nuBot')).toBeUndefined()
   })
 })
 

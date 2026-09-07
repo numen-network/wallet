@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { useFacts, useFeeEstimate, useSymbol } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
-import { amountInput, formatAmount } from '@/lib/balance'
+import { formatAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2 } from 'lucide-react'
-import { Field } from '@/ui/Field'
 import { CAPTION, FieldError, NOTE } from '@/components/ui/field'
-import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { AddressField } from './AddressField'
-import { CallPage, useCall, useSigning } from './Authorize'
+import { AmountField } from './AmountField'
+import { CallPage, SignerField, useCall, useSigning } from './Authorize'
 import { BLANK, owed, payments, rowProblem, spendableOf, type Row } from './payments'
 import type { SendManyProps } from './SendModal'
 
@@ -103,15 +102,7 @@ export function SendMany({
         readOnly
       />
 
-      {another && (
-        <AddressField
-          label="Signing as"
-          value={signer.address}
-          onChange={choose}
-          accounts={bench}
-          readOnly
-        />
-      )}
+      <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
 
       <div className="mt-4 grid grid-cols-[1fr_200px_28px] gap-x-2">
         <span className={CAPTION}>Address</span>
@@ -136,22 +127,12 @@ export function SendMany({
               <FieldError>{problem}</FieldError>
             </span>
 
-            <Field>
-              <InputGroup>
-                <InputGroupInput
-                  className="font-mono"
-                  value={row.amount}
-                  inputMode="decimal"
-                  placeholder="0.0"
-                  autoComplete="off"
-                  aria-label={`Amount ${index + 1}`}
-                  onChange={(event) => setRow(index, { amount: amountInput(event.target.value) })}
-                />
-                <InputGroupAddon>
-                  <InputGroupText>{symbol}</InputGroupText>
-                </InputGroupAddon>
-              </InputGroup>
-            </Field>
+            <AmountField
+              label={`Amount ${index + 1}`}
+              value={row.amount}
+              onChange={(amount) => setRow(index, { amount })}
+              labelled={false}
+            />
 
             <Button
               type="button"

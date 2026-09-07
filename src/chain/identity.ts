@@ -195,11 +195,8 @@ export interface Registrar {
   fee: bigint
 }
 
-/**
- * The automated registrar, named by the network the wallet is on. A chain whose
- * list holds no such account has no automatic checking.
- */
-export function botRegistrar(registrars: Registrar[], account: string): Registrar | undefined {
+/** The registrar seat this account holds, if the chain lists it as one. */
+export function seatOf(registrars: Registrar[], account: string): Registrar | undefined {
   return registrars.find((entry) => entry.account === account)
 }
 

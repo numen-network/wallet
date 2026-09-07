@@ -18,7 +18,7 @@ import { parseISO } from 'date-fns'
 import { useFacts, useHead, useStanding, useSymbol, useTracks } from '@/chain/queries'
 import { cn } from '@/lib/cn'
 import { resolveAddress, shorten } from '@/lib/address'
-import { amountInput, amountOrZero, amountProblem, formatAmount } from '@/lib/balance'
+import { amountOrZero, amountProblem, formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
 import { Button } from '@/components/ui/button'
 import { LEDE } from '@/ui/Modal'
@@ -27,11 +27,11 @@ import { Figure } from '@/ui/Figure'
 import { Field } from '@/ui/Field'
 import { DateField, stamp } from '@/ui/DateField'
 import { CAPTION, NOTE } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { Plus, Trash2 } from 'lucide-react'
 import { AddressField } from '@/accounts/AddressField'
+import { AmountField } from '@/accounts/AmountField'
 
 /** One row of the payout list, as typed rather than as the chain takes it. */
 interface PayoutDraft {
@@ -43,7 +43,7 @@ interface PayoutDraft {
 
 const BLANK: PayoutDraft = { to: '', amount: '', on: '' }
 
-const COLUMNS = 'grid grid-cols-[1fr_144px_168px_28px] gap-x-2'
+const COLUMNS = 'grid grid-cols-[1fr_176px_168px_28px] gap-x-2'
 
 /**
  * Every track on this chain is a spender track, so a referendum asks the
@@ -258,17 +258,12 @@ export function ProposeModal({
               labelled={false}
             />
 
-            <Field>
-              <Input
-                value={row.amount}
-                inputMode="decimal"
-                placeholder="0.0"
-                autoComplete="off"
-                aria-label={`Amount ${index + 1}`}
-                className="font-mono"
-                onChange={(event) => editPayout(index, { amount: amountInput(event.target.value) })}
-              />
-            </Field>
+            <AmountField
+              label={`Amount ${index + 1}`}
+              value={row.amount}
+              onChange={(amount) => editPayout(index, { amount })}
+              labelled={false}
+            />
 
             <DateField
               label={`Release date for payout ${index + 1}`}
