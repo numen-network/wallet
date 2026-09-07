@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useFeeEstimate, useSymbol } from '@/chain/queries'
+import { useFacts, useFeeEstimate, useSymbol } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
 import { amountInput, formatAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
@@ -10,7 +10,7 @@ import { CAPTION, FieldError, NOTE } from '@/components/ui/field'
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { AddressField } from './AddressField'
 import { CallPage, useCall, useSigning } from './Authorize'
-import { BLANK, owed, payments, rowProblem, type Row } from './payments'
+import { BLANK, owed, payments, rowProblem, spendableOf, type Row } from './payments'
 import type { SendManyProps } from './SendModal'
 
 /**
@@ -49,10 +49,11 @@ export function SendMany({
     calls: rows.map(() => ({ kind: 'transfer', to: account.address, amount: 0n })),
   }
   const { data: fee } = useFeeEstimate(signer.address, wrap(probe))
-  // A multisig or a proxied account pays out of its own balance while whoever
-  // signs covers the fee, so nothing has to be held back from what it sends
+  const { data: facts } = useFacts()
   const another = Boolean(account.multisig || account.proxied)
-  const spendable = another ? transferable : fee && transferable > fee ? transferable - fee : 0n
+  const ownFee = another ? 0n : fee
+  const spendable =
+    facts && ownFee !== undefined ? spendableOf(transferable, facts.existentialDeposit, ownFee) : 0n
   const total = owed(rows)
 
   const form = () => {

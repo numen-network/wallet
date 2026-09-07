@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { UNIT } from '@/chain/config'
-import { owed, payments, rowProblem, type Row } from './payments'
+import { owed, payments, rowProblem, spendableOf, type Row } from './payments'
 
 const TO = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 const EVM = '0x1234567890abcdef1234567890abcdef12345678'
@@ -52,5 +52,23 @@ describe('what a payment form adds up to', () => {
 
   it('is nothing on an empty form', () => {
     expect(owed([])).toBe(0n)
+  })
+})
+
+describe('the most a send may carry', () => {
+  const deposit = UNIT / 1_000_000n
+  const fee = UNIT / 100n
+
+  it('keeps the deposit and the fee back, since keep alive refuses a send that leaves less', () => {
+    expect(spendableOf(UNIT, deposit, fee)).toBe(UNIT - deposit - fee)
+  })
+
+  it('keeps only the deposit back when somebody else pays the fee', () => {
+    expect(spendableOf(UNIT, deposit, 0n)).toBe(UNIT - deposit)
+  })
+
+  it('is nothing when the balance cannot cover what has to stay', () => {
+    expect(spendableOf(fee, deposit, fee)).toBe(0n)
+    expect(spendableOf(deposit, deposit, 0n)).toBe(0n)
   })
 })

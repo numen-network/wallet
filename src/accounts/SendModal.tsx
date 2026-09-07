@@ -19,7 +19,7 @@ import { useDraft } from '@/ui/draft'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { AddressField } from './AddressField'
 import { CallPage, SignerField, useCall, useSigning } from './Authorize'
-import { BLANK, type Row } from './payments'
+import { BLANK, spendableOf, type Row } from './payments'
 import { SendMany } from './SendManyModal'
 import type { Account } from './types'
 
@@ -115,12 +115,9 @@ function SendOne({
     : { kind: 'transfer', to: account.address, amount: transferable }
   const { data: fee } = useFeeEstimate(signer.address, wrap(probe))
   const { data: facts } = useFacts()
-  // A multisig or a proxied account pays out of its own balance while whoever
-  // signs covers the fee, so the deposit that keeps it alive is the only thing
-  // held back. MAX offers what is left either way, and the form takes it
-  const another = Boolean(account.multisig || account.proxied)
-  const back = another ? facts?.existentialDeposit : fee
-  const spendable = back !== undefined && transferable > back ? transferable - back : 0n
+  const ownFee = account.multisig || account.proxied ? 0n : fee
+  const spendable =
+    facts && ownFee !== undefined ? spendableOf(transferable, facts.existentialDeposit, ownFee) : 0n
 
   const form = () => {
     const destination = resolveAddress(to)
@@ -149,14 +146,6 @@ function SendOne({
         )
         return false
       }
-      // transfer_keep_alive is what goes out, so the chain would turn this down
-      // after it had been signed rather than before
-      if (facts && transferable - planck < facts.existentialDeposit) {
-        setAmountError(
-          `Leave ${formatAmount(facts.existentialDeposit, { precision: 6 })} ${symbol} behind, or send the full balance`,
-        )
-        return false
-      }
       setAmountError('')
       operation = destination ? { kind: 'transfer', to: destination, amount: planck } : null
     }
@@ -178,9 +167,9 @@ function SendOne({
         account.multisig &&
         `Needs any ${account.multisig.threshold} of ${account.multisig.signatories.length} signatures`
       }
-      from={account.address}
+      from={signer.address}
       needsPassword={needsPassword}
-      operation={probe}
+      operation={wrap(probe)}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}

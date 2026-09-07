@@ -47,3 +47,18 @@ export function payments(rows: Row[]): Operation[] | null {
 export function owed(rows: Row[]): bigint {
   return rows.reduce((total, row) => total + amountOrZero(row.amount), 0n)
 }
+
+/**
+ * The most a send may carry. transfer_keep_alive leaves the account standing,
+ * so the deposit that keeps it alive stays back along with whatever the fee
+ * takes off the same balance.
+ */
+export function spendableOf(
+  transferable: bigint,
+  existentialDeposit: bigint,
+  /** What the fee takes off this balance, which is nothing when somebody else signs. */
+  fee: bigint,
+): bigint {
+  const held = existentialDeposit + fee
+  return transferable > held ? transferable - held : 0n
+}
