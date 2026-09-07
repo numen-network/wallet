@@ -5,7 +5,7 @@ import { Copy, EyeOff } from 'lucide-react'
 import { Identicon } from '@/ui/Identicon'
 import { Modal } from '@/ui/Modal'
 import { Qr, QR_SIZE } from '@/ui/Qr'
-import { copyAddress } from '@/ui/clipboard'
+import { copyText } from '@/ui/clipboard'
 import type { Account } from './types'
 
 function AddressBlock({ kind, address }: { kind: string; address: string }) {
@@ -33,7 +33,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
         type="button"
         variant="outline"
         size="sm"
-        onClick={() => copyAddress(address)}
+        onClick={() => copyText(address)}
       >
         <Copy />
         Copy

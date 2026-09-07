@@ -5,14 +5,14 @@ import { toast, toastProblem } from './Toast'
  * same. The clipboard API only exists on a secure page, and a page served over
  * plain http has to say so rather than throw.
  */
-export function copyAddress(text: string): void {
+export function copyText(text: string): void {
   if (!navigator.clipboard) {
     toastProblem('Copying needs a page served over https')
     return
   }
 
   navigator.clipboard.writeText(text).then(
-    () => toast('Address copied'),
+    () => toast('Copied'),
     () => toastProblem('Could not reach the clipboard'),
   )
 }

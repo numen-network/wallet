@@ -2,7 +2,7 @@ import { useEffect, useState, type ComponentProps } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { Check, Copy } from 'lucide-react'
-import { copyAddress } from './clipboard'
+import { copyText } from './clipboard'
 import { Tip } from './Tip'
 
 interface CopyButtonProps {
@@ -24,7 +24,7 @@ export function CopyButton({ text, label, spelled = false, variant = spelled ? '
   }, [copied])
 
   const copy = () => {
-    copyAddress(text)
+    copyText(text)
     if (navigator.clipboard) setCopied(true)
   }
 
