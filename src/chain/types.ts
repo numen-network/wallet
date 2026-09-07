@@ -407,8 +407,6 @@ export interface ChainFacts {
   preimageBaseDeposit: bigint
   /** Held for each noted byte on top of the base, returned with it. */
   preimageByteDeposit: bigint
-  /** The most bytes one noted preimage may hold. */
-  preimageMaxSize: number
   /**
    * The treasury's own account, derived from its pallet id. Nobody holds a key
    * to it, so money sent there goes out only on a referendum.

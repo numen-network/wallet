@@ -141,10 +141,6 @@ export function ProposeModal({
       return call.refuse('Give it a title, since that is what the list shows')
     }
 
-    if (bytes > facts.preimageMaxSize) {
-      return call.refuse(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
-    }
-
     if (booked.length !== payouts.length) {
       // A named complaint about an amount beats the general one
       for (const row of payouts) {
@@ -375,10 +371,6 @@ export function EditTextModal({
   const form = () => {
     if (title.trim() === '') {
       return call.refuse('Give it a title, since that is what the list shows')
-    }
-
-    if (facts && bytes > facts.preimageMaxSize) {
-      return call.refuse(`The text is ${bytes.toLocaleString('en-US')} bytes and the chain takes at most ${facts.preimageMaxSize.toLocaleString('en-US')}`)
     }
 
     // The chain refuses to note the very same bytes twice, and there is

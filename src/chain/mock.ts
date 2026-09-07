@@ -102,7 +102,6 @@ const FACTS: ChainFacts = {
   payoutPeriod: (30 * 24 * 3600) / 10,
   preimageBaseDeposit: 5n * UNIT,
   preimageByteDeposit: UNIT / 100n,
-  preimageMaxSize: 16 * 1024,
   treasury: palletAccount(stringToU8a('py/trsry')),
   proxyDepositBase: 5n * UNIT,
   proxyDepositFactor: (37n * UNIT) / 100n,
