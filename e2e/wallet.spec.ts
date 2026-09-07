@@ -118,6 +118,52 @@ test('the header owns up to running on invented balances', async ({ page }) => {
   await expect(page.getByRole('tooltip')).toHaveText(/Nothing is connected/)
 })
 
+// Radix opens a hint 300 ms into a hover, so a wait past that proves one stayed down
+const HINT_DELAY = 700
+
+test('a hint stays down once the thing it sat on has been used', async ({ page }) => {
+  await open(page)
+  const picker = page.getByRole('combobox', { name: 'RPC endpoint' })
+  await picker.hover()
+  await expect(page.getByRole('tooltip')).toHaveText(/Nothing is connected/)
+
+  // Opening the list is a press, and the list closing hands focus back
+  await picker.click()
+  await expect(page.getByRole('option', { name: 'Numen Testnet' })).toBeVisible()
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
+  await page.getByRole('option', { name: 'Numen Testnet' }).click()
+  await page.waitForTimeout(HINT_DELAY)
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
+
+  // Leaving and coming back is reading it again
+  await page.mouse.move(5, 5)
+  await picker.hover()
+  await expect(page.getByRole('tooltip')).toHaveText(/Nothing is connected/)
+})
+
+test('a dialog handing focus back does not put the hint up', async ({ page }) => {
+  await open(page)
+  const add = page.getByRole('button', { name: 'Add an endpoint' })
+  await add.hover()
+  await expect(page.getByRole('tooltip')).toHaveText('Add an endpoint')
+
+  await add.click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.waitForTimeout(HINT_DELAY)
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
+})
+
+test('a disabled control says why on hover', async ({ page }) => {
+  await open(page)
+
+  // A disabled button takes no pointer events, so the hint sits on the span around it
+  await card(page, 'Vault').getByRole('button', { name: 'Send' }).locator('..').hover()
+  await expect(page.getByRole('tooltip')).toHaveText('Watch only account')
+})
+
 test('the endpoint picker switches network and remembers the choice', async ({ page }) => {
   await open(page)
   await expect(page.getByText('tNUMN').first()).toBeVisible()
