@@ -116,7 +116,7 @@ export function ProposeModal({
   // What the whole dump weighs and what it holds until the bytes are cleared
   const bytes = dumpBytes(metadataDump(title, description))
   const textCost = facts
-    ? `${bytes.toLocaleString('en-US')} bytes · holds ${formatAmount(BigInt(bytes) * facts.preimageByteDeposit, { precision: 2 })} ${symbol}`
+    ? `${bytes.toLocaleString('en-US')} bytes · holds ${formatAmount(facts.preimageBaseDeposit + BigInt(bytes) * facts.preimageByteDeposit, { precision: 2 })} ${symbol}`
     : null
   // How long the referendum itself can take before the spends are booked
   const runsFor = running
@@ -360,7 +360,7 @@ export function EditTextModal({
 
   const bytes = dumpBytes(metadataDump(title, description))
   const textCost = facts
-    ? `${bytes.toLocaleString('en-US')} bytes · holds ${formatAmount(BigInt(bytes) * facts.preimageByteDeposit, { precision: 2 })} ${symbol}`
+    ? `${bytes.toLocaleString('en-US')} bytes · holds ${formatAmount(facts.preimageBaseDeposit + BigInt(bytes) * facts.preimageByteDeposit, { precision: 2 })} ${symbol}`
     : null
   const oldBytes = clear
     ? 'The old bytes come off in the same signature and their deposit comes back.'
