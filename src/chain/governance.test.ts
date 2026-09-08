@@ -49,8 +49,8 @@ describe('the bar a tally has to beat', () => {
   const track = {
     id: 1,
     decisionPeriod: 1_000,
-    approvalCurve: { kind: 'reciprocal', factor: 0.213017753, xOffset: 0.384615386, yOffset: 0.446153845 },
-    supportCurve: { kind: 'linear', length: 1, floor: 0.02, ceil: 0.5 },
+    approvalCurve: { kind: 'linear', length: 0.5, floor: 0.5, ceil: 1 },
+    supportCurve: { kind: 'reciprocal', factor: 0.003846922, xOffset: 0.007712083, yOffset: 0.001182519 },
   } as Track
   const poll = (over: Partial<Referendum>) => ({ index: 1, track: 1, ...over }) as Referendum
 
@@ -64,15 +64,15 @@ describe('the bar a tally has to beat', () => {
   })
 
   it('eases both off as the decision period runs', () => {
-    const half = at(500)
-    expect(half?.approval).toBeCloseTo(68.7, 1)
-    expect(half?.support).toBeCloseTo(26)
+    const quarter = at(250)
+    expect(quarter?.approval).toBeCloseTo(75)
+    expect(quarter?.support).toBeCloseTo(1.611, 3)
   })
 
   it('flattens both at the floor once the period is over', () => {
     const over = at(4_000)
-    expect(over?.approval).toBeCloseTo(60)
-    expect(over?.support).toBeCloseTo(2)
+    expect(over?.approval).toBeCloseTo(50)
+    expect(over?.support).toBeCloseTo(0.5)
   })
 
   it('says nothing about a track it has no curves for', () => {

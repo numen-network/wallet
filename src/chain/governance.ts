@@ -6,8 +6,8 @@ import { CONVICTIONS, type Conviction, type Spender } from './types'
  */
 
 /**
- * A threshold curve in one of the two shapes the runtime builds. Support falls
- * straight from ceil to floor. Approval runs down a reciprocal that eases off
+ * A threshold curve in one of the two shapes the runtime builds. Approval falls
+ * straight from ceil to floor. Support runs down a reciprocal that eases off
  * early and then holds near its floor for the rest of the decision period.
  */
 export type Curve =

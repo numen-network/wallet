@@ -195,8 +195,13 @@ const HOURS = 360
 const DAYS = 24 * HOURS
 
 /** The runtime's own table, which is a constant there and so a constant here. */
-/** As Curve::make_linear sets one, running the whole decision period. */
-const line = (floor: number, ceil: number): Curve => ({ kind: 'linear', length: 1, floor, ceil })
+/** As Curve::make_linear sets one, running a fraction of the decision period. */
+const line = (length: number, floor: number, ceil: number): Curve => ({
+  kind: 'linear',
+  length,
+  floor,
+  ceil,
+})
 
 /** The three parts Curve::make_reciprocal solves for, copied off the runtime. */
 const reciprocal = (factor: number, xOffset: number, yOffset: number): Curve => ({
@@ -211,37 +216,37 @@ const TRACKS: Track[] = [
     id: 0,
     name: 'Small spender',
     decisionDeposit: 100n * UNIT,
-    preparePeriod: HOURS,
-    decisionPeriod: 7 * DAYS,
+    preparePeriod: 4 * HOURS,
+    decisionPeriod: 28 * DAYS,
     confirmPeriod: DAYS,
-    minEnactmentPeriod: HOURS,
+    minEnactmentPeriod: DAYS,
     maxDeciding: 100,
-    approvalCurve: reciprocal(0.222222224, 0.333333335, 0.333333332),
-    supportCurve: line(0, 0.5),
+    approvalCurve: line(0.25, 0.5, 1),
+    supportCurve: reciprocal(0.003846922, 0.007712083, 0.001182519),
   },
   {
     id: 1,
     name: 'Medium spender',
     decisionDeposit: 1_000n * UNIT,
-    preparePeriod: HOURS,
-    decisionPeriod: 14 * DAYS,
+    preparePeriod: 4 * HOURS,
+    decisionPeriod: 28 * DAYS,
     confirmPeriod: 3 * DAYS,
-    minEnactmentPeriod: HOURS,
+    minEnactmentPeriod: DAYS,
     maxDeciding: 20,
-    approvalCurve: reciprocal(0.213017753, 0.384615386, 0.446153845),
-    supportCurve: line(0.02, 0.5),
+    approvalCurve: line(0.5, 0.5, 1),
+    supportCurve: reciprocal(0.003846922, 0.007712083, 0.001182519),
   },
   {
     id: 2,
     name: 'Big spender',
     decisionDeposit: 10_000n * UNIT,
-    preparePeriod: HOURS,
+    preparePeriod: 4 * HOURS,
     decisionPeriod: 28 * DAYS,
     confirmPeriod: 7 * DAYS,
-    minEnactmentPeriod: HOURS,
+    minEnactmentPeriod: DAYS,
     maxDeciding: 2,
-    approvalCurve: reciprocal(0.225000005, 0.500000007, 0.549999997),
-    supportCurve: line(0.05, 0.5),
+    approvalCurve: line(1, 0.5, 1),
+    supportCurve: reciprocal(0.003846922, 0.007712083, 0.001182519),
   },
 ]
 

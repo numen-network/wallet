@@ -119,16 +119,16 @@ test('a card says how the vote is going and what happens next', async ({ page })
   await governance(page)
 
   // 4.1M aye to 900k nay, and 2.6M of support against 12M active issuance. Both
-  // curves have eased off two days into a fourteen day decision period
+  // curves have eased off 2 days into a 28 day decision period
   const running = referendum(page, 1)
-  await expect(running.getByText('Approval 82.00%/85.00%')).toBeVisible()
-  await expect(running.getByText('Support 21.66%/43.14%')).toBeVisible()
-  await expect(running.getByText('Decision ends in about 12 days')).toBeVisible()
+  await expect(running.getByText('Approval 82.00%/92.86%')).toBeVisible()
+  await expect(running.getByText('Support 21.66%/4.98%')).toBeVisible()
+  await expect(running.getByText('Decision ends in about 26 days')).toBeVisible()
   await expect(running.getByText(/Votes are counting/)).toBeVisible()
 
   // Three days in, and ahead of both curves, which is what confirming means
-  await expect(referendum(page, 3).getByText('Approval 97.50%/80.18%')).toBeVisible()
-  await expect(referendum(page, 3).getByText('Support 43.33%/39.71%')).toBeVisible()
+  await expect(referendum(page, 3).getByText('Approval 97.50%/89.29%')).toBeVisible()
+  await expect(referendum(page, 3).getByText('Support 43.33%/3.47%')).toBeVisible()
   await expect(referendum(page, 3).getByText('Passes in about 12 hours')).toBeVisible()
   await expect(referendum(page, 3).getByText(/ahead by enough/)).toBeVisible()
 
@@ -364,10 +364,10 @@ test('the date box will not offer a day the referendum would outlast', async ({ 
   await expect(offered(page).first()).toHaveAttribute('data-day', inDays(0))
   await page.keyboard.press('Escape')
 
-  // Big spender runs five days past it, and those five days are off the table
+  // Big spender runs six days past it, and those six days are off the table
   await dialog.getByLabel('Amount 1').fill('5000000')
   await dialog.getByLabel('Release date for payout 1').click()
-  await expect(offered(page).first()).toHaveAttribute('data-day', inDays(5))
+  await expect(offered(page).first()).toHaveAttribute('data-day', inDays(6))
 })
 
 test('every payout names its own account, starting on whoever opened it', async ({ page }) => {
@@ -637,6 +637,6 @@ test('one ballot covers several referenda at once', async ({ page }) => {
   await expect(page.getByText('All of it went through')).toBeVisible()
   // Both tallies moved. An aye on #1 barely shifts five million of approval but
   // does show in its support, and the nay on #3 takes its approval down
-  await expect(referendum(page, 1).getByText('Support 21.67%/43.14%')).toBeVisible()
-  await expect(referendum(page, 3).getByText('Approval 97.48%/80.18%')).toBeVisible()
+  await expect(referendum(page, 1).getByText('Support 21.67%/4.98%')).toBeVisible()
+  await expect(referendum(page, 3).getByText('Approval 97.48%/89.29%')).toBeVisible()
 })
