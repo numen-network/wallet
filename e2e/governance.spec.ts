@@ -327,7 +327,7 @@ test('the amount decides the track', async ({ page }) => {
   await expect(dialog.getByText('Medium spender', { exact: true })).toBeVisible()
 
   // Both tracks hold the same deposit, since submit sets it rather than the track
-  await expect(dialog.getByText('100 tNUMN', { exact: true })).toBeVisible()
+  await expect(dialog.getByText('5 tNUMN', { exact: true })).toBeVisible()
 
   await fillAddress(page, dialog, 'Address 1', BENEFICIARY)
   await expect(dialog.getByRole('button', { name: 'Sign and send' })).toBeDisabled()
