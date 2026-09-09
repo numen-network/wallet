@@ -5,8 +5,8 @@
     "numen": {
       "wsUrl": "ws://127.0.0.1:9944",
       "metadata": ".papi/metadata/numen.scale",
-      "genesis": "0x66c868a7434d3bdb3eba9f41c79f9eb402baff42653a41bda626d32db527d439",
-      "codeHash": "0xd78bb661a14d4b2db79f258a8550117efc9cb7cae8cc1e656968e05eb36c5a72"
+      "genesis": "0x50d298c843d180766940b749a15131631b4f85204f62011bd3cc0974eb1d5dc6",
+      "codeHash": "0xa0dc4d3f00dafb755063b0a6e6239ae24efd874ebd8fb3e0a50fb8f6f1434f8d"
     }
   }
 }
