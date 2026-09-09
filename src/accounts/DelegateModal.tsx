@@ -69,7 +69,7 @@ export function TrackField({
 export function DelegateModal({ account, accounts, signers, balance, onClose }: DelegateProps) {
   const symbol = useSymbol()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
-  const [chosen, setChosen] = useState([0])
+  const [chosen, setChosen] = useState<number[]>([])
   // Delegating to yourself is a call that does nothing
   const others = accounts.filter((entry) => entry.address !== account.address)
   const [to, setTo] = useState('')
@@ -145,7 +145,7 @@ export function UndelegateModal({
   onClose: () => void
 }) {
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
-  const [chosen, setChosen] = useState([0])
+  const [chosen, setChosen] = useState<number[]>([])
   const call = useCall(onClose)
 
   const ending = batched(chosen.map((track) => ({ kind: 'undelegate' as const, track })))

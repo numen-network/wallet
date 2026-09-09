@@ -356,6 +356,7 @@ test('delegating votes on a track, then taking them back', async ({ page }) => {
 
   await card(page).getByRole('button', { name: 'Account menu' }).click()
   await page.getByRole('menuitem', { name: 'Take a delegation back' }).click()
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   // Nothing was delegated on that track. The dialog lets go once the call is
@@ -364,6 +365,7 @@ test('delegating votes on a track, then taking them back', async ({ page }) => {
 
   await card(page).getByRole('button', { name: 'Account menu' }).click()
   await page.getByRole('menuitem', { name: 'Delegate votes' }).click()
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
   await fillAddress(page, dialog, 'Delegate to', DESTINATION)
   await dialog.getByPlaceholder('0.0').fill('100')
   await dialog.getByLabel('Account password').fill(PASSWORD)
@@ -372,6 +374,7 @@ test('delegating votes on a track, then taking them back', async ({ page }) => {
 
   await card(page).getByRole('button', { name: 'Account menu' }).click()
   await page.getByRole('menuitem', { name: 'Take a delegation back' }).click()
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Delegation ended')).toBeVisible()
@@ -564,8 +567,7 @@ test('one delegation covers every track it is ticked for', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'Delegate votes' }).click()
 
   const dialog = page.getByRole('dialog')
-  // One track is ticked to start with, which is what delegating used to be
-  await expect(dialog.getByRole('checkbox', { name: 'Small spender' })).toBeChecked()
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
   await dialog.getByRole('checkbox', { name: 'Medium spender' }).check()
   await dialog.getByRole('checkbox', { name: 'Big spender' }).check()
 

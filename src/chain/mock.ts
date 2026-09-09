@@ -111,9 +111,9 @@ const FACTS: ChainFacts = {
   subAccountDeposit: 5n * UNIT + (53n * UNIT) / 100n,
   minVestedTransfer: UNIT,
   spenders: [
-    { track: 0, origin: 'SmallSpender', cap: 200_000n * UNIT },
-    { track: 1, origin: 'MediumSpender', cap: 1_000_000n * UNIT },
-    { track: 2, origin: 'BigSpender', cap: 10_000_000n * UNIT },
+    { track: 30, origin: 'SmallSpender', cap: 200_000n * UNIT },
+    { track: 31, origin: 'MediumSpender', cap: 1_000_000n * UNIT },
+    { track: 32, origin: 'BigSpender', cap: 10_000_000n * UNIT },
   ],
 }
 const PREIMAGE_LEN = 214
@@ -191,7 +191,8 @@ const SEEDED_SUBS: [string, SubIdentity][] = [
   [PAYOUTS, { name: 'Payouts', parent: TEAM, registration: null }],
 ]
 
-const HOURS = 360
+const MINUTES = 6
+const HOURS = 60 * MINUTES
 const DAYS = 24 * HOURS
 
 /** The runtime's own table, which is a constant there and so a constant here. */
@@ -211,9 +212,72 @@ const reciprocal = (factor: number, xOffset: number, yOffset: number): Curve => 
   yOffset,
 })
 
+const APP_PRIVILEGED = reciprocal(0.222222224, 0.333333335, 0.333333332)
+const SUP_UNWIND = line(1, 0, 0.5)
+
 const TRACKS: Track[] = [
   {
     id: 0,
+    name: 'Root',
+    decisionDeposit: 100_000n * UNIT,
+    preparePeriod: DAYS,
+    decisionPeriod: 28 * DAYS,
+    confirmPeriod: DAYS,
+    minEnactmentPeriod: DAYS,
+    maxDeciding: 1,
+    approvalCurve: APP_PRIVILEGED,
+    supportCurve: SUP_UNWIND,
+  },
+  {
+    id: 1,
+    name: 'Runtime upgrade',
+    decisionDeposit: 100n * UNIT,
+    preparePeriod: MINUTES,
+    decisionPeriod: 28 * DAYS,
+    confirmPeriod: DAYS,
+    minEnactmentPeriod: MINUTES,
+    maxDeciding: 1,
+    approvalCurve: APP_PRIVILEGED,
+    supportCurve: reciprocal(0.000378501, 0.000756429, -0.000378215),
+  },
+  {
+    id: 2,
+    name: 'Wish for change',
+    decisionDeposit: 100n * UNIT,
+    preparePeriod: 4 * HOURS,
+    decisionPeriod: 28 * DAYS,
+    confirmPeriod: 10 * MINUTES,
+    minEnactmentPeriod: 10 * MINUTES,
+    maxDeciding: 10,
+    approvalCurve: APP_PRIVILEGED,
+    supportCurve: SUP_UNWIND,
+  },
+  {
+    id: 20,
+    name: 'Referendum canceller',
+    decisionDeposit: 1_000n * UNIT,
+    preparePeriod: 4 * HOURS,
+    decisionPeriod: DAYS,
+    confirmPeriod: HOURS,
+    minEnactmentPeriod: 10 * MINUTES,
+    maxDeciding: 1_000,
+    approvalCurve: line(1, 0.5, 1),
+    supportCurve: SUP_UNWIND,
+  },
+  {
+    id: 21,
+    name: 'Referendum killer',
+    decisionDeposit: 10_000n * UNIT,
+    preparePeriod: 4 * HOURS,
+    decisionPeriod: DAYS,
+    confirmPeriod: HOURS,
+    minEnactmentPeriod: 10 * MINUTES,
+    maxDeciding: 1_000,
+    approvalCurve: line(1, 0.5, 1),
+    supportCurve: SUP_UNWIND,
+  },
+  {
+    id: 30,
     name: 'Small spender',
     decisionDeposit: 100n * UNIT,
     preparePeriod: 4 * HOURS,
@@ -225,7 +289,7 @@ const TRACKS: Track[] = [
     supportCurve: reciprocal(0.003846922, 0.007712083, 0.001182519),
   },
   {
-    id: 1,
+    id: 31,
     name: 'Medium spender',
     decisionDeposit: 1_000n * UNIT,
     preparePeriod: 4 * HOURS,
@@ -234,10 +298,10 @@ const TRACKS: Track[] = [
     minEnactmentPeriod: DAYS,
     maxDeciding: 20,
     approvalCurve: line(0.5, 0.5, 1),
-    supportCurve: reciprocal(0.003846922, 0.007712083, 0.001182519),
+    supportCurve: reciprocal(0.005846821, 0.011734029, 0.001720990),
   },
   {
-    id: 2,
+    id: 32,
     name: 'Big spender',
     decisionDeposit: 10_000n * UNIT,
     preparePeriod: 4 * HOURS,
@@ -246,7 +310,7 @@ const TRACKS: Track[] = [
     minEnactmentPeriod: DAYS,
     maxDeciding: 2,
     approvalCurve: line(1, 0.5, 1),
-    supportCurve: reciprocal(0.003846922, 0.007712083, 0.001182519),
+    supportCurve: reciprocal(0.007901235, 0.015873016, 0.002222222),
   },
 ]
 
@@ -262,7 +326,7 @@ const NOW = 4_182_907
 const SEEDED: Referendum[] = [
   {
     index: 3,
-    track: 1,
+    track: 31,
     title: 'Pay for the runtime security audit',
     description:
       'Two firms quoted for a full pass over the runtime and the node. This covers the cheaper of the two, with the report published either way.',
@@ -278,7 +342,7 @@ const SEEDED: Referendum[] = [
   },
   {
     index: 2,
-    track: 0,
+    track: 30,
     title: 'Top up the testnet faucet',
     description: 'The faucet runs dry about once a month and somebody has to notice.',
     submitter: PAYOUTS,
@@ -292,7 +356,7 @@ const SEEDED: Referendum[] = [
   },
   {
     index: 1,
-    track: 1,
+    track: 31,
     title: 'Fund the block explorer for a year',
     description:
       'Hosting, the indexer and one person to keep it running. Twelve months, paid a quarter at a time, and the code stays open whatever happens after that.',
@@ -317,7 +381,7 @@ const SEEDED: Referendum[] = [
   // Nobody set metadata on this one, so the card falls back to the track
   {
     index: 0,
-    track: 0,
+    track: 30,
     title: null,
     description: null,
     submitter: PAYOUTS,
@@ -794,7 +858,7 @@ export function createMockRepository(): ChainRepository {
         const target = poll(operation.poll)
         if (!target) throw new Error('Referenda: BadReferendum')
         if (target.decisionDeposit !== null) throw new Error('Referenda: HasDeposit')
-        target.decisionDeposit = TRACKS[target.track]?.decisionDeposit ?? 0n
+        target.decisionDeposit = TRACKS.find((t) => t.id === target.track)?.decisionDeposit ?? 0n
         target.state = 'deciding'
         target.deciding = { since: height, confirming: null }
         return

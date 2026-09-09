@@ -275,18 +275,18 @@ describe('what a finished referendum gives back', () => {
 
 /** The spender table as the runtime publishes it, cheapest track first. */
 const SPENDERS: Spender[] = [
-  { track: 0, origin: 'SmallSpender', cap: 200_000n * UNIT },
-  { track: 1, origin: 'MediumSpender', cap: 1_000_000n * UNIT },
-  { track: 2, origin: 'BigSpender', cap: 10_000_000n * UNIT },
+  { track: 30, origin: 'SmallSpender', cap: 200_000n * UNIT },
+  { track: 31, origin: 'MediumSpender', cap: 1_000_000n * UNIT },
+  { track: 32, origin: 'BigSpender', cap: 10_000_000n * UNIT },
 ]
 
 describe('picking the track for a proposal', () => {
   it('takes the cheapest one that can release the amount', () => {
-    expect(trackFor(1n, SPENDERS)).toBe(0)
-    expect(trackFor(200_000n * UNIT, SPENDERS)).toBe(0)
-    expect(trackFor(200_000n * UNIT + 1n, SPENDERS)).toBe(1)
-    expect(trackFor(1_000_000n * UNIT, SPENDERS)).toBe(1)
-    expect(trackFor(9_999_999n * UNIT, SPENDERS)).toBe(2)
+    expect(trackFor(1n, SPENDERS)).toBe(30)
+    expect(trackFor(200_000n * UNIT, SPENDERS)).toBe(30)
+    expect(trackFor(200_000n * UNIT + 1n, SPENDERS)).toBe(31)
+    expect(trackFor(1_000_000n * UNIT, SPENDERS)).toBe(31)
+    expect(trackFor(9_999_999n * UNIT, SPENDERS)).toBe(32)
   })
 
   it('has nothing for an amount past the biggest cap', () => {

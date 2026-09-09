@@ -122,13 +122,13 @@ test('a card says how the vote is going and what happens next', async ({ page })
   // curves have eased off 2 days into a 28 day decision period
   const running = referendum(page, 1)
   await expect(running.getByText('Approval 82.00%/92.86%')).toBeVisible()
-  await expect(running.getByText('Support 21.66%/4.98%')).toBeVisible()
+  await expect(running.getByText('Support 21.66%/7.20%')).toBeVisible()
   await expect(running.getByText('Decision ends in about 26 days')).toBeVisible()
   await expect(running.getByText(/Votes are counting/)).toBeVisible()
 
   // Three days in, and ahead of both curves, which is what confirming means
   await expect(referendum(page, 3).getByText('Approval 97.50%/89.29%')).toBeVisible()
-  await expect(referendum(page, 3).getByText('Support 43.33%/3.47%')).toBeVisible()
+  await expect(referendum(page, 3).getByText('Support 43.33%/5.09%')).toBeVisible()
   await expect(referendum(page, 3).getByText('Passes in about 12 hours')).toBeVisible()
   await expect(referendum(page, 3).getByText(/ahead by enough/)).toBeVisible()
 
@@ -637,6 +637,6 @@ test('one ballot covers several referenda at once', async ({ page }) => {
   await expect(page.getByText('All of it went through')).toBeVisible()
   // Both tallies moved. An aye on #1 barely shifts five million of approval but
   // does show in its support, and the nay on #3 takes its approval down
-  await expect(referendum(page, 1).getByText('Support 21.67%/4.98%')).toBeVisible()
+  await expect(referendum(page, 1).getByText('Support 21.67%/7.20%')).toBeVisible()
   await expect(referendum(page, 3).getByText('Approval 97.48%/89.29%')).toBeVisible()
 })
