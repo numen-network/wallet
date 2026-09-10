@@ -19,6 +19,8 @@ async function withMetaMask(page: Page, outcome: 'accept' | 'reject' | 'fail' = 
           if (method === 'eth_requestAccounts') {
             return ['0x1234567890abcdef1234567890abcdef12345678']
           }
+          // Numen Local, so nothing asks MetaMask to switch chains
+          if (method === 'eth_chainId') return '0x4e306'
           if (method === 'eth_estimateGas') return '0x6086'
           if (method === 'eth_gasPrice') return '0x3b9aca00'
           return null
@@ -158,11 +160,8 @@ test('asks MetaMask for the call that brings funds back', async ({ page }) => {
   }>
   const sent = asked.find((call) => call.method === 'eth_sendTransaction')
 
-  // The chain goes first, since MetaMask signs against whatever it is pointed at
-  expect(asked.slice(-2).map((call) => call.method)).toEqual([
-    'wallet_addEthereumChain',
-    'eth_sendTransaction',
-  ])
+  // MetaMask is already sitting on Numen, so it is never asked to switch
+  expect(asked.some((call) => call.method === 'wallet_addEthereumChain')).toBe(false)
   expect(sent!.params[0]!.to).toBe('0x0000000000000000000000000000000000000802')
   expect(sent!.params[0]!.from).toBe(EVM)
   expect(sent!.params[0]!.data).toBe(

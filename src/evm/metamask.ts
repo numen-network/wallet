@@ -78,13 +78,33 @@ export async function evmAccounts(): Promise<string[]> {
 }
 
 /**
+ * Points MetaMask at Numen and hands back the provider. MetaMask prices and
+ * signs against whichever chain it sits on, and on any other chain the
+ * precompile address is a plain account that answers anything.
+ */
+async function onNumen(network: Network, facts: ChainFacts): Promise<EthereumProvider> {
+  const provider = metaMask()
+  if (!provider) throw new Error('No MetaMask found')
+
+  const numen = `0x${facts.evmChainId.toString(16)}`
+  const sitting = (await provider.request({ method: 'eth_chainId' })) as string
+  if (sitting.toLowerCase() !== numen) await addToMetaMask(network, facts)
+
+  return provider
+}
+
+/**
  * What the withdrawal will cost to run, asked of the same node MetaMask is on.
  * The fee comes out of the balance being moved, so the most that can be sent is
  * never the whole of it.
  */
-export async function withdrawFee(facts: ChainFacts, from: string, publicKey: string): Promise<bigint> {
-  const provider = metaMask()
-  if (!provider) throw new Error('No MetaMask found')
+export async function withdrawFee(
+  network: Network,
+  facts: ChainFacts,
+  from: string,
+  publicKey: string,
+): Promise<bigint> {
+  const provider = await onNumen(network, facts)
 
   const call = { from, to: facts.balancesErc20, data: withdrawCall(publicKey, 1n) }
   const [gas, price] = (await Promise.all([
@@ -95,11 +115,7 @@ export async function withdrawFee(facts: ChainFacts, from: string, publicKey: st
   return BigInt(gas) * BigInt(price)
 }
 
-/**
- * Hands MetaMask a withdrawal to sign. The network goes first because MetaMask
- * signs against whichever chain it is pointed at, and one it has never heard of
- * is one it adds rather than refuses.
- */
+/** Hands MetaMask a withdrawal to sign. */
 export async function withdrawToSubstrate(
   network: Network,
   facts: ChainFacts,
@@ -107,10 +123,8 @@ export async function withdrawToSubstrate(
   publicKey: string,
   amount: bigint,
 ): Promise<void> {
-  const provider = metaMask()
-  if (!provider) throw new Error('No MetaMask found')
+  const provider = await onNumen(network, facts)
 
-  await addToMetaMask(network, facts)
   await provider.request({
     method: 'eth_sendTransaction',
     params: [{ from, to: facts.balancesErc20, data: withdrawCall(publicKey, amount) }],

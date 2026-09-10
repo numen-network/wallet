@@ -47,6 +47,8 @@ export function BringInModal({
   const mirror = evmToSubstrate(source)
   const balances = useBalances([mirror])
   const there = balances[mirror] ? totalOf(balances[mirror]) : 0n
+  // A reserve cannot leave the account, so only the transferable part can go
+  const movable = balances[mirror]?.transferable ?? 0n
   // An H160 added to the wallet is stored as the account it spends from, so the
   // two ends can name the same place. Sending there costs gas and moves nothing
   const itself = mirror === to
@@ -55,13 +57,13 @@ export function BringInModal({
   const signable = held.some((entry) => entry.toLowerCase() === source.toLowerCase())
   // Gas is taken from the balance being moved, so the most that can go is what
   // is left after it. A MAX that spends the lot is a transfer that always fails
-  const sendable = fee !== null && there > fee ? there - fee : 0n
+  const sendable = fee !== null && movable > fee ? movable - fee : 0n
 
   useEffect(() => {
     // Nothing to price when the call is never going out
     if (!to || itself || !facts) return
-    withdrawFee(facts, source, publicKeyOf(to)).then(setFee, () => setFee(null))
-  }, [source, itself, to, facts])
+    withdrawFee(network, facts, source, publicKeyOf(to)).then(setFee, () => setFee(null))
+  }, [network, source, itself, to, facts])
 
   const send = () => {
     setError('')
@@ -72,8 +74,8 @@ export function BringInModal({
       return false
     }
     const planck = parseAmount(amount)
-    if (planck > there) {
-      setError('More than that address holds')
+    if (planck > movable) {
+      setError('More than that address can send')
       return false
     }
     if (!facts) return false
