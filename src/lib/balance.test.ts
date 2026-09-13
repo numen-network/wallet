@@ -67,7 +67,7 @@ describe('amountInput', () => {
 describe('formatAmount', () => {
   it('leaves no fraction at all when none was asked for', () => {
     expect(formatAmount(100n * UNIT, { precision: 0 })).toBe('100')
-    expect(formatAmount(100n * UNIT + UNIT / 2n, { precision: 0 })).toBe('100')
+    expect(formatAmount(100n * UNIT + UNIT / 2n, { precision: 0 })).toBe('≈100')
     expect(formatAmount(5_000_000n * UNIT, { precision: 0 })).toBe('5,000,000')
   })
 
@@ -76,7 +76,7 @@ describe('formatAmount', () => {
   })
 
   it('truncates instead of rounding up so the shown amount is never overstated', () => {
-    expect(formatAmount(999999999999999999n)).toBe('0.9999')
+    expect(formatAmount(999999999999999999n)).toBe('≈0.9999')
   })
 
   it('drops trailing zeros when asked', () => {
@@ -90,10 +90,10 @@ describe('formatAmount', () => {
   })
 
   it('says a number is approximate only when it dropped digits', () => {
-    expect(formatAmount(999999999999999999n, { approx: true })).toBe('≈0.9999')
-    expect(formatAmount(0n, { approx: true })).toBe('0.0000')
-    expect(formatAmount(UNIT / 2n, { approx: true })).toBe('0.5000')
-    expect(formatAmount(999999999999999999n, { precision: 18, approx: true }))
+    expect(formatAmount(999999999999999999n)).toBe('≈0.9999')
+    expect(formatAmount(0n)).toBe('0.0000')
+    expect(formatAmount(UNIT / 2n)).toBe('0.5000')
+    expect(formatAmount(999999999999999999n, { precision: 18 }))
       .toBe('0.999999999999999999')
   })
 
@@ -103,22 +103,22 @@ describe('formatAmount', () => {
 
   it('scales thousands and millions to K and M when compact', () => {
     expect(formatAmount(600_000_000n * UNIT, { precision: 2, compact: true })).toBe('600.00M')
-    expect(formatAmount(12_345n * UNIT, { precision: 2, compact: true })).toBe('12.34K')
+    expect(formatAmount(12_345n * UNIT, { precision: 2, compact: true })).toBe('≈12.34K')
     expect(formatAmount(999n * UNIT, { precision: 2, compact: true })).toBe('999.00')
   })
 
   it('picks the unit right at the K and M boundaries', () => {
     expect(formatAmount(1_000n * UNIT, { precision: 2, compact: true })).toBe('1.00K')
-    expect(formatAmount(999_999n * UNIT, { precision: 2, compact: true })).toBe('999.99K')
+    expect(formatAmount(999_999n * UNIT, { precision: 2, compact: true })).toBe('≈999.99K')
     expect(formatAmount(1_000_000n * UNIT, { precision: 2, compact: true })).toBe('1.00M')
   })
 
   it('keeps truncation and the ≈ mark on the scaled unit', () => {
-    expect(formatAmount(999_999_999n * UNIT, { precision: 2, compact: true, approx: true }))
+    expect(formatAmount(999_999_999n * UNIT, { precision: 2, compact: true }))
       .toBe('≈999.99M')
-    expect(formatAmount(12_345n * UNIT, { precision: 2, compact: true, approx: true }))
+    expect(formatAmount(12_345n * UNIT, { precision: 2, compact: true }))
       .toBe('≈12.34K')
-    expect(formatAmount(1_000_000n * UNIT, { precision: 2, compact: true, approx: true }))
+    expect(formatAmount(1_000_000n * UNIT, { precision: 2, compact: true }))
       .toBe('1.00M')
   })
 })

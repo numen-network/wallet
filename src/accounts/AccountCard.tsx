@@ -359,9 +359,9 @@ function CardBody({
             freeze and a deposit are not the same thing and do not come back the
             same way, so one figure over both says less than it looks */}
         <div data-nodrag className={cn('mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground', PICKABLE)}>
-          <span>transferable {formatAmount(holdings.transferable, { precision: 2, compact: true, approx: true })}</span>
-          <span>locked {formatAmount(holdings.locked, { precision: 2, compact: true, approx: true })}</span>
-          <span>reserved {formatAmount(holdings.reserved, { precision: 2, compact: true, approx: true })}</span>
+          <span>transferable {formatAmount(holdings.transferable, { precision: 2, compact: true })}</span>
+          <span>locked {formatAmount(holdings.locked, { precision: 2, compact: true })}</span>
+          <span>reserved {formatAmount(holdings.reserved, { precision: 2, compact: true })}</span>
         </div>
       </CardContent>
 

@@ -171,7 +171,7 @@ export function UnlockModal({
                     <div key={vote.poll} className="flex items-baseline gap-2 pl-4">
                       <span className="flex-1 text-[12px] text-dim">#{vote.poll}</span>
                       <span className={cn(AMOUNT, 'text-dim')}>{ballotOf(vote)}</span>
-                      <span className={cn(AMOUNT, 'w-[70px] text-right')}>
+                      <span className={cn(AMOUNT, 'w-[96px] text-right')}>
                         {formatAmount(vote.amount, { precision: 2 })}
                       </span>
                       <span className={cn(STATE, 'text-dim')}>{voteWord(vote)}</span>
@@ -181,7 +181,7 @@ export function UnlockModal({
                   {lock.prior.amount > 0n && (
                     <div className="flex items-baseline gap-2 pl-4">
                       <span className="flex-1 text-[12px] text-dim italic">votes taken back</span>
-                      <span className={cn(AMOUNT, 'w-[70px] text-right text-dim')}>
+                      <span className={cn(AMOUNT, 'w-[96px] text-right text-dim')}>
                         {formatAmount(lock.prior.amount, { precision: 2 })}
                       </span>
                       <span className={cn(STATE, 'text-dim')}>

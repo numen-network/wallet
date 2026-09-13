@@ -64,20 +64,21 @@ export function amountInput(raw: string): string {
 }
 
 export interface FormatOptions {
-  /** Fraction digits shown. Value is truncated, never rounded up. */
+  /**
+   * Fraction digits shown. The value is truncated, never rounded up, and gets
+   * a leading ≈ whenever that drops anything.
+   */
   precision?: number
   /** Thousands separators on the integer part. */
   grouped?: boolean
   /** Keep trailing zeros so columns of numbers stay aligned. */
   pad?: boolean
-  /** Mark the number with ≈ when digits had to be dropped to fit the precision. */
-  approx?: boolean
   /** Scale thousands to K and millions to M. */
   compact?: boolean
 }
 
 export function formatAmount(planck: bigint, options: FormatOptions = {}): string {
-  const { precision = 4, grouped = true, pad = true, approx = false, compact = false } = options
+  const { precision = 4, grouped = true, pad = true, compact = false } = options
 
   const negative = planck < 0n
   const abs = negative ? -planck : planck
@@ -96,7 +97,7 @@ export function formatAmount(planck: bigint, options: FormatOptions = {}): strin
   const sign = negative ? '−' : ''
   // What one shown digit is worth, so anything under it is what got dropped
   const step = precision >= DECIMALS + shift ? 1n : unit / 10n ** BigInt(precision)
-  const about = approx && abs % step !== 0n ? '≈' : ''
+  const about = abs % step !== 0n ? '≈' : ''
 
   return frac ? `${about}${sign}${head}.${frac}${suffix}` : `${about}${sign}${head}${suffix}`
 }

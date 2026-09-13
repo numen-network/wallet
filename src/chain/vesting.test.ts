@@ -100,7 +100,7 @@ describe('writing a schedule from a duration', () => {
 
   it('reads out as a daily rate, since a per block one rounds to nothing', () => {
     const made = scheduleOver(100n * UNIT, 365, 0, BLOCK_SECONDS)
-    expect(formatAmount(made.perBlock)).toBe('0.0000')
-    expect(formatAmount(perDay(made, BLOCK_SECONDS))).toBe('0.2739')
+    expect(formatAmount(made.perBlock)).toBe('≈0.0000')
+    expect(formatAmount(perDay(made, BLOCK_SECONDS))).toBe('≈0.2739')
   })
 })
