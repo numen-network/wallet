@@ -28,6 +28,12 @@ pnpm e2e         # playwright, needs `pnpm exec playwright install chromium` onc
 pnpm build       # tsc then vite build
 ```
 
+## Local node
+
+The wallet hosted on numen-network.org needs your browser's permission to reach a node on your own machine. Chrome and Edge ask for it when the page first connects to `ws://127.0.0.1:9944`. If you dismissed or blocked the prompt, open Site settings from the icon left of the URL and set **Apps on device** to **Allow**. Older versions call it **Local network access**.
+
+None of this applies to the wallet `pnpm dev` serves from localhost, or to public endpoints.
+
 ## What it does not do
 
 - **Hardware wallets.** Ledger needs its own Numen app registered before the device will recognise anything this page hands it.
