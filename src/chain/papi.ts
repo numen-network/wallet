@@ -885,6 +885,8 @@ export function createPapiRepository(network: Network): ChainRepository {
         return api.tx.Identity.quit_sub()
       case 'vest':
         return api.tx.Vesting.vest()
+      case 'vestOther':
+        return api.tx.Vesting.vest_other({ target: Enum('Id', operation.target) })
       case 'vestedTransfer':
         return api.tx.Vesting.vested_transfer({
           target: Enum('Id', operation.to),

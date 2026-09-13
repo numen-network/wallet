@@ -258,6 +258,7 @@ const STALE: Partial<Record<Operation['kind'], Cache[]>> = {
   setSubs: ['subs', 'identity'],
   quitSub: ['identity', 'subs'],
   vest: ['vesting'],
+  vestOther: ['vesting'],
   vestedTransfer: ['vesting'],
   proposeBounty: ['bounties'],
   acceptCurator: ['bounties'],

@@ -690,6 +690,13 @@ export function createMockRepository(): ChainRepository {
     return seeded
   }
 
+  const vest = (address: string) => {
+    const held = vestingOf(address)
+    if (held.length === 0) throw new Error('Vesting: NotVesting')
+    schedules.set(address, [])
+    write(address, read(address).free + releasable(held, height))
+  }
+
   /**
    * What a call does to the invented chain, with none of the walk it takes to
    * get there. batch_all is atomic on a real chain. This is not one, so a call
@@ -1008,10 +1015,11 @@ export function createMockRepository(): ChainRepository {
         return
       }
       case 'vest': {
-        const held = vestingOf(account.address)
-        if (held.length === 0) throw new Error('Vesting: NotVesting')
-        schedules.set(account.address, [])
-        write(account.address, read(account.address).free + releasable(held, height))
+        vest(account.address)
+        return
+      }
+      case 'vestOther': {
+        vest(operation.target)
         return
       }
       case 'vestedTransfer': {

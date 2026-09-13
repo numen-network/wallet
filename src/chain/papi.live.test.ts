@@ -245,6 +245,12 @@ describe('vesting', () => {
     expect(await repository.vesting(bob)).toEqual([...held, schedule])
   })
 
+  it('releases a schedule on behalf of another account', { timeout: 200_000 }, async () => {
+    const bob = toNumenAddress(new Keyring({ type: 'sr25519' }).addFromUri('//Bob').address)
+    // Alice holds no schedule, so the call only lands if the chain reads Bob's
+    await expect(send({ kind: 'vestOther', target: bob })).resolves.toBeUndefined()
+  })
+
   it('prices the release call, which the granter never signs', async () => {
     expect(await repository.estimateFee(alice.address, { kind: 'vest' })).toBeGreaterThan(0n)
   })

@@ -72,12 +72,14 @@ export function VestingModal(props: VestingModalProps) {
  */
 function Release({
   account,
+  accounts,
   signers,
   tabs,
   onClose,
 }: VestingModalProps & { tabs: ReactNode }) {
   const symbol = useSymbol()
-  const { data: schedules } = useVesting(account.address)
+  const [target, setTarget] = useState(account.address)
+  const { data: schedules } = useVesting(target)
   const { data: facts } = useFacts()
   const head = useHead()
   const call = useCall(onClose)
@@ -86,7 +88,8 @@ function Release({
   const height = head?.number ?? 0
   const held = schedules ?? []
   const free = releasable(held, height)
-  const operation = { kind: 'vest' } as const
+  const operation: Operation =
+    target === account.address ? { kind: 'vest' } : { kind: 'vestOther', target }
 
   const form = () => call.run(submit(operation, call.password))
 
@@ -116,13 +119,20 @@ function Release({
       onClose={onClose}
       onSubmit={form}
     >
+      <AddressField
+        label="For"
+        value={target}
+        onChange={(address) => setTarget(resolveAddress(address)!)}
+        accounts={accounts}
+      />
+
       {held.length === 0 ? (
-        <Empty className="mt-0 p-6">Nothing is vesting on this account.</Empty>
+        <Empty className="mt-2.5 p-6">Nothing is vesting on this account.</Empty>
       ) : (
         <>
           {/* The two figures every schedule adds up to, since what is worth
               signing for is the first of them */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="mt-2.5 grid grid-cols-2 gap-2.5">
             <Figure label="Ready to release" value={amount(free)} lit={free > 0n} />
             <Figure label="Still frozen" value={amount(stillLocked(held, height))} />
           </div>

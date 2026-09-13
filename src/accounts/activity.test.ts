@@ -29,6 +29,13 @@ group('a call read out argument by argument', () => {
     expect(said({ kind: 'vest' })).toEqual({ title: 'Release what has vested', fields: [] })
   })
 
+  it('says whose schedule a release is for', () => {
+    expect(said({ kind: 'vestOther', target: TO })).toEqual({
+      title: 'Release what has vested',
+      fields: [{ name: 'for', value: 'nu3oNks…Co98' }],
+    })
+  })
+
   it('hangs what a wrapper adds off the end of what it wraps', () => {
     expect(said({ kind: 'asProxy', real: OTHER, call: pay(TO, 1n) })).toEqual({
       title: 'Transfer',

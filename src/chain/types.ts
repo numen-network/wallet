@@ -184,6 +184,7 @@ export type Operation =
   | { kind: 'quitSub' }
   /** Works the freeze out again, which is the only thing that frees what has thawed. */
   | { kind: 'vest' }
+  | { kind: 'vestOther'; target: string }
   /**
    * A grant. The money leaves at once and lands frozen on the far end, and the
    * pallet has no call that takes one back.

@@ -50,6 +50,7 @@ export const SETTLED: Record<Operation['kind'], string> = {
   setSubs: 'Sub accounts saved',
   quitSub: 'Parent identity rejected',
   vest: 'Vested balance released',
+  vestOther: 'Vested balance released',
   vestedTransfer: 'Vesting schedule granted',
   proposeBounty: 'Bounty proposed',
   acceptCurator: 'Curator role accepted',
@@ -229,6 +230,8 @@ export function describe(
       }
     case 'vest':
       return { title: 'Release what has vested', fields: [] }
+    case 'vestOther':
+      return { title: 'Release what has vested', fields: row({ for: who(operation.target) }) }
     case 'vestedTransfer':
       return {
         title: 'Grant a vesting schedule',

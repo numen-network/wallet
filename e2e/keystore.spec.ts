@@ -230,6 +230,36 @@ test('grants a schedule and says where the rate lands it', async ({ page }) => {
   await expect(page.getByText('Vesting schedule granted')).toBeVisible()
 })
 
+test('releases a schedule on behalf of another account', async ({ page }) => {
+  await createKey(page)
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Done' }).click()
+
+  await card(page).getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Vesting' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('tab', { name: 'Grant' }).click()
+  await fillAddress(page, dialog, 'To', DESTINATION)
+  await dialog.getByLabel('Amount').fill('10')
+  await dialog.getByLabel('Unlocks over').fill('30')
+  // Block 1 is long past, so the grant lands fully thawed
+  await dialog.getByLabel('Starts at block').fill('1')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Vesting schedule granted')).toBeVisible()
+
+  await card(page).getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Vesting' }).click()
+  await dialog.getByRole('tab', { name: 'Release' }).click()
+  await fillAddress(page, dialog, 'For', DESTINATION)
+  await expect(dialog.getByText('10.0000 tNUMN', { exact: true })).toBeVisible()
+
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Vested balance released')).toBeVisible()
+})
+
 /**
  * A call the wallet lets through and the chain then turns down. The grant fits
  * the balance and not the balance plus the fee, which the form cannot know
