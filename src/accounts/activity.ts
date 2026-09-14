@@ -1,4 +1,4 @@
-import { weightOf } from '@/chain/governance'
+import { weightOf, type Motion } from '@/chain/governance'
 import { IDENTITY_FIELDS, LABELS, type IdentityInfo } from '@/chain/identity'
 import type { CallArg, Operation, TxStage } from '@/chain/types'
 import { endsAt } from '@/chain/vesting'
@@ -336,22 +336,11 @@ export function describe(
       const inner = describe(operation.call, symbol, options)
       return { title: inner.title, fields: [...inner.fields, { name: 'as', value: who(operation.real) }] }
     }
-    case 'propose': {
-      const asked = operation.payouts.reduce((sum, payout) => sum + payout.amount, 0n)
-      const staged = operation.payouts.length > 1 ? { paid: `over ${operation.payouts.length} payouts` } : {}
-      // One name when they all go to the same place, a count when they do not
-      const payees = new Set(operation.payouts.map((payout) => payout.beneficiary))
-      const [only] = [...payees]
+    case 'propose':
       return {
         title: 'Open a referendum',
-        fields: row({
-          amount: amount(asked),
-          ...staged,
-          to: payees.size === 1 && only ? who(only) : `${payees.size} accounts`,
-          track: track(operation.track),
-        }),
+        fields: row({ ...runs(operation.motion, amount, who), track: track(operation.track) }),
       }
-    }
     case 'editMetadata':
       return {
         title: `Edit the text of referendum ${operation.poll}`,
@@ -376,6 +365,45 @@ export function describe(
         })),
       }
     }
+  }
+}
+
+function runs(
+  motion: Motion,
+  amount: (planck: bigint) => string,
+  who: (address: string) => string,
+): Record<string, string> {
+  switch (motion.kind) {
+    case 'spend': {
+      const asked = motion.payouts.reduce((sum, payout) => sum + payout.amount, 0n)
+      const staged = motion.payouts.length > 1 ? { paid: `over ${motion.payouts.length} payouts` } : {}
+      // One name when they all go to the same place, a count when they do not
+      const payees = new Set(motion.payouts.map((payout) => payout.beneficiary))
+      const [only] = [...payees]
+      return {
+        amount: amount(asked),
+        ...staged,
+        to: payees.size === 1 && only ? who(only) : `${payees.size} accounts`,
+      }
+    }
+    case 'remark':
+      return {}
+    case 'cancel':
+      return { cancels: String(motion.poll) }
+    case 'kill':
+      return { kills: String(motion.poll) }
+    case 'addRegistrar':
+      return { 'adds registrar': who(motion.account) }
+    case 'removeRegistrar':
+      return { 'removes registrar': String(motion.registrar) }
+    case 'addUsernameAuthority':
+      return {
+        'adds authority': who(motion.authority),
+        suffix: motion.suffix,
+        allocation: String(motion.allocation),
+      }
+    case 'removeUsernameAuthority':
+      return { 'removes authority': who(motion.authority), suffix: motion.suffix }
   }
 }
 

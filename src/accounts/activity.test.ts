@@ -1,5 +1,6 @@
 import { describe as group, expect, it } from 'vitest'
 import { UNIT } from '@/chain/config'
+import type { Motion } from '@/chain/governance'
 import type { Operation } from '@/chain/types'
 import { describe } from './activity'
 
@@ -45,6 +46,53 @@ group('a call read out argument by argument', () => {
         { name: 'as', value: 'nu2uaQW…nASg' },
       ],
     })
+  })
+})
+
+group('a referendum in the log', () => {
+  const propose = (track: number, motion: Motion): Operation => ({
+    kind: 'propose',
+    track,
+    motion,
+    title: 'A title',
+    description: '',
+  })
+
+  it('says what a spend pays and where', () => {
+    const payouts = [{ amount: UNIT, beneficiary: TO, validFrom: null }]
+    expect(said(propose(30, { kind: 'spend', payouts })).fields).toEqual([
+      { name: 'amount', value: '1.0000 tNUMN' },
+      { name: 'to', value: 'nu3oNks…Co98' },
+      { name: 'track', value: 'Track 30' },
+    ])
+  })
+
+  it('names the referendum a brake would stop', () => {
+    expect(said(propose(20, { kind: 'cancel', poll: 4 })).fields).toEqual([
+      { name: 'cancels', value: '4' },
+      { name: 'track', value: 'Track 20' },
+    ])
+  })
+
+  it('has only the track to say about one that runs nothing', () => {
+    expect(said(propose(2, { kind: 'remark', text: 'A title' })).fields).toEqual([
+      { name: 'track', value: 'Track 2' },
+    ])
+  })
+
+  it('writes out a username authority by suffix as well as by account', () => {
+    const motion: Motion = {
+      kind: 'addUsernameAuthority',
+      authority: OTHER,
+      suffix: 'numen',
+      allocation: 500,
+    }
+    expect(said(propose(10, motion)).fields).toEqual([
+      { name: 'adds authority', value: 'nu2uaQW…nASg' },
+      { name: 'suffix', value: 'numen' },
+      { name: 'allocation', value: '500' },
+      { name: 'track', value: 'Track 10' },
+    ])
   })
 })
 

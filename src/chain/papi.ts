@@ -25,6 +25,7 @@ import {
   hasRefund,
   metadataDump,
   NO_METADATA,
+  originOf,
   readMeta,
   readVoteByte,
   readableTrack,
@@ -33,6 +34,7 @@ import {
   type ClassLock,
   type Curve,
   type Metadata,
+  type Motion,
   type NotedPreimage,
   type Proposal,
   type ProposalSpend,
@@ -53,6 +55,7 @@ import {
   type Registration,
   type Standing,
   type Subs,
+  type UsernameAuthority,
 } from './identity'
 import type { Bounty, BountyState, ChildBounty, ChildState } from './bounties'
 import type { VestingSchedule } from './vesting'
@@ -129,6 +132,10 @@ function toCast(vote: AccountVote): Pick<CastVote, 'side' | 'conviction' | 'amou
 
 type ReferendumStatus = Extract<ReferendumInfo, { type: 'Ongoing' }>['value']
 type TrackInfo = Awaited<ReturnType<Api['constants']['Referenda']['Tracks']>>[number][1]
+type CustomOrigin = Extract<
+  Parameters<Api['tx']['Referenda']['submit']>[0]['proposal_origin'],
+  { type: 'Origins' }
+>['value']['type']
 type BountyStatus = Awaited<
   ReturnType<Api['query']['Bounties']['Bounties']['getEntries']>
 >[number]['value']['status']
@@ -298,6 +305,7 @@ function toCurve(curve: ReferendaTypesCurve): Curve {
 const toTrack = ([id, info]: [number, TrackInfo]): Track => ({
   id,
   name: readableTrack(info.name),
+  origin: originOf(info.name),
   decisionDeposit: info.decision_deposit,
   preparePeriod: info.prepare_period,
   decisionPeriod: info.decision_period,
@@ -564,6 +572,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       identityBasicDeposit,
       identityByteDeposit,
       subAccountDeposit,
+      maxSuffixLength,
       minVestedTransfer,
       caps,
       preimageBaseDeposit,
@@ -585,6 +594,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       api.constants.Identity.BasicDeposit(),
       api.constants.Identity.ByteDeposit(),
       api.constants.Identity.SubAccountDeposit(),
+      api.constants.Identity.MaxSuffixLength(),
       api.constants.Vesting.MinVestedTransfer(),
       api.constants.Origins.SpendCaps(),
       api.constants.Origins.PreimageBaseDeposit(),
@@ -633,8 +643,9 @@ export function createPapiRepository(network: Network): ChainRepository {
       identityBasicDeposit,
       identityByteDeposit,
       subAccountDeposit,
+      maxSuffixLength,
       minVestedTransfer,
-      spenders: caps.map(([track, origin, cap]) => ({ track, origin: origin.type, cap })),
+      spenders: caps.map(([track, , cap]) => ({ track, cap })),
     }
   }
 
@@ -646,39 +657,64 @@ export function createPapiRepository(network: Network): ChainRepository {
   const timepointOf = async (multisig: string, callHash: string): Promise<Timepoint | undefined> =>
     (await api.query.Multisig.Multisigs.getValue(multisig, callHash, BEST))?.when
 
-  const build = async (operation: Operation): Promise<Tx> => {
-    if (operation.kind === 'propose') {
-      const spends = operation.payouts.map((payout) =>
-        api.tx.Treasury.spend({
-          amount: payout.amount,
-          beneficiary: payout.beneficiary,
-          valid_from: payout.validFrom ?? undefined,
-        }),
-      )
-      const [only] = spends
-      if (only == null) throw new Error('A proposal has to ask for something')
-      // One payout stands on its own, several have to run or fail together
-      const paying =
-        spends.length === 1
+  const motionTx = (motion: Motion): Tx => {
+    switch (motion.kind) {
+      case 'spend': {
+        const spends = motion.payouts.map((payout) =>
+          api.tx.Treasury.spend({
+            amount: payout.amount,
+            beneficiary: payout.beneficiary,
+            valid_from: payout.validFrom ?? undefined,
+          }),
+        )
+        const [only] = spends
+        if (only == null) throw new Error('A proposal has to ask for something')
+        // One payout stands on its own, several have to run or fail together
+        return spends.length === 1
           ? only
           : api.tx.Utility.batch_all({ calls: spends.map((tx) => tx.decodedCall) })
+      }
+      case 'remark':
+        return api.tx.System.remark({ remark: encoder.encode(motion.text) })
+      case 'cancel':
+        return api.tx.Referenda.cancel({ index: motion.poll })
+      case 'kill':
+        return api.tx.Referenda.kill({ index: motion.poll })
+      case 'addRegistrar':
+        return api.tx.Identity.add_registrar({ account: Enum('Id', motion.account) })
+      case 'removeRegistrar':
+        return api.tx.Identity.remove_registrar({ index: motion.registrar })
+      case 'addUsernameAuthority':
+        return api.tx.Identity.add_username_authority({
+          authority: Enum('Id', motion.authority),
+          suffix: encoder.encode(motion.suffix),
+          allocation: motion.allocation,
+        })
+      case 'removeUsernameAuthority':
+        return api.tx.Identity.remove_username_authority({
+          suffix: encoder.encode(motion.suffix),
+          authority: Enum('Id', motion.authority),
+        })
+    }
+  }
 
-      const table = await trackTable()
-      const track = table.find((entry) => entry.id === operation.track)
-      const cap = (await api.constants.Origins.SpendCaps()).find(([id]) => id === operation.track)
-      if (!track || !cap) throw new Error(`Track ${operation.track} takes no proposals`)
-      const [, origin] = cap
+  const build = async (operation: Operation): Promise<Tx> => {
+    if (operation.kind === 'propose') {
+      const track = (await trackTable()).find((entry) => entry.id === operation.track)
+      if (!track) throw new Error(`Track ${operation.track} takes no proposals`)
 
       // Referenda carries a short proposal in the call itself and leaves a
-      // longer one in the preimage store, which is where instalments land
-      const encoded = await paying.getEncodedData()
-      const inline = encoded.length <= INLINE_BOUND
+      // longer one in the preimage store, which is where instalments land. A
+      // remark goes there whatever its length, since the dialog quotes its copy
+      // of the text as a second preimage
+      const encoded = await motionTx(operation.motion).getEncodedData()
+      const inline = operation.motion.kind !== 'remark' && encoded.length <= INLINE_BOUND
       const proposal = inline
         ? Enum('Inline', encoded)
         : Enum('Lookup', { hash: blake2AsHex(encoded, 256), len: encoded.length })
 
       const submit = api.tx.Referenda.submit({
-        proposal_origin: Enum('Origins', origin),
+        proposal_origin: Enum('Origins', Enum(track.origin as CustomOrigin)),
         proposal,
         enactment_moment: Enum('After', track.minEnactmentPeriod),
       })
@@ -1200,6 +1236,17 @@ export function createPapiRepository(network: Network): ChainRepository {
       return entries.flatMap((entry, index) =>
         entry ? [{ index, account: entry.account, fee: entry.fee }] : [],
       )
+    },
+
+    async usernameAuthorities(): Promise<UsernameAuthority[]> {
+      const entries = await api.query.Identity.AuthorityOf.getEntries(BEST)
+      return entries
+        .map(({ keyArgs: [suffix], value }) => ({
+          suffix: decoder.decode(suffix),
+          account: value.account_id,
+          allocation: value.allocation,
+        }))
+        .sort((one, other) => one.suffix.localeCompare(other.suffix))
     },
 
     tracks: trackTable,

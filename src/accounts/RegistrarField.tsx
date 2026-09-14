@@ -15,7 +15,7 @@ export function RegistrarField({
   onChange,
 }: {
   registrars: Registrar[]
-  value: number
+  value: number | null
   onChange: (index: number) => void
 }) {
   const symbol = useSymbol()

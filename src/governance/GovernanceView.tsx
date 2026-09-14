@@ -78,9 +78,8 @@ const TABS: readonly TabOption<Tab>[] = [
 const SORT_OPTIONS = Object.entries(SORT_LABELS).map(([value, label]) => ({ value, label }))
 
 /**
- * Every track here is a spender track, so this page is the treasury's queue.
- * Nothing on it belongs to one account, which is why the account doing the
- * signing is picked inside each dialog rather than carried in from a card.
+ * Nothing on this page belongs to one account, which is why the account doing
+ * the signing is picked inside each dialog rather than carried in from a card.
  */
 export function GovernanceView({
   accounts,
@@ -198,8 +197,8 @@ export function GovernanceView({
             <Empty>Reading the chain…</Empty>
           ) : running.length === 0 ? (
             <Empty>
-              Nothing is running. A referendum here asks the treasury to pay somebody, and any
-              account whose identity a registrar has checked may open one.
+              Nothing is running. Any account whose identity a registrar has checked may open a
+              referendum.
             </Empty>
           ) : (
             <section aria-label="Running referenda" className="grid gap-2.5">

@@ -26,6 +26,7 @@ import { getWsProvider } from 'polkadot-api/ws'
 import { toNumenAddress } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { NETWORKS, SS58_PREFIX, UNIT } from './config'
+import { dumpBytes, metadataDump, remarkBytes, type Motion } from './governance'
 import { depositFor, EMPTY_IDENTITY, isQualified, labelOf } from './identity'
 import { createPapiRepository } from './papi'
 import { transferableOf, type AccountBalance, type Operation } from './types'
@@ -316,10 +317,13 @@ describe('governance', () => {
     const { spenders } = await repository.facts()
 
     // Two independent chain reads of the same table have to name the same tracks
-    expect(tracks.map((track) => track.id)).toEqual(spenders.map((spender) => spender.track))
+    expect(tracks.map((track) => track.id)).toEqual(
+      expect.arrayContaining(spenders.map((spender) => spender.track)),
+    )
     for (const track of tracks) {
       // A name that decodes wrong keeps its NUL padding or comes back empty
       expect(track.name).toMatch(/^[ -~]+$/)
+      expect(track.origin).toMatch(/^[A-Z][A-Za-z]*$/)
       expect(track.decisionDeposit > 0n).toBe(true)
       expect(['linear', 'reciprocal']).toContain(track.approvalCurve.kind)
       expect(['linear', 'reciprocal']).toContain(track.supportCurve.kind)
@@ -376,6 +380,11 @@ describe('governance', () => {
     expect(await repository.pending([alice.address])).toEqual([])
     expect(await repository.vesting(alice.address)).toEqual([])
     expect(await repository.subsOf(alice.address)).toEqual({ deposit: 0n, list: [] })
+    expect(await repository.usernameAuthorities()).toEqual([])
+  })
+
+  it('reads the longest suffix a username authority may be given', async () => {
+    expect((await repository.facts()).maxSuffixLength).toBeGreaterThan(0)
   })
 
   it('opens a referendum, votes on it, and takes the vote back', { timeout: 400_000 }, async () => {
@@ -415,8 +424,11 @@ describe('governance', () => {
     const words = `The suite needs one and the chain keeps it beside the title. ${Date.now()}`
     await send({
       kind: 'propose',
-      track: 0,
-      payouts: [{ amount: 1_000n * UNIT, beneficiary: alice.address, validFrom: null }],
+      track: 30,
+      motion: {
+        kind: 'spend',
+        payouts: [{ amount: 1_000n * UNIT, beneficiary: alice.address, validFrom: null }],
+      },
       title: 'Pay Alice a thousand',
       description: words,
     })
@@ -426,7 +438,7 @@ describe('governance', () => {
     )
     const referendum = opened[0]
     expect(referendum).toBeDefined()
-    expect(referendum?.track).toBe(0)
+    expect(referendum?.track).toBe(30)
     expect(referendum?.state).toBe('preparing')
     // Noted as a preimage, named by set_metadata, and read back through both
     expect(referendum?.title).toBe('Pay Alice a thousand')
@@ -462,14 +474,14 @@ describe('governance', () => {
 
     const locks = await repository.locks(alice.address)
     // The vote it is holding, which is what the release dialog takes back
-    expect(locks.find((lock) => lock.track === 0)).toMatchObject({
+    expect(locks.find((lock) => lock.track === 30)).toMatchObject({
       amount: 5_000n * UNIT,
       votes: [{ poll: index, side: 'aye', amount: 5_000n * UNIT, outcome: { kind: 'running' } }],
     })
 
-    await send({ kind: 'removeVote', track: 0, poll: index })
+    await send({ kind: 'removeVote', track: 30, poll: index })
     expect(
-      (await repository.locks(alice.address)).find((lock) => lock.track === 0)?.votes,
+      (await repository.locks(alice.address)).find((lock) => lock.track === 30)?.votes,
     ).toEqual([])
 
     // Three payouts run past what Referenda takes inline, so this one has to go
@@ -481,12 +493,15 @@ describe('governance', () => {
     const beforeStaged = await repository.referenda()
     await send({
       kind: 'propose',
-      track: 0,
-      payouts: [
-        { amount: 300n * UNIT, beneficiary: alice.address, validFrom: null },
-        { amount: 300n * UNIT, beneficiary: alice.address, validFrom: 10_000_000 + mark },
-        { amount: 400n * UNIT, beneficiary: alice.address, validFrom: 20_000_000 + mark },
-      ],
+      track: 30,
+      motion: {
+        kind: 'spend',
+        payouts: [
+          { amount: 300n * UNIT, beneficiary: alice.address, validFrom: null },
+          { amount: 300n * UNIT, beneficiary: alice.address, validFrom: 10_000_000 + mark },
+          { amount: 400n * UNIT, beneficiary: alice.address, validFrom: 20_000_000 + mark },
+        ],
+      },
       title: 'Pay Alice in three',
       description: staged,
     })
@@ -505,12 +520,88 @@ describe('governance', () => {
     })
   })
 
+  /**
+   * The chain works the track out from the origin, so landing on the track
+   * asked for is what proves the origin read off the track's name.
+   */
+  it('opens a referendum on every other track the dialog offers', { timeout: 400_000 }, async () => {
+    const tracks = await repository.tracks()
+    const on = (origin: string) => tracks.find((track) => track.origin === origin)!.id
+    const [running] = await repository.referenda()
+    expect(running).toBeDefined()
+
+    const motions: [string, Motion, string][] = [
+      ['ReferendumCanceller', { kind: 'cancel', poll: running!.index }, 'Referenda.cancel'],
+      ['ReferendumKiller', { kind: 'kill', poll: running!.index }, 'Referenda.kill'],
+      ['IdentityAdmin', { kind: 'addRegistrar', account: alice.address }, 'Identity.add_registrar'],
+      ['IdentityAdmin', { kind: 'removeRegistrar', registrar: 0 }, 'Identity.remove_registrar'],
+      [
+        'IdentityAdmin',
+        { kind: 'addUsernameAuthority', authority: alice.address, suffix: 'numen', allocation: 10 },
+        'Identity.add_username_authority',
+      ],
+      [
+        'IdentityAdmin',
+        { kind: 'removeUsernameAuthority', authority: alice.address, suffix: 'numen' },
+        'Identity.remove_username_authority',
+      ],
+    ]
+
+    for (const [origin, motion, label] of motions) {
+      const before = await repository.referenda()
+      // The title goes up as a preimage, and the chain turns the same bytes down twice
+      await send({
+        kind: 'propose',
+        track: on(origin),
+        motion,
+        title: `${label} ${Date.now()}`,
+        description: '',
+      })
+
+      const opened = (await repository.referenda()).find(
+        (referendum) => !before.some((old) => old.index === referendum.index),
+      )
+      expect(opened?.track).toBe(on(origin))
+      expect(opened?.proposal).toEqual({ kind: 'other', label })
+    }
+  })
+
+  /**
+   * The copy is noted as a preimage however short it is, so what the dialog
+   * quotes is the text twice over, once as metadata and once inside the call.
+   */
+  it('copies the text of a wish into its call', { timeout: 400_000 }, async () => {
+    const wish = (await repository.tracks()).find((track) => track.origin === 'WishForChange')!.id
+    const { preimageBaseDeposit, preimageByteDeposit } = await repository.facts()
+
+    for (const description of ['', `Say what the network should do. ${'x'.repeat(200)}`]) {
+      const title = `A wish ${Date.now()}`
+      const text = metadataDump(title, description)
+      const before = await repository.referenda()
+      await send({ kind: 'propose', track: wish, motion: { kind: 'remark', text }, title, description })
+
+      const opened = (await repository.referenda()).find(
+        (referendum) => !before.some((old) => old.index === referendum.index),
+      )
+      expect(opened?.track).toBe(wish)
+      expect(opened?.proposal).toEqual({ kind: 'other', label: 'System.remark' })
+
+      const call = await api.tx.System.remark({ remark: new TextEncoder().encode(text) }).getEncodedData()
+      const length = remarkBytes(dumpBytes(text))
+      const copy = (await repository.preimages([alice.address])).find(
+        (held) => held.hash === blake2AsHex(call, 256),
+      )
+      expect(copy?.len).toBe(length)
+      expect(copy?.amount).toBe(preimageBaseDeposit + BigInt(length) * preimageByteDeposit)
+    }
+  })
+
   it('prices every governance call through the runtime', async () => {
     const calls: Operation[] = [
       {
         kind: 'propose',
-        track: 1,
-        payouts: [{ amount: UNIT, beneficiary: alice.address, validFrom: null }],
+        track: 31,
+        motion: { kind: 'spend', payouts: [{ amount: UNIT, beneficiary: alice.address, validFrom: null }] },
         title: 'A title',
         description: 'A description',
       },

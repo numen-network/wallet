@@ -200,6 +200,22 @@ export function seatOf(registrars: Registrar[], account: string): Registrar | un
   return registrars.find((entry) => entry.account === account)
 }
 
+/** An account allowed to hand out usernames ending in its suffix. */
+export interface UsernameAuthority {
+  suffix: string
+  account: string
+  /** How many usernames it may still hand out. */
+  allocation: number
+}
+
+/** Why pallet_identity would turn this suffix down, or null if it wouldn't. */
+export function suffixProblem(suffix: string, maxLength: number): string | null {
+  if (suffix === '') return 'Give it the suffix its usernames end in'
+  if (!/^[a-z0-9]+$/.test(suffix)) return 'A suffix takes lowercase letters and digits only'
+  if (suffix.length > maxLength) return `A suffix runs to ${maxLength} characters at most`
+  return null
+}
+
 /**
  * The handles the bot already stands behind on this record. Its judge inherits
  * an unchanged handle off the parent block free of charge, so these need no
@@ -307,7 +323,7 @@ export function feePaidTo(registration: Registration | null, index: number): big
 }
 
 /** SCALE compact, one byte below 64, two below 16384, four beyond. */
-const compactSize = (length: number): number => (length < 64 ? 1 : length < 16_384 ? 2 : 4)
+export const compactSize = (length: number): number => (length < 64 ? 1 : length < 16_384 ? 2 : 4)
 
 /**
  * IdentityInfo encodes as a compact length per field followed by the bytes,

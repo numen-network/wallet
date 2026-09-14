@@ -11,8 +11,10 @@ import {
   releaseOf,
   type CastVote,
   type ClassLock,
+  type Motion,
   type NotedPreimage,
   type PollOutcome,
+  type Proposal,
   type Referendum,
   type Settled,
   type Spend,
@@ -27,6 +29,7 @@ import {
   type Standing,
   type SubIdentity,
   type Subs,
+  type UsernameAuthority,
 } from './identity'
 import type { WalletAccount } from '@/signing/types'
 import type { Bounty, ChildBounty } from './bounties'
@@ -109,11 +112,12 @@ const FACTS: ChainFacts = {
   identityBasicDeposit: 5n * UNIT + (17n * UNIT) / 100n,
   identityByteDeposit: UNIT / 100n,
   subAccountDeposit: 5n * UNIT + (53n * UNIT) / 100n,
+  maxSuffixLength: 7,
   minVestedTransfer: UNIT,
   spenders: [
-    { track: 30, origin: 'SmallSpender', cap: 200_000n * UNIT },
-    { track: 31, origin: 'MediumSpender', cap: 1_000_000n * UNIT },
-    { track: 32, origin: 'BigSpender', cap: 10_000_000n * UNIT },
+    { track: 30, cap: 200_000n * UNIT },
+    { track: 31, cap: 1_000_000n * UNIT },
+    { track: 32, cap: 10_000_000n * UNIT },
   ],
 }
 const PREIMAGE_LEN = 214
@@ -191,6 +195,26 @@ const SEEDED_SUBS: [string, SubIdentity][] = [
   [PAYOUTS, { name: 'Payouts', parent: TEAM, registration: null }],
 ]
 
+const SEEDED_AUTHORITIES: UsernameAuthority[] = [
+  { suffix: 'numen', account: TEAM, allocation: 500 },
+]
+
+/** What the chain reads back for every call but a spend, named by pallet and call. */
+const CALL_NAMES: Record<Exclude<Motion['kind'], 'spend'>, string> = {
+  remark: 'System.remark',
+  cancel: 'Referenda.cancel',
+  kill: 'Referenda.kill',
+  addRegistrar: 'Identity.add_registrar',
+  removeRegistrar: 'Identity.remove_registrar',
+  addUsernameAuthority: 'Identity.add_username_authority',
+  removeUsernameAuthority: 'Identity.remove_username_authority',
+}
+
+const proposalOf = (motion: Motion): Proposal =>
+  motion.kind === 'spend'
+    ? { kind: 'spend', spends: motion.payouts.map((payout) => ({ ...payout })) }
+    : { kind: 'other', label: CALL_NAMES[motion.kind] }
+
 const MINUTES = 6
 const HOURS = 60 * MINUTES
 const DAYS = 24 * HOURS
@@ -220,6 +244,7 @@ const TRACKS: Track[] = [
   {
     id: 0,
     name: 'Root',
+    origin: 'Root',
     decisionDeposit: 100_000n * UNIT,
     preparePeriod: DAYS,
     decisionPeriod: 28 * DAYS,
@@ -232,6 +257,7 @@ const TRACKS: Track[] = [
   {
     id: 1,
     name: 'Runtime upgrade',
+    origin: 'RuntimeUpgrade',
     decisionDeposit: 100n * UNIT,
     preparePeriod: 10 * MINUTES,
     decisionPeriod: 28 * DAYS,
@@ -244,6 +270,7 @@ const TRACKS: Track[] = [
   {
     id: 2,
     name: 'Wish for change',
+    origin: 'WishForChange',
     decisionDeposit: 1_000n * UNIT,
     preparePeriod: 2 * HOURS,
     decisionPeriod: 28 * DAYS,
@@ -256,6 +283,7 @@ const TRACKS: Track[] = [
   {
     id: 10,
     name: 'Identity admin',
+    origin: 'IdentityAdmin',
     decisionDeposit: 1_000n * UNIT,
     preparePeriod: 2 * HOURS,
     decisionPeriod: 28 * DAYS,
@@ -268,6 +296,7 @@ const TRACKS: Track[] = [
   {
     id: 20,
     name: 'Referendum canceller',
+    origin: 'ReferendumCanceller',
     decisionDeposit: 1_000n * UNIT,
     preparePeriod: 2 * HOURS,
     decisionPeriod: 7 * DAYS,
@@ -280,6 +309,7 @@ const TRACKS: Track[] = [
   {
     id: 21,
     name: 'Referendum killer',
+    origin: 'ReferendumKiller',
     decisionDeposit: 10_000n * UNIT,
     preparePeriod: 2 * HOURS,
     decisionPeriod: 28 * DAYS,
@@ -292,6 +322,7 @@ const TRACKS: Track[] = [
   {
     id: 30,
     name: 'Small spender',
+    origin: 'SmallSpender',
     decisionDeposit: 100n * UNIT,
     preparePeriod: 4 * HOURS,
     decisionPeriod: 28 * DAYS,
@@ -304,6 +335,7 @@ const TRACKS: Track[] = [
   {
     id: 31,
     name: 'Medium spender',
+    origin: 'MediumSpender',
     decisionDeposit: 200n * UNIT,
     preparePeriod: 4 * HOURS,
     decisionPeriod: 28 * DAYS,
@@ -316,6 +348,7 @@ const TRACKS: Track[] = [
   {
     id: 32,
     name: 'Big spender',
+    origin: 'BigSpender',
     decisionDeposit: 1_000n * UNIT,
     preparePeriod: 4 * HOURS,
     decisionPeriod: 28 * DAYS,
@@ -1128,7 +1161,7 @@ export function createMockRepository(): ChainRepository {
         return
       }
       case 'propose': {
-        if (!FACTS.spenders.some((entry) => entry.track === operation.track))
+        if (!TRACKS.some((entry) => entry.id === operation.track))
           throw new Error('Referenda: NoTrack')
         polls.push({
           index: polls.length,
@@ -1138,14 +1171,7 @@ export function createMockRepository(): ChainRepository {
           metadataHash: receipt(`meta ${polls.length}`),
           state: 'preparing',
           tally: { ayes: 0n, nays: 0n, support: 0n },
-          proposal: {
-            kind: 'spend',
-            spends: operation.payouts.map((payout) => ({
-              amount: payout.amount,
-              beneficiary: payout.beneficiary,
-              validFrom: payout.validFrom,
-            })),
-          },
+          proposal: proposalOf(operation.motion),
           decisionDeposit: null,
           submitted: height,
           deciding: null,
@@ -1219,6 +1245,10 @@ export function createMockRepository(): ChainRepository {
       // Copies, since setFee writes the list and the query would otherwise be
       // handed the very objects it already caches
       return REGISTRARS.map((entry) => ({ ...entry }))
+    },
+
+    async usernameAuthorities(): Promise<UsernameAuthority[]> {
+      return SEEDED_AUTHORITIES.map((entry) => ({ ...entry }))
     },
 
     async tracks(): Promise<Track[]> {

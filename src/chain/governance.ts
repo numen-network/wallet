@@ -1,9 +1,7 @@
+import { compactSize } from './identity'
 import { CONVICTIONS, type Conviction, type Spender } from './types'
 
-/**
- * OpenGov as Numen runs it. Every track is a spender track, so a referendum is
- * always a treasury spend and nothing else can be proposed through one.
- */
+/** OpenGov as Numen runs it. */
 
 /**
  * A threshold curve in one of the two shapes the runtime builds. Approval falls
@@ -30,6 +28,8 @@ export type Curve =
 export interface Track {
   id: number
   name: string
+  /** The origin a referendum on this track runs under. */
+  origin: string
   decisionDeposit: bigint
   /** All four are block counts, which is what the chain thinks in. */
   preparePeriod: number
@@ -63,6 +63,18 @@ export interface Payout {
   beneficiary: string
   validFrom: number | null
 }
+
+/** What a referendum runs once it passes. */
+export type Motion =
+  | { kind: 'spend'; payouts: Payout[] }
+  /** Runs nothing, and carries the title and description where nobody can edit them. */
+  | { kind: 'remark'; text: string }
+  | { kind: 'cancel'; poll: number }
+  | { kind: 'kill'; poll: number }
+  | { kind: 'addRegistrar'; account: string }
+  | { kind: 'removeRegistrar'; registrar: number }
+  | { kind: 'addUsernameAuthority'; authority: string; suffix: string; allocation: number }
+  | { kind: 'removeUsernameAuthority'; authority: string; suffix: string }
 
 /** One booking a proposal makes, as the chain has it written down. */
 export interface ProposalSpend {
@@ -144,6 +156,11 @@ export function metadataDump(title: string, description: string): string {
 /** UTF-8 length of a dump, which is what the chain prices and caps. */
 export function dumpBytes(dump: string): number {
   return new TextEncoder().encode(dump).length
+}
+
+/** Encoded size of a System.remark call carrying that many bytes of text. */
+export function remarkBytes(length: number): number {
+  return 2 + compactSize(length) + length
 }
 
 /**
@@ -455,6 +472,18 @@ export const SORT_LABELS: Record<Sort, string> = {
 export function readableTrack(name: string): string {
   const trimmed = name.replace(/\0+$/, '').replace(/_/g, ' ')
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+}
+
+/**
+ * The origin a track runs under. The runtime publishes no table of them, so
+ * this leans on every track being named after its origin in snake case.
+ */
+export function originOf(name: string): string {
+  return name
+    .replace(/\0+$/, '')
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('')
 }
 
 export function trackLabel(tracks: Track[] | undefined, id: number): string {

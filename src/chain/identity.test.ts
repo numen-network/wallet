@@ -17,6 +17,7 @@ import {
   pendingWith,
   pictured,
   shortfall,
+  suffixProblem,
   type Registrar,
   type Registration,
   type Ruling,
@@ -56,6 +57,20 @@ describe('the registrar seat an account holds', () => {
   it('is nobody on a chain whose list does not hold it', () => {
     expect(seatOf([sits(0, 'nuRegistrar')], 'nuBot')).toBeUndefined()
     expect(seatOf([], 'nuBot')).toBeUndefined()
+  })
+})
+
+describe('a suffix handed to a username authority', () => {
+  it('takes lowercase letters and digits up to the chain limit', () => {
+    expect(suffixProblem('numen7', 7)).toBeNull()
+    expect(suffixProblem('abcdefg', 7)).toBeNull()
+  })
+
+  it('turns down what pallet_identity would refuse once the referendum enacts', () => {
+    expect(suffixProblem('', 7)).not.toBeNull()
+    expect(suffixProblem('Numen', 7)).not.toBeNull()
+    expect(suffixProblem('nu.men', 7)).not.toBeNull()
+    expect(suffixProblem('abcdefgh', 7)).not.toBeNull()
   })
 })
 

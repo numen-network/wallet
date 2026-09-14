@@ -51,6 +51,14 @@ async function createKey(page: Page, name = 'Vault') {
 
 const governance = async (page: Page) => page.getByRole('tab', { name: 'Governance' }).click()
 
+/** Takes an entry off one of a dialog's lists, which is portalled to the page. */
+async function choose(page: Page, scope: Locator, label: string, option: string) {
+  await scope.getByRole('combobox', { name: label }).click()
+  await page.getByRole('option', { name: option, exact: true }).click()
+  // Radix keeps the rest of the page out of the accessibility tree while the list fades
+  await expect(page.getByRole('option')).toHaveCount(0)
+}
+
 // Each list is a tab, so only the open one is on the page
 const tab = async (page: Page, name: string) => page.getByRole('tab', { name }).click()
 
@@ -388,6 +396,92 @@ test('every payout names its own account, starting on whoever opened it', async 
   await fillAddress(page, dialog, 'Address 2', BENEFICIARY)
   await expectAddress(dialog, 'Address 1', 'One')
   await expectAddress(dialog, 'Address 2', `${BENEFICIARY.slice(0, 7)}…${BENEFICIARY.slice(-4)}`)
+})
+
+test('the track decides what the referendum asks for', async ({ page }) => {
+  await createKey(page)
+  await governance(page)
+
+  await page.getByRole('button', { name: 'Referendum' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel('Amount 1')).toBeVisible()
+
+  // One entry covers every spender track, and the wallet builds nothing for root or upgrades
+  await dialog.getByRole('combobox', { name: 'Track' }).click()
+  await expect(page.getByRole('option')).toHaveText([
+    'Spender',
+    'Wish for change',
+    'Identity admin',
+    'Referendum canceller',
+    'Referendum killer',
+  ])
+  await page.getByRole('option', { name: 'Wish for change', exact: true }).click()
+  await expect(page.getByRole('option')).toHaveCount(0)
+
+  // Nothing runs if it passes, so the text is all there is to fill in
+  await expect(dialog.getByText(/Nothing runs if this passes/)).toBeVisible()
+  await expect(dialog.getByLabel('Amount 1')).toHaveCount(0)
+})
+
+test('a wish copies its text into a call nobody can edit, and holds for both copies', async ({ page }) => {
+  await createKey(page)
+  await governance(page)
+
+  await page.getByRole('button', { name: 'Referendum' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Title').fill('Keep the faucet')
+  const warning = dialog.getByText(
+    /System\.remark call, where they can't be edited\. Check for missing details and typos/,
+  )
+  // Fifteen bytes, noted once for a spend
+  await expect(dialog.getByText('15 bytes · holds 5.15 tNUMN')).toBeVisible()
+  await expect(warning).toHaveCount(0)
+
+  // Noted again inside an eighteen byte remark call
+  await choose(page, dialog, 'Track', 'Wish for change')
+  await expect(dialog.getByText('15 bytes · holds 10.33 tNUMN')).toBeVisible()
+  await expect(warning).toBeVisible()
+})
+
+test('a brake names the running referendum it would stop', async ({ page }) => {
+  await createKey(page)
+  await governance(page)
+
+  await page.getByRole('button', { name: 'Referendum' }).click()
+  const dialog = page.getByRole('dialog')
+  await choose(page, dialog, 'Track', 'Referendum canceller')
+
+  // Newest first, each named the way the running list names it
+  await dialog.getByRole('combobox', { name: 'Referendum' }).click()
+  await expect(page.getByRole('option')).toHaveText([
+    '#3 Pay for the runtime security audit',
+    '#2 Top up the testnet faucet',
+    '#1 Fund the block explorer for a year',
+    '#0 Small spender',
+  ])
+})
+
+test('identity admin offers what the chain already has seated', async ({ page }) => {
+  await createKey(page)
+  await governance(page)
+
+  await page.getByRole('button', { name: 'Referendum' }).click()
+  const dialog = page.getByRole('dialog')
+  await choose(page, dialog, 'Track', 'Identity admin')
+  await expect(dialog.getByRole('button', { name: 'Account', exact: true })).toBeVisible()
+
+  await choose(page, dialog, 'Change', 'Add a username authority')
+  await expect(dialog.getByText('up to 7 characters')).toBeVisible()
+
+  await choose(page, dialog, 'Change', 'Remove a username authority')
+  await dialog.getByRole('combobox', { name: 'Authority' }).click()
+  await expect(page.getByRole('option')).toHaveText([/^numen · nu2uaQW/])
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('option')).toHaveCount(0)
+
+  await choose(page, dialog, 'Change', 'Remove a registrar')
+  await dialog.getByRole('button', { name: 'Registrar', exact: true }).click()
+  await expect(page.getByRole('option', { name: /1 · 0\.5/ })).toBeVisible()
 })
 
 test('an approved spend pays nobody until somebody claims it', async ({ page }) => {

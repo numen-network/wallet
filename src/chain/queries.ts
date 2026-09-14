@@ -166,6 +166,16 @@ export function useAskableRegistrars(): Registrar[] | undefined {
   return registrars?.filter((entry) => entry.account !== network.registrar)
 }
 
+export function useUsernameAuthorities() {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['authorities', network.id],
+    queryFn: () => repository.usernameAuthorities(),
+    staleTime: 60_000,
+  })
+}
+
 /**
  * The runtime's own constants. Nothing but a runtime upgrade moves them, so one
  * read serves the session and the cache never goes stale on its own.

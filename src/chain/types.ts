@@ -2,15 +2,22 @@ import type { WalletAccount } from '@/signing/types'
 import type {
   Ballot,
   ClassLock,
+  Motion,
   NotedPreimage,
-  Payout,
   Referendum,
   Settled,
   Spend,
   Track,
 } from './governance'
 import type { Bounty, ChildBounty } from './bounties'
-import type { IdentityInfo, Registrar, Ruling, Standing, Subs } from './identity'
+import type {
+  IdentityInfo,
+  Registrar,
+  Ruling,
+  Standing,
+  Subs,
+  UsernameAuthority,
+} from './identity'
 import type { VestingSchedule } from './vesting'
 
 /**
@@ -290,14 +297,13 @@ export type Operation =
    */
   | { kind: 'asProxy'; real: string; call: Operation }
   /**
-   * Every track is a spender track, so a proposal is a treasury spend. Several
-   * of them cover instalments and paying several people at once, and the track
-   * has to clear the whole ask rather than the largest single payout.
+   * A referendum on one track. The chain works the track out from the origin
+   * the motion runs under, so the two have to agree.
    */
   | {
       kind: 'propose'
       track: number
-      payouts: Payout[]
+      motion: Motion
       title: string
       description: string
     }
@@ -372,8 +378,6 @@ export interface ReadCall {
 /** One spender track, as the runtime publishes it. */
 export interface Spender {
   track: number
-  /** The origin variant a proposal on this track runs under. */
-  origin: string
   /** Most a referendum on this track can release. */
   cap: bigint
 }
@@ -419,6 +423,8 @@ export interface ChainFacts {
   identityBasicDeposit: bigint
   identityByteDeposit: bigint
   subAccountDeposit: bigint
+  /** Longest suffix a username authority may be given. */
+  maxSuffixLength: number
   minVestedTransfer: bigint
   spenders: Spender[]
 }
@@ -440,6 +446,8 @@ export interface ChainRepository {
   vesting(address: string): Promise<VestingSchedule[]>
   /** Who may check an identity, and what they charge for it. */
   registrars(): Promise<Registrar[]>
+  /** Who may hand out usernames, and under which suffix. */
+  usernameAuthorities(): Promise<UsernameAuthority[]>
   /** The track table, which the runtime carries as a constant. */
   tracks(): Promise<Track[]>
   referenda(): Promise<Referendum[]>

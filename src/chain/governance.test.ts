@@ -8,10 +8,12 @@ import {
   hasRefund,
   lockAfter,
   metadataDump,
+  originOf,
   readMeta,
   readVoteByte,
   readableTrack,
   releaseOf,
+  remarkBytes,
   refundsSubmission,
   shutsTooSoon,
   SORTS,
@@ -41,6 +43,13 @@ describe('the track table the chain hands over', () => {
   it('names a track it has never heard of rather than showing nothing', () => {
     expect(trackLabel(undefined, 2)).toBe('Track 2')
     expect(trackLabel([], 2)).toBe('Track 2')
+  })
+
+  it('reads the origin a track runs under off its padded name', () => {
+    expect(originOf('wish_for_change\0\0\0\0')).toBe('WishForChange')
+    expect(originOf('referendum_canceller')).toBe('ReferendumCanceller')
+    expect(originOf('small_spender')).toBe('SmallSpender')
+    expect(originOf('root')).toBe('Root')
   })
 })
 
@@ -181,6 +190,14 @@ describe('what a referendum carries as metadata', () => {
     expect(readMeta(metadataDump(long, long)).description).toHaveLength(TITLE_MAX + 50)
   })
 
+  it('sizes the remark call a wish copies its text into', () => {
+    expect(remarkBytes(0)).toBe(3)
+    expect(remarkBytes(63)).toBe(66)
+    expect(remarkBytes(64)).toBe(68)
+    expect(remarkBytes(16_383)).toBe(16_387)
+    expect(remarkBytes(16_384)).toBe(16_390)
+  })
+
   it('prices a dump in bytes rather than characters', () => {
     expect(dumpBytes('概要')).toBe(6)
   })
@@ -275,9 +292,9 @@ describe('what a finished referendum gives back', () => {
 
 /** The spender table as the runtime publishes it, cheapest track first. */
 const SPENDERS: Spender[] = [
-  { track: 30, origin: 'SmallSpender', cap: 200_000n * UNIT },
-  { track: 31, origin: 'MediumSpender', cap: 1_000_000n * UNIT },
-  { track: 32, origin: 'BigSpender', cap: 10_000_000n * UNIT },
+  { track: 30, cap: 200_000n * UNIT },
+  { track: 31, cap: 1_000_000n * UNIT },
+  { track: 32, cap: 10_000_000n * UNIT },
 ]
 
 describe('picking the track for a proposal', () => {

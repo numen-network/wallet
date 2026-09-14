@@ -3,11 +3,13 @@ import { CallModal, SignerField, useCall } from '@/accounts/Authorize'
 import {
   dumpBytes,
   metadataDump,
+  remarkBytes,
   shutsTooSoon,
   trackFor,
   trackLabel,
   TITLE_MAX,
   type Held,
+  type Motion,
   type NotedPreimage,
   type Payout,
   type Referendum,
@@ -15,7 +17,16 @@ import {
 } from '@/chain/governance'
 import { isQualified, shortfall } from '@/chain/identity'
 import { parseISO } from 'date-fns'
-import { useFacts, useHead, useStanding, useSymbol, useTracks } from '@/chain/queries'
+import {
+  useFacts,
+  useHead,
+  useReferenda,
+  useRegistrars,
+  useStanding,
+  useSymbol,
+  useTracks,
+  useUsernameAuthorities,
+} from '@/chain/queries'
 import { cn } from '@/lib/cn'
 import { resolveAddress, shorten } from '@/lib/address'
 import { amountOrZero, amountProblem, formatAmount } from '@/lib/balance'
@@ -24,7 +35,8 @@ import { Button } from '@/components/ui/button'
 import { LEDE } from '@/ui/Modal'
 import { useDraft } from '@/ui/draft'
 import { Figure } from '@/ui/Figure'
-import { Field } from '@/ui/Field'
+import { Field, INSIDE } from '@/ui/Field'
+import { Select } from '@/ui/Select'
 import { DateField, stamp } from '@/ui/DateField'
 import { CAPTION, NOTE } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
@@ -32,6 +44,15 @@ import { useVoter, VoterField, type Voters } from './Voter'
 import { Plus, Trash2 } from 'lucide-react'
 import { AddressField } from '@/accounts/AddressField'
 import { AmountField } from '@/accounts/AmountField'
+import {
+  IdentityFields,
+  missing,
+  PollField,
+  readIdentity,
+  ready,
+  type IdentityAct,
+  type Reading,
+} from './MotionFields'
 
 /** One row of the payout list, as typed rather than as the chain takes it. */
 interface PayoutDraft {
@@ -45,11 +66,34 @@ const BLANK: PayoutDraft = { to: '', amount: '', on: '' }
 
 const COLUMNS = 'grid grid-cols-[1fr_176px_168px_28px] gap-x-2'
 
+/** The spender tracks share one entry, since the amount picks among them. */
+const SPEND = 'spend'
+
+type Shape = 'spend' | 'remark' | 'identity' | 'cancel' | 'kill'
+
+const SHAPES: Partial<Record<string, Exclude<Shape, 'spend'>>> = {
+  WishForChange: 'remark',
+  IdentityAdmin: 'identity',
+  ReferendumCanceller: 'cancel',
+  ReferendumKiller: 'kill',
+}
+
+const LEDES: Record<Shape, string> = {
+  spend:
+    'A referendum here asks the treasury to pay somebody, in one go or against milestones. Which track it runs on follows from the whole ask, and the bigger the ask the longer it runs and the more it costs to start deciding.',
+  remark:
+    'Nothing runs if this passes, so the title and description are the whole proposal. Any question for the network goes here.',
+  identity:
+    'Registrars check identities and username authorities hand out usernames. Passing this adds or removes one of them.',
+  cancel:
+    'If this passes, the referendum picked below stops and both of its deposits can be claimed back.',
+  kill: 'If this passes, the referendum picked below stops and both of its deposits are slashed.',
+}
+
 /**
- * Every track on this chain is a spender track, so a referendum asks the
- * treasury for money and nothing else. The track follows from the amount, since
- * the cheapest one that can release it is the one to ask on. Several payouts
- * off one referendum is how a grant is paid against milestones.
+ * A spend's track follows from the amount, since the cheapest one that can
+ * release it is the one to ask on. Several payouts off one referendum is how a
+ * grant is paid against milestones.
  */
 export function ProposeModal({
   accounts,
@@ -61,6 +105,9 @@ export function ProposeModal({
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
   const { data: facts } = useFacts()
+  const { data: referenda } = useReferenda()
+  const { data: registrars } = useRegistrars()
+  const { data: authorities } = useUsernameAuthorities()
   const head = useHead()
   const [draft, patch, sent] = useDraft('propose', {
     address: accounts[0].address,
@@ -68,13 +115,50 @@ export function ProposeModal({
     description: '',
     // Most proposals pay whoever opens them, so the first row starts there
     payouts: [{ ...BLANK, to: accounts[0].address }] as PayoutDraft[],
+    pick: SPEND,
+    poll: '',
+    act: 'addRegistrar' as IdentityAct,
+    account: '',
+    registrar: null as number | null,
+    suffix: '',
+    allocation: '',
   })
-  const { address, title, description, payouts } = draft
+  const { address, title, description, payouts, pick, poll } = draft
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
   const { data: standing } = useStanding(address)
   const qualified = isQualified(standing ?? null)
+
+  const offered = (tracks ?? []).flatMap((entry) => {
+    const shape = SHAPES[entry.origin]
+    return shape ? [{ track: entry, shape }] : []
+  })
+  const chosen = offered.find((entry) => String(entry.track.id) === pick)
+  const picks = [
+    { value: SPEND, label: 'Spender' },
+    ...offered.map((entry) => ({ value: String(entry.track.id), label: entry.track.name })),
+  ]
+  const stopping = referenda?.find((referendum) => String(referendum.index) === poll)
+
+  const readMotion = (shape: Exclude<Shape, 'spend'>): Reading => {
+    switch (shape) {
+      case 'remark':
+        return ready({ kind: 'remark', text: metadataDump(title, description) })
+      case 'cancel':
+        return stopping
+          ? ready({ kind: 'cancel', poll: stopping.index })
+          : missing('Pick the referendum to stop')
+      case 'kill':
+        return stopping
+          ? ready({ kind: 'kill', poll: stopping.index })
+          : missing('Pick the referendum to stop')
+      case 'identity':
+        return facts
+          ? readIdentity(draft, facts.maxSuffixLength, authorities ?? [])
+          : missing('Still reading the chain, so give it a moment')
+    }
+  }
 
   // Parsed rather than handed to Date, which reads a bare yyyy-MM-dd as UTC and
   // lands on the day before for anybody west of Greenwich
@@ -106,17 +190,28 @@ export function ProposeModal({
   const asked = booked.reduce((sum, payout) => sum + payout.amount, 0n)
   // The track has to clear the whole ask. Sizing it off the largest single
   // payout would let instalments walk a big spend onto a small track
-  const track = facts ? trackFor(asked, facts.spenders) : null
+  const track = chosen ? chosen.track.id : facts ? trackFor(asked, facts.spenders) : null
+  const motion: Motion | null = chosen
+    ? readMotion(chosen.shape).motion
+    : { kind: 'spend', payouts: booked }
   const running = tracks?.find((entry) => entry.id === track)
   const trackName = track === null ? 'Over every cap' : trackLabel(tracks, track)
   // Held by the submit call itself, so the track it lands on never changes it
   const depositLine = facts
     ? `${formatAmount(facts.submissionDeposit, { precision: 0 })} ${symbol}`
     : '…'
-  // What the whole dump weighs and what it holds until the bytes are cleared
+  // What the whole dump weighs and what it holds until the bytes are cleared. A
+  // remark call carries a second copy, which is noted too
   const bytes = dumpBytes(metadataDump(title, description))
+  const noted = chosen?.shape === 'remark' ? [bytes, remarkBytes(bytes)] : [bytes]
   const textCost = facts
-    ? `${bytes.toLocaleString('en-US')} bytes · holds ${formatAmount(facts.preimageBaseDeposit + BigInt(bytes) * facts.preimageByteDeposit, { precision: 2 })} ${symbol}`
+    ? `${bytes.toLocaleString('en-US')} bytes · holds ${formatAmount(
+        noted.reduce(
+          (sum, length) => sum + facts.preimageBaseDeposit + BigInt(length) * facts.preimageByteDeposit,
+          0n,
+        ),
+        { precision: 2 },
+      )} ${symbol}`
     : null
   // How long the referendum itself can take before the spends are booked
   const runsFor = running
@@ -131,6 +226,13 @@ export function ProposeModal({
   const editPayout = (index: number, next: Partial<PayoutDraft>) =>
     patch({ payouts: payouts.map((row, at) => (at === index ? { ...row, ...next } : row)) })
 
+  const propose = (id: number, proposed: Motion) =>
+    call.run(
+      voter
+        .submit({ kind: 'propose', track: id, motion: proposed, title, description }, call.password)
+        .then(sent),
+    )
+
   const form = () => {
     // Without a head every date reads as no date at all, which would sign away
     // the schedule and pay the lot at once
@@ -139,6 +241,13 @@ export function ProposeModal({
 
     if (title.trim() === '') {
       return call.refuse('Give it a title, since that is what the list shows')
+    }
+
+    if (chosen) {
+      const reading = readMotion(chosen.shape)
+      return reading.motion === null
+        ? call.refuse(reading.problem)
+        : propose(chosen.track.id, reading.motion)
     }
 
     if (booked.length !== payouts.length) {
@@ -168,11 +277,7 @@ export function ProposeModal({
       return call.refuse(`A payout has to be dated at least ${least} out, or its claim window shuts before the referendum enacts`)
     }
 
-    return call.run(
-      voter
-        .submit({ kind: 'propose', track, payouts: booked, title, description }, call.password)
-        .then(sent),
-    )
+    return propose(track, { kind: 'spend', payouts: booked })
   }
 
   return (
@@ -184,21 +289,38 @@ export function ProposeModal({
       width={800}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
-      operation={track !== null ? voter.wrap({ kind: 'propose', track, payouts: booked, title, description, }) : null}
+      operation={
+        track !== null && motion !== null
+          ? voter.wrap({ kind: 'propose', track, motion, title, description })
+          : null
+      }
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}
       onClose={onClose}
       onSubmit={form}
     >
-      <p className={LEDE}>
-        A referendum here asks the treasury to pay somebody, in one go or against milestones. Which
-        track it runs on follows from the whole ask, and the bigger the ask the longer it runs and
-        the more it costs to start deciding.
-      </p>
+      <p className={LEDE}>{LEDES[chosen?.shape ?? 'spend']}</p>
 
       {/* What the referendum says, then what it does */}
       <div className="mt-3.5">
+        <Field label="Track">
+          <Select
+            value={pick}
+            onValueChange={(next) => patch({ pick: next })}
+            options={picks}
+            label="Track"
+            className={INSIDE}
+          />
+        </Field>
+
+        {chosen?.shape === 'remark' && (
+          <p className="mt-2.5 text-[12.5px] text-destructive">
+            The title and description also go into the System.remark call, where they can't be
+            edited. Check for missing details and typos before you sign.
+          </p>
+        )}
+
         <Field label="Title">
           {/* One line of text, which is not the same as one line of box. A
               title long enough to fill the cap only fits by wrapping, and Enter
@@ -236,67 +358,86 @@ export function ProposeModal({
           </p>
         )}
 
-        <div className={cn('mt-4', COLUMNS)}>
-          <span className={CAPTION}>Address</span>
-          <span className={CAPTION}>Amount</span>
-          <span className={CAPTION}>Release</span>
-          <span />
-        </div>
+        {!chosen && (
+          <>
+            <div className={cn('mt-4', COLUMNS)}>
+              <span className={CAPTION}>Address</span>
+              <span className={CAPTION}>Amount</span>
+              <span className={CAPTION}>Release</span>
+              <span />
+            </div>
 
-        {payouts.map((row, index) => (
-          <div key={index} className={cn('mt-1.5 items-start', COLUMNS)}>
-            <AddressField
-              label={`Address ${index + 1}`}
-              value={row.to}
-              onChange={(next: string) => editPayout(index, { to: next })}
-              accounts={accounts}
-              className="w-full"
-              labelled={false}
-            />
+            {payouts.map((row, index) => (
+              <div key={index} className={cn('mt-1.5 items-start', COLUMNS)}>
+                <AddressField
+                  label={`Address ${index + 1}`}
+                  value={row.to}
+                  onChange={(next: string) => editPayout(index, { to: next })}
+                  accounts={accounts}
+                  className="w-full"
+                  labelled={false}
+                />
 
-            <AmountField
-              label={`Amount ${index + 1}`}
-              value={row.amount}
-              onChange={(amount) => editPayout(index, { amount })}
-              labelled={false}
-            />
+                <AmountField
+                  label={`Amount ${index + 1}`}
+                  value={row.amount}
+                  onChange={(amount) => editPayout(index, { amount })}
+                  labelled={false}
+                />
 
-            <DateField
-              label={`Release date for payout ${index + 1}`}
-              value={row.on}
-              min={earliest}
-              onChange={(on: string) => editPayout(index, { on })}
-            />
+                <DateField
+                  label={`Release date for payout ${index + 1}`}
+                  value={row.on}
+                  min={earliest}
+                  onChange={(on: string) => editPayout(index, { on })}
+                />
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Remove payout ${index + 1}`}
+                  className="mt-1"
+                  onClick={() => {
+                    // Removing the only payout leaves a blank one, so the form never goes empty
+                    const rest = payouts.filter((_row, at) => at !== index)
+                    patch({ payouts: rest.length > 0 ? rest : [BLANK] })
+                  }}
+                >
+                  <Trash2 />
+                </Button>
+
+                {/* What the date works out to, which is the block the call carries */}
+                <span className="col-span-3 text-right text-[11.5px] text-dim">{untilOf(row)}</span>
+              </div>
+            ))}
 
             <Button
               type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={`Remove payout ${index + 1}`}
-              className="mt-1"
-              onClick={() => {
-                // Removing the only payout leaves a blank one, so the form never goes empty
-                const rest = payouts.filter((_row, at) => at !== index)
-                patch({ payouts: rest.length > 0 ? rest : [BLANK] })
-              }}
+              variant="outline"
+              className="mt-2.5"
+              onClick={() => patch({ payouts: [...payouts, BLANK] })}
             >
-              <Trash2 />
+              <Plus />
+              Add
             </Button>
+          </>
+        )}
 
-            {/* What the date works out to, which is the block the call carries */}
-            <span className="col-span-3 text-right text-[11.5px] text-dim">{untilOf(row)}</span>
-          </div>
-        ))}
+        {(chosen?.shape === 'cancel' || chosen?.shape === 'kill') && (
+          <PollField value={poll} onChange={(next) => patch({ poll: next })} />
+        )}
 
-        <Button
-          type="button"
-          variant="outline"
-          className="mt-2.5"
-          onClick={() => patch({ payouts: [...payouts, BLANK] })}
-        >
-          <Plus />
-          Add
-        </Button>
+        {chosen?.shape === 'identity' && (
+          <IdentityFields
+            draft={draft}
+            accounts={accounts}
+            registrars={registrars ?? []}
+            authorities={authorities ?? []}
+            maxSuffixLength={facts?.maxSuffixLength}
+            onChange={patch}
+          />
+        )}
       </div>
 
       <div className="mt-3.5 grid grid-cols-2 gap-2.5">
@@ -310,7 +451,7 @@ export function ProposeModal({
         deposit, which can be you or anybody else.
       </p>
 
-      {payouts.length > 1 && facts && track !== null && (
+      {!chosen && payouts.length > 1 && facts && track !== null && (
         <p className={cn('mt-2', NOTE)}>
           A date is read against today, not against the day the referendum passes, and this track
           can take {waitFor(runsFor, facts.blockSeconds)} to get there. Each payout is then
@@ -399,8 +540,7 @@ export function EditTextModal({
     >
       <p className={LEDE}>
         This referendum is still running, so the account that opened it may swap what it says.
-        What it pays and whom it pays are settled and stay settled. This rewrites the pitch and
-        nothing else.
+        What it runs is settled and stays settled. This rewrites the pitch and nothing else.
       </p>
 
       <p className={cn('mt-2.5', NOTE)}>
