@@ -94,6 +94,18 @@ const asPrime = (
     })
   })
 
+/** The hash of the block mined on top of a given one. */
+const blockAfter = async (parent: string) => {
+  let arrive!: (hash: string) => void
+  const child = new Promise<string>((resolve) => (arrive = resolve))
+  const sub = raw.blocks$.subscribe((block) => {
+    if (block.parent === parent) arrive(block.hash)
+  })
+  const hash = await child
+  sub.unsubscribe()
+  return hash
+}
+
 beforeAll(async () => {
   await cryptoWaitReady()
   const pair = new Keyring({ type: 'sr25519' }).addFromUri('//Alice')
@@ -354,19 +366,22 @@ describe('governance', () => {
     expect(balancesErc20).toMatch(/^0x[0-9a-f]{40}$/)
   })
 
-  it('derives the treasury account the chain deactivates', async () => {
+  it('derives the treasury account the chain deactivates', { timeout: 60_000 }, async () => {
     const { treasury, existentialDeposit } = await repository.facts()
-    const [total, active, account] = await Promise.all([
-      api.query.Balances.TotalIssuance.getValue({ at: 'best' }),
-      repository.activeIssuance(),
-      api.query.System.Account.getValue(treasury, { at: 'best' }),
-    ])
+
+    // Treasury deactivates the pot in on_initialize, so InactiveIssuance at a
+    // block is the pot its parent closed on. The block's own fee share lands
+    // after the hook and only counts in the next one.
+    const opened = await raw.getFinalizedBlock()
+    const account = await api.query.System.Account.getValue(treasury, { at: opened.hash })
+    const closed = await blockAfter(opened.hash)
+    const inactive = await api.query.Balances.InactiveIssuance.getValue({ at: closed })
 
     // The pot is the treasury's balance bar what keeps the account alive, and
     // it is the only thing this chain takes out of circulation. Get the
     // derivation wrong and the address names an empty account holding nothing
     expect(account.data.free).toBeGreaterThan(0n)
-    expect(total - active).toBe(account.data.free - existentialDeposit)
+    expect(inactive).toBe(account.data.free - existentialDeposit)
   })
 
   it('measures support against issuance that leaves the treasury out', async () => {
