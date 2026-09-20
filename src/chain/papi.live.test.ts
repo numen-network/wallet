@@ -23,13 +23,19 @@ import { numen } from '@polkadot-api/descriptors'
 import { Binary, createClient, Enum } from 'polkadot-api'
 import { getPolkadotSigner } from 'polkadot-api/signer'
 import { getWsProvider } from 'polkadot-api/ws'
-import { toNumenAddress } from '@/lib/address'
+import { publicKeyOf, toNumenAddress } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { NETWORKS, SS58_PREFIX, UNIT } from './config'
 import { dumpBytes, metadataDump, remarkBytes, type Motion } from './governance'
 import { depositFor, EMPTY_IDENTITY, isQualified, labelOf } from './identity'
 import { createPapiRepository } from './papi'
-import { transferableOf, type AccountBalance, type Operation } from './types'
+import {
+  transferableOf,
+  type AccountBalance,
+  type ChainRepository,
+  type Operation,
+} from './types'
+import { nextBoundary } from './validator'
 import { scheduleOver } from './vesting'
 
 /**
@@ -71,7 +77,11 @@ const send = (operation: Operation) =>
   })
 
 /** Calls the wallet has no business making, which prime makes here instead. */
-const asPrime = (tx: ReturnType<typeof api.tx.Identity.add_registrar>) =>
+const asPrime = (
+  tx:
+    | ReturnType<typeof api.tx.Identity.add_registrar>
+    | ReturnType<typeof api.tx.Validator.set_stake_exempt>,
+) =>
   new Promise<void>((resolve, reject) => {
     const sub = tx.signSubmitAndWatch(alice.signer).subscribe({
       next(event) {
@@ -683,11 +693,12 @@ describe('governance', () => {
  * behind every call the wallet submits stays open, and enough of them pin more
  * blocks than the node will hold. A fresh client starts that count again.
  */
-describe('what the chain hands back once there is something to read', () => {
-  const fresh = createPapiRepository({ ...NETWORKS.local, rpc: RPC })
-  const put = (operation: Operation, who: WalletAccount = alice) =>
+/** Sends through the given client as whoever is named, and resolves once in a best block. */
+const sender =
+  (client: ChainRepository) =>
+  (operation: Operation, who: WalletAccount = alice) =>
     new Promise<void>((resolve, reject) => {
-      fresh
+      client
         .submit(who, operation, (progress) => {
           if (progress.stage === 'inBlock') resolve()
         })
@@ -695,6 +706,10 @@ describe('what the chain hands back once there is something to read', () => {
       const late = `${operation.kind} from ${who.label} never made it into a block`
       setTimeout(() => reject(new Error(late)), 90_000)
     })
+
+describe('what the chain hands back once there is something to read', () => {
+  const fresh = createPapiRepository({ ...NETWORKS.local, rpc: RPC })
+  const put = sender(fresh)
 
   it('finds a multisig call it started', { timeout: 200_000 }, async () => {
     const bob = toNumenAddress(new Keyring({ type: 'sr25519' }).addFromUri('//Bob').address)
@@ -864,5 +879,137 @@ describe('what the chain hands back once there is something to read', () => {
     // Nobody asked the parent, and the list it signed is one shorter for it
     expect((await fresh.standingOf(dave.address)).sub).toBeNull()
     expect((await fresh.subsOf(alice.address)).list).toEqual([])
+  })
+})
+
+/**
+ * Bob takes a seat beside the one validator a dev chain starts with. He holds a
+ * fraction of the stake, so prime waives it for him first. That is an
+ * invitation, and none of the wallet's business.
+ */
+describe('validators', () => {
+  const fresh = createPapiRepository({ ...NETWORKS.local, rpc: RPC })
+  const put = sender(fresh)
+  const pair = new Keyring({ type: 'sr25519' }).addFromUri('//Bob')
+  const bob: WalletAccount = {
+    address: toNumenAddress(pair.address),
+    label: 'Bob',
+    source: 'keystore',
+    signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+  }
+
+  /** Keys the node generates and keeps, with a proof made out to the owner. */
+  const rotate = (owner: string) =>
+    raw._request<{ keys: string; proof: string }, [string]>('author_rotateKeysWithOwner', [
+      publicKeyOf(owner),
+    ])
+
+  /**
+   * Joining and leaving have to land in one session. A boundary between them
+   * seats Bob beside Alice on the same node a session later. One node casts one
+   * GRANDPA vote, so finality stalls until he is gone again.
+   */
+  const clearOfBoundary = async () => {
+    const { sessionPeriod, sessionOffset } = await fresh.facts()
+    for (;;) {
+      const height = await api.query.System.Number.getValue({ at: 'best' })
+      if (nextBoundary(height, sessionPeriod, sessionOffset) - height > 8) return
+      await new Promise((resolve) => setTimeout(resolve, 5_000))
+    }
+  }
+
+  it('reads the one validator a dev chain starts with, exempt and staking nothing', async () => {
+    const [set, record, facts] = await Promise.all([
+      fresh.validators(),
+      fresh.validatorOf(alice.address),
+      fresh.facts(),
+    ])
+
+    expect(set.sitting).toContain(alice.address)
+    expect(set.elected).toContain(alice.address)
+    expect(record.lock?.status).toBe('Active')
+    expect(record.exempt).toBe(true)
+    expect(record.cooldown).toBeNull()
+    expect(record.lock?.amount).toBe(0n)
+    // Renewals only ever push the expiry further out
+    expect(record.lock!.until - record.lock!.since).toBeGreaterThanOrEqual(facts.validatorLockPeriod)
+    // She sits, so there is a heartbeat to ask about either way
+    expect(typeof record.heartbeat).toBe('boolean')
+    expect(facts.validatorStake).toBeGreaterThan(0n)
+    expect(facts.maxValidators).toBeGreaterThan(set.elected.length)
+    expect(facts.sessionPeriod).toBeGreaterThan(0)
+  })
+
+  it('reads a blob of keys the way the chain stores them, and nothing else', async () => {
+    const { keys } = await fresh.validatorOf(alice.address)
+    const blob = `${keys!.grandpa}${keys!.imOnline.slice(2)}`
+
+    expect(await fresh.readKeys(blob)).toEqual(keys)
+    await expect(fresh.readKeys(blob.slice(0, -2))).rejects.toThrow()
+    await expect(fresh.readKeys(`${blob}00`)).rejects.toThrow()
+    await expect(fresh.readKeys(blob.slice(2))).rejects.toThrow()
+  })
+
+  it('refuses keys the node made out to another account', { timeout: 200_000 }, async () => {
+    const { keys, proof } = await rotate(alice.address)
+
+    await expect(put({ kind: 'setKeys', keys, proof }, bob)).rejects.toThrow(
+      'Session: InvalidProof',
+    )
+  })
+
+  it('registers keys the node made out to this account', { timeout: 200_000 }, async () => {
+    const { keys, proof } = await rotate(bob.address)
+
+    await put({ kind: 'setKeys', keys, proof }, bob)
+
+    expect((await fresh.validatorOf(bob.address)).keys).toEqual(await fresh.readKeys(keys))
+  })
+
+  it('joins and leaves once prime has waived the stake', { timeout: 400_000 }, async () => {
+    const bobInfo = { ...info, display: 'Bob' }
+    await put({ kind: 'registerIdentity', info: bobInfo, registrar: null }, bob)
+    await put({
+      kind: 'provideJudgement',
+      registrar: 0,
+      target: bob.address,
+      judgement: 'Reasonable',
+      info: bobInfo,
+    })
+    expect(isQualified(await fresh.standingOf(bob.address))).toBe(true)
+
+    await asPrime(api.tx.Validator.set_stake_exempt({ who: bob.address, exempt: true }))
+    expect((await fresh.validatorOf(bob.address)).exempt).toBe(true)
+
+    await clearOfBoundary()
+    await put({ kind: 'lockStake' }, bob)
+    expect((await fresh.validators()).queued).toContain(bob.address)
+    const joined = await fresh.validatorOf(bob.address)
+    expect(joined.lock?.status).toBe('Active')
+    expect(joined.lock?.amount).toBe(0n)
+
+    await put({ kind: 'requestExit' }, bob)
+    expect((await fresh.validators()).queued).not.toContain(bob.address)
+    expect((await fresh.validatorOf(bob.address)).lock?.status).toBe('ExitRequested')
+
+    await asPrime(api.tx.Validator.set_stake_exempt({ who: bob.address, exempt: false }))
+    expect((await fresh.validatorOf(bob.address)).exempt).toBe(false)
+  })
+
+  it('prices every validator call through the runtime', async () => {
+    const { keys } = await fresh.validatorOf(alice.address)
+    const calls: Operation[] = [
+      {
+        kind: 'setKeys',
+        keys: `${keys!.grandpa}${keys!.imOnline.slice(2)}`,
+        proof: `0x${'00'.repeat(128)}`,
+      },
+      { kind: 'lockStake' },
+      { kind: 'requestExit' },
+    ]
+
+    for (const call of calls) {
+      expect(await fresh.estimateFee(bob.address, call)).toBeGreaterThan(0n)
+    }
   })
 })

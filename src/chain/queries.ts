@@ -74,6 +74,7 @@ export const CACHES = [
   'pending',
   'locks',
   'registrars',
+  'validators',
 ] as const
 
 export type Cache = (typeof CACHES)[number]
@@ -304,6 +305,44 @@ export function useActiveIssuance() {
     queryKey: ['activeIssuance', network.id],
     queryFn: () => repository.activeIssuance(),
     staleTime: 60_000,
+  })
+}
+
+/**
+ * Who votes this session and the next, read once for the whole board. The set
+ * changes at session boundaries without anybody here signing, so it is polled.
+ */
+export function useValidators() {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['validators', network.id],
+    queryFn: () => repository.validators(),
+    staleTime: 10_000,
+    refetchInterval: 60_000,
+  })
+}
+
+export function useValidatorOf(address: string) {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['validators', network.id, address],
+    queryFn: () => repository.validatorOf(address),
+    staleTime: 10_000,
+  })
+}
+
+/** What a pasted blob of session keys holds. A blob that is not one fails at once. */
+export function useReadKeys(hex: string) {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['readKeys', network.id, hex],
+    queryFn: () => repository.readKeys(hex),
+    enabled: hex !== '',
+    retry: false,
+    staleTime: Infinity,
   })
 }
 

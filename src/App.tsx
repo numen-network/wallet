@@ -56,6 +56,7 @@ import { ReceiveModal } from '@/accounts/ReceiveModal'
 import { JudgeModal, SetFeeModal } from '@/accounts/JudgeModal'
 import { SendModal } from '@/accounts/SendModal'
 import { UnlockModal } from '@/accounts/UnlockModal'
+import { ValidatorModal } from '@/accounts/ValidatorModal'
 import { GovernanceView } from '@/governance/GovernanceView'
 import { isSystemGroup, UNGROUPED_ID } from '@/accounts/layout'
 import { useAccountsStore } from '@/accounts/store'
@@ -90,6 +91,7 @@ type Modal =
   | { kind: 'setFee'; address: string }
   | { kind: 'sign'; address?: string }
   | { kind: 'bringIn'; address: string }
+  | { kind: 'validator'; address: string }
   | { kind: 'endpoint' }
   | { kind: 'forget'; address: string }
   | { kind: 'newGroup' }
@@ -557,6 +559,15 @@ export function App() {
       {modal?.kind === 'unlock' && selected && (
         <UnlockModal
           account={selected}
+          signers={signers}
+          onClose={close}
+        />
+      )}
+
+      {modal?.kind === 'validator' && selected && (
+        <ValidatorModal
+          account={selected}
+          balance={balances[selected.address]}
           signers={signers}
           onClose={close}
         />

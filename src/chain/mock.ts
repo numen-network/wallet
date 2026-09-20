@@ -24,6 +24,7 @@ import {
 import {
   depositFor,
   EMPTY_IDENTITY,
+  isQualified,
   type Registrar,
   type Registration,
   type Standing,
@@ -33,6 +34,13 @@ import {
 } from './identity'
 import type { WalletAccount } from '@/signing/types'
 import type { Bounty, ChildBounty } from './bounties'
+import {
+  stakeFor,
+  type SessionKeys,
+  type ValidatorLock,
+  type ValidatorRecord,
+  type ValidatorSet,
+} from './validator'
 import { releasable, type VestingSchedule } from './vesting'
 import {
   transferableOf,
@@ -119,6 +127,11 @@ const FACTS: ChainFacts = {
     { track: 31, cap: 1_000_000n * UNIT },
     { track: 32, cap: 10_000_000n * UNIT },
   ],
+  validatorStake: 100_000_000n * UNIT,
+  validatorLockPeriod: (180 * 24 * 3600) / 10,
+  maxValidators: 1_000,
+  sessionPeriod: 600 / 10,
+  sessionOffset: 0,
 }
 const PREIMAGE_LEN = 214
 
@@ -156,13 +169,33 @@ const decodeCall = (hex: string): Operation => {
 const callHashOf = (operation: Operation) => receipt(callText(operation))
 
 /**
+ * The dev chain's Alice, its one genesis validator and its first registrar. Bob
+ * stands in for an account prime has already waived the stake for. The dev
+ * phrase restores both, which is how a test walks an invitation through.
+ */
+const ALICE = 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb'
+const BOB = 'nu5sKtuEZG5GH9emAghk9MTdVPBJbieEsSD8Z6UKkA45afKcv'
+
+const ALICE_KEYS: SessionKeys = {
+  grandpa: '0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee',
+  imOnline: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
+}
+
+/** Two public keys back to back, which is all the mock checks a pasted blob for. */
+const splitKeys = (hex: string): SessionKeys => {
+  const blob = hex.trim()
+  if (!/^0x[0-9a-f]{128}$/i.test(blob)) throw new Error('Not the session keys this chain takes')
+  return { grandpa: `0x${blob.slice(2, 66)}`, imOnline: `0x${blob.slice(66)}` }
+}
+
+/**
  * Two registrars, the automated one and a human one. The first sits on the
  * account the local network names as its bot. The second takes manual requests.
  */
 const REGISTRARS: Registrar[] = [
   {
     index: 0,
-    account: 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb',
+    account: ALICE,
     fee: UNIT / 2n,
   },
   {
@@ -645,6 +678,49 @@ export function createMockRepository(): ChainRepository {
   const pieces = SEEDED_CHILDREN.map((child) => ({ ...child }))
   const waiting: Pending[] = []
   const locks = new Map<string, Map<number, Held>>()
+  // Nothing here rotates sessions, so whoever joins stays queued
+  const sitting = [ALICE]
+  const elected = [ALICE]
+  let queued: string[] = []
+  const stakes = new Map<string, ValidatorLock>()
+  const exempted = new Set<string>()
+  const keysOf = new Map<string, SessionKeys>()
+  const seedValidators = () => {
+    queued = []
+    stakes.clear()
+    stakes.set(ALICE, {
+      amount: 0n,
+      since: NOW,
+      until: NOW + FACTS.validatorLockPeriod,
+      status: 'Active',
+    })
+    exempted.clear()
+    exempted.add(ALICE)
+    exempted.add(BOB)
+    keysOf.clear()
+    keysOf.set(ALICE, ALICE_KEYS)
+  }
+  seedValidators()
+
+  const standingFor = (address: string): Standing => {
+    const sub = subs.get(address)
+    return {
+      own: identities.get(address) ?? null,
+      sub: sub ? { ...sub, registration: identities.get(sub.parent) ?? null } : null,
+    }
+  }
+
+  const recordFor = (address: string): ValidatorRecord => {
+    const lock = stakes.get(address)
+    return {
+      lock: lock ? { ...lock } : null,
+      exempt: exempted.has(address),
+      // Nobody is ever kicked here
+      cooldown: null,
+      keys: keysOf.get(address) ?? null,
+      heartbeat: sitting.includes(address) ? true : null,
+    }
+  }
 
   const poll = (index: number) => polls.find((referendum) => referendum.index === index)
 
@@ -846,6 +922,40 @@ export function createMockRepository(): ChainRepository {
         const seat = REGISTRARS.find((entry) => entry.index === operation.registrar)
         if (!seat || seat.account !== account.address) throw new Error('Identity: InvalidIndex')
         seat.fee = operation.fee
+        return
+      }
+      case 'setKeys': {
+        keysOf.set(account.address, splitKeys(operation.keys))
+        return
+      }
+      case 'lockStake': {
+        const who = account.address
+        if (elected.includes(who) || queued.includes(who)) {
+          throw new Error('Validator: AlreadyValidator')
+        }
+        if (elected.length + queued.length >= FACTS.maxValidators) {
+          throw new Error('Validator: TooManyValidators')
+        }
+        if (!keysOf.has(who)) throw new Error('Validator: SessionKeysNotRegistered')
+        if (!isQualified(standingFor(who))) throw new Error('Validator: IdentityNotQualified')
+
+        const { amount, until } = stakeFor(
+          recordFor(who),
+          FACTS.validatorStake,
+          height,
+          FACTS.validatorLockPeriod,
+        )
+        if (from.free < amount) throw new Error('Validator: InsufficientBalance')
+        queued.push(who)
+        stakes.set(who, { amount, since: height, until, status: 'Active' })
+        return
+      }
+      case 'requestExit': {
+        const lock = stakes.get(account.address)
+        if (!lock) throw new Error('Validator: NotValidator')
+        if (lock.status !== 'Active') throw new Error('Validator: InvalidStatus')
+        stakes.set(account.address, { ...lock, status: 'ExitRequested' })
+        queued = queued.filter((who) => who !== account.address)
         return
       }
       case 'cancelJudgement': {
@@ -1234,11 +1344,7 @@ export function createMockRepository(): ChainRepository {
     },
 
     async standingOf(address: string): Promise<Standing> {
-      const sub = subs.get(address)
-      return {
-        own: identities.get(address) ?? null,
-        sub: sub ? { ...sub, registration: identities.get(sub.parent) ?? null } : null,
-      }
+      return standingFor(address)
     },
 
     async registrars(): Promise<Registrar[]> {
@@ -1338,6 +1444,18 @@ export function createMockRepository(): ChainRepository {
       return ACTIVE_ISSUANCE
     },
 
+    async validators(): Promise<ValidatorSet> {
+      return { sitting: [...sitting], elected: [...elected], queued: [...queued] }
+    },
+
+    async validatorOf(address: string): Promise<ValidatorRecord> {
+      return recordFor(address)
+    },
+
+    async readKeys(hex: string): Promise<SessionKeys> {
+      return splitKeys(hex)
+    },
+
     async estimateFee() {
       return FEE
     },
@@ -1365,6 +1483,7 @@ export function createMockRepository(): ChainRepository {
       proxies.clear()
       seedIdentities()
       locks.clear()
+      seedValidators()
     },
   }
 }

@@ -18,6 +18,7 @@ import type {
   Subs,
   UsernameAuthority,
 } from './identity'
+import type { SessionKeys, ValidatorRecord, ValidatorSet } from './validator'
 import type { VestingSchedule } from './vesting'
 
 /**
@@ -233,6 +234,14 @@ export type Operation =
   | { kind: 'cancelJudgement'; registrar: number }
   /** The registrar putting a price on its work, signed by its own account. */
   | { kind: 'setFee'; registrar: number; fee: bigint }
+  /**
+   * The keys a node generated and its proof of holding them. The proof is
+   * signed over the account it was made for, so no other account can use it.
+   */
+  | { kind: 'setKeys'; keys: string; proof: string }
+  | { kind: 'lockStake' }
+  /** Stops the renewals. The stake stays locked until the lock runs out. */
+  | { kind: 'requestExit' }
   | { kind: 'vote'; poll: number; ballot: Ballot }
   | { kind: 'removeVote'; track: number; poll: number }
   /** Releases whatever the conviction locks have finished holding. */
@@ -427,6 +436,14 @@ export interface ChainFacts {
   maxSuffixLength: number
   minVestedTransfer: bigint
   spenders: Spender[]
+  /** What joining the validator set locks from an account prime has not exempted. */
+  validatorStake: bigint
+  /** Blocks a validator lock runs for, counted again on every renewal. */
+  validatorLockPeriod: number
+  /** Seats in the validator set, the queue included. */
+  maxValidators: number
+  sessionPeriod: number
+  sessionOffset: number
 }
 
 export interface ChainRepository {
@@ -477,6 +494,10 @@ export interface ChainRepository {
   locks(address: string): Promise<ClassLock[]>
   /** Total issuance less what is deactivated, which is what support is measured against. */
   activeIssuance(): Promise<bigint>
+  validators(): Promise<ValidatorSet>
+  validatorOf(address: string): Promise<ValidatorRecord>
+  /** Splits the keys a node hands out into the ones they are made of, refusing anything else. */
+  readKeys(hex: string): Promise<SessionKeys>
   /**
    * Resolves with the transaction hash once the call is finalized. The progress
    * arrives long before that, so nothing has to be held open waiting for it.

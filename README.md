@@ -7,6 +7,7 @@ Browser wallet for the Numen chain, static SPA with no backend, keys never leave
 - Referenda, delegation, treasury spends, and bounties
 - On chain identity, checked by a registrar
 - Multisigs, proxies, and vesting schedules
+- Validator seats and session keys
 - Numen added to MetaMask in one click, and EVM balances brought back to Substrate accounts
 
 ## Running it

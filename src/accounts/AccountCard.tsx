@@ -32,6 +32,7 @@ import {
   Waypoints,
   Puzzle,
   Download,
+  ServerCog,
   Stamp,
   Signature,
   Trash2,
@@ -70,6 +71,7 @@ export type CardAction =
   | 'vesting'
   | 'sign'
   | 'bringIn'
+  | 'validator'
 
 interface CardProps {
   account: Account
@@ -279,6 +281,16 @@ function CardBody({
     },
     ...(identityItems.length > 0 ? [{ label: 'Identity', items: identityItems }] : []),
     ...(registrarItems.length > 0 ? [{ label: 'Registrar', items: registrarItems }] : []),
+    ...(canSend(account)
+      ? [
+          {
+            label: 'Validator',
+            items: [
+              { label: 'Seat and session keys', icon: <ServerCog />, onSelect: ask('validator') },
+            ],
+          },
+        ]
+      : []),
     ...(canSend(account)
       ? [
           {

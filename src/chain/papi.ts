@@ -1,4 +1,4 @@
-import { hexToU8a } from '@polkadot/util'
+import { hexToU8a, isHex } from '@polkadot/util'
 import { blake2AsHex } from '@polkadot/util-crypto'
 import {
   IdentityData,
@@ -11,6 +11,7 @@ import {
   Binary,
   createClient,
   Enum,
+  getTypedCodecs,
   InvalidTxError,
   type PolkadotClient,
   type TxCallData,
@@ -58,6 +59,7 @@ import {
   type UsernameAuthority,
 } from './identity'
 import type { Bounty, BountyState, ChildBounty, ChildState } from './bounties'
+import type { SessionKeys, ValidatorRecord, ValidatorSet } from './validator'
 import type { VestingSchedule } from './vesting'
 import {
   lockedOf,
@@ -580,6 +582,11 @@ export function createPapiRepository(network: Network): ChainRepository {
       balancesErc20,
       evmChainId,
       treasuryPalletId,
+      validatorStake,
+      validatorLockPeriod,
+      maxValidators,
+      sessionPeriod,
+      sessionOffset,
     ] = await Promise.all([
       api.constants.System.SS58Prefix(),
       api.constants.Balances.ExistentialDeposit(),
@@ -602,6 +609,11 @@ export function createPapiRepository(network: Network): ChainRepository {
       api.constants.Precompiles.BalancesErc20(),
       api.query.EVMChainId.ChainId.getValue(),
       api.constants.Treasury.PalletId(),
+      api.constants.Validator.LockAmount(),
+      api.constants.Validator.LockDuration(),
+      api.constants.Validator.MaxValidators(),
+      api.constants.Validator.SessionPeriod(),
+      api.constants.Validator.SessionOffset(),
     ])
 
     // Addresses and amounts are formatted long before anything is read from
@@ -646,7 +658,30 @@ export function createPapiRepository(network: Network): ChainRepository {
       maxSuffixLength,
       minVestedTransfer,
       spenders: caps.map(([track, , cap]) => ({ track, cap })),
+      validatorStake,
+      validatorLockPeriod,
+      maxValidators,
+      sessionPeriod,
+      sessionOffset,
     }
+  }
+
+  const readKeysLayout = () =>
+    getTypedCodecs(numen).then(({ query }) => {
+      const codec = query.Session.NextKeys.value
+      // A short blob decodes without complaint, so the length is checked
+      // against what a full set of these fixed size keys encodes to
+      return { codec, size: codec.enc(codec.dec(new Uint8Array(1024))).length }
+    })
+  let keysLayout: ReturnType<typeof readKeysLayout> | null = null
+
+  const decodeKeys = async (hex: string) => {
+    const { codec, size } = await (keysLayout ??= readKeysLayout())
+    const blob = hex.trim()
+    if (!isHex(blob) || (blob.length - 2) / 2 !== size) {
+      throw new Error('Not the session keys this chain takes')
+    }
+    return codec.dec(hexToU8a(blob))
   }
 
   /**
@@ -812,6 +847,13 @@ export function createPapiRepository(network: Network): ChainRepository {
       })
     }
 
+    if (operation.kind === 'setKeys') {
+      return api.tx.Session.set_keys({
+        keys: await decodeKeys(operation.keys),
+        proof: hexToU8a(operation.proof),
+      })
+    }
+
     if (operation.kind === 'provideJudgement') {
       // The chain takes the hash of the identity a verdict is for and refuses
       // the call if the identity has moved on since. Hashing what the registrar
@@ -841,6 +883,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       | { kind: 'propose' }
       | { kind: 'editMetadata' }
       | { kind: 'provideJudgement' }
+      | { kind: 'setKeys' }
       | { kind: 'multisigApprove' }
       | { kind: 'multisigApproveData' }
       | { kind: 'multisigCancel' }
@@ -1001,6 +1044,10 @@ export function createPapiRepository(network: Network): ChainRepository {
         return api.tx.Identity.cancel_request({ reg_index: operation.registrar })
       case 'setFee':
         return api.tx.Identity.set_fee({ index: operation.registrar, fee: operation.fee })
+      case 'lockStake':
+        return api.tx.Validator.lock()
+      case 'requestExit':
+        return api.tx.Validator.request_exit()
       case 'vote':
         return api.tx.ConvictionVoting.vote({
           poll_index: operation.poll,
@@ -1433,6 +1480,53 @@ export function createPapiRepository(network: Network): ChainRepository {
         api.query.Balances.InactiveIssuance.getValue(BEST),
       ])
       return total - inactive
+    },
+
+    async validators(): Promise<ValidatorSet> {
+      const [sitting, elected, queued] = await Promise.all([
+        api.query.Session.Validators.getValue(BEST),
+        api.query.Validator.DesiredValidators.getValue(BEST),
+        api.query.Validator.PendingValidators.getValue(BEST),
+      ])
+      return { sitting, elected, queued }
+    },
+
+    async validatorOf(address: string): Promise<ValidatorRecord> {
+      const [lock, exempt, cooldown, keys, sitting, session] = await Promise.all([
+        api.query.Validator.ValidatorLocks.getValue(address, BEST),
+        api.query.Validator.StakeExemptAccounts.getValue(address, BEST),
+        api.query.Validator.RejoinCooldown.getValue(address, BEST),
+        api.query.Session.NextKeys.getValue(address, BEST),
+        api.query.Session.Validators.getValue(BEST),
+        api.query.Session.CurrentIndex.getValue(BEST),
+      ])
+      // im_online numbers heartbeats by the voter's place in this session's set
+      const seat = sitting.indexOf(address)
+      const heartbeat =
+        seat < 0
+          ? null
+          : (await api.query.ImOnline.ReceivedHeartbeats.getValue(session, seat, BEST)) === true
+
+      return {
+        lock: lock
+          ? {
+              amount: lock.amount,
+              since: lock.lock_block,
+              until: lock.expiry_block,
+              status: lock.status.type,
+            }
+          : null,
+        // The entry holds a unit, which reads back as null, and a missing one as undefined
+        exempt: exempt !== undefined,
+        cooldown: cooldown ?? null,
+        keys: keys ? { grandpa: keys.grandpa, imOnline: keys.im_online } : null,
+        heartbeat,
+      }
+    },
+
+    async readKeys(hex: string): Promise<SessionKeys> {
+      const keys = await decodeKeys(hex)
+      return { grandpa: keys.grandpa, imOnline: keys.im_online }
     },
 
     async estimateFee(from: string, operation: Operation): Promise<bigint> {

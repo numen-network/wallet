@@ -35,6 +35,9 @@ export const SETTLED: Record<Operation['kind'], string> = {
   provideJudgement: 'Judgement recorded',
   cancelJudgement: 'Request withdrawn',
   setFee: 'Judgement fee set',
+  setKeys: 'Session keys registered',
+  lockStake: 'Queued for the validator set',
+  requestExit: 'Leaving the validator set',
   vote: 'Vote counted',
   removeVote: 'Vote taken back',
   unlock: 'Balance unlocked',
@@ -270,6 +273,15 @@ export function describe(
         title: 'Set the judgement fee',
         fields: row({ registrar: String(operation.registrar), fee: amount(operation.fee) }),
       }
+    case 'setKeys':
+      return {
+        title: 'Set session keys',
+        fields: row({ keys: shorten(operation.keys, { full: options.whole }) }),
+      }
+    case 'lockStake':
+      return { title: 'Join the validator set', fields: [] }
+    case 'requestExit':
+      return { title: 'Leave the validator set', fields: [] }
     case 'vote':
       return {
         title: `Vote on referendum ${operation.poll}`,

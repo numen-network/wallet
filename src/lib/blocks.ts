@@ -9,6 +9,13 @@ export function waitFor(blocks: number, blockSeconds: number): string {
   return `about ${plural(days, 'day')}`
 }
 
+/** The same, down to the minute under an hour, for waits a session or two long. */
+export function waitToTheMinute(blocks: number, blockSeconds: number): string {
+  const minutes = Math.ceil((blocks * blockSeconds) / 60)
+  if (blocks <= 0 || minutes >= 60) return waitFor(blocks, blockSeconds)
+  return `about ${plural(minutes, 'minute')}`
+}
+
 const MONTH_DAYS = 30
 const YEAR_DAYS = 365
 
