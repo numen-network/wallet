@@ -46,9 +46,12 @@ export function toastSettled(key: string): void {
  * centre it between both edges without touching the transform the animation
  * rides on. Anything a kind wants wider than this asks for a minimum, since a
  * second width would only race this one.
+ *
+ * On a phone Sonner stretches every toast across the screen, and a maximum
+ * keeps it clear of both edges.
  */
 const TOAST =
-  'flex w-fit inset-x-0 mx-auto items-center gap-2 rounded-md px-4 py-2.5 text-[13.5px] font-semibold shadow-lift'
+  'flex w-fit max-w-[calc(100vw-2rem)] inset-x-0 mx-auto items-center gap-2 rounded-md px-4 py-2.5 text-[13.5px] font-semibold shadow-lift'
 
 export function ToastHost() {
   return (
@@ -61,6 +64,9 @@ export function ToastHost() {
       // Clear of the header, which is where a working notice would otherwise
       // land on top of the tabs
       offset={{ top: 60 }}
+      // On a phone Sonner keeps the list as wide as the screen, so a side
+      // offset only pushes it partly off screen
+      mobileOffset={{ left: 0, right: 0 }}
       icons={{ loading: <Spinner className="mt-[3px] size-3.5 text-primary" /> }}
       // Its own styles are dropped rather than overridden, so nothing depends
       // on which stylesheet the browser happened to read last
