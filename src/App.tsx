@@ -234,6 +234,7 @@ export function App() {
   const store = useAccountsStore()
   const [modal, setModal] = useState<Modal | null>(null)
   const [view, setView] = useState<View>('accounts')
+  const [header, setHeader] = useState<HTMLElement | null>(null)
 
   const addresses = useMemo(() => accounts.map((account) => account.address), [accounts])
   const balances = useBalances(addresses)
@@ -276,7 +277,7 @@ export function App() {
 
   return (
     <Tabs value={view} onChange={setView}>
-      <header className="sticky top-0 z-40 border-b border-border bg-card">
+      <header ref={setHeader} className="sticky top-0 z-40 border-b border-border bg-card">
         <div className={cn(SHELL, 'flex flex-wrap items-center gap-3 py-2.5')}>
           <div className="flex items-center gap-2.5 text-[15px] font-bold tracking-tight">
             <img src="/logo.svg" width={22} height={22} alt="" />
@@ -613,7 +614,7 @@ export function App() {
       )}
 
       <RefusalModal />
-      <ToastHost />
+      <ToastHost header={header} />
     </Tabs>
   )
 }

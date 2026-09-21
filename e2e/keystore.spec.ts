@@ -612,7 +612,7 @@ test('one delegation covers every track it is ticked for', async ({ page }) => {
   await expect(sent.locator('article')).toHaveCount(1)
 })
 
-test('a call on its way says where it has got to, clear of the header', async ({ page }) => {
+async function watchTheCorner({ page }: { page: Page }) {
   await createKey(page)
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Done' }).click()
@@ -636,4 +636,12 @@ test('a call on its way says where it has got to, clear of the header', async ({
   // Gone once the chain has settled it, leaving only what became of the call
   await expect(page.getByText('Transfer confirmed')).toBeVisible()
   await expect(working).toHaveCount(0)
+}
+
+test('a call on its way says where it has got to, clear of the header', watchTheCorner)
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true })
+
+  test('a call on its way says where it has got to, clear of the header', watchTheCorner)
 })

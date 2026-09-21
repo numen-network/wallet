@@ -1,4 +1,5 @@
 import { Toaster, toast as sonner } from 'sonner'
+import { useSize } from 'radix-ui/internal'
 import { Spinner } from '@/components/ui/spinner'
 
 /**
@@ -53,7 +54,9 @@ export function toastSettled(key: string): void {
 const TOAST =
   'flex w-fit max-w-[calc(100vw-2rem)] inset-x-0 mx-auto items-center gap-2 rounded-md px-4 py-2.5 text-[13.5px] font-semibold shadow-lift'
 
-export function ToastHost() {
+export function ToastHost({ header }: { header: HTMLElement | null }) {
+  // Clear of the header, which is where a working notice would otherwise land
+  const top = (useSize(header)?.height ?? 0) + 3
   return (
     <Toaster
       position="bottom-center"
@@ -61,12 +64,10 @@ export function ToastHost() {
       // Every notice stays readable. Stacked into a pile they only come apart
       // on hover, which hides whatever landed while somebody was reading
       expand
-      // Clear of the header, which is where a working notice would otherwise
-      // land on top of the tabs
-      offset={{ top: 60 }}
+      offset={{ top }}
       // On a phone Sonner keeps the list as wide as the screen, so a side
       // offset only pushes it partly off screen
-      mobileOffset={{ left: 0, right: 0 }}
+      mobileOffset={{ top, left: 0, right: 0 }}
       icons={{ loading: <Spinner className="mt-[3px] size-3.5 text-primary" /> }}
       // Its own styles are dropped rather than overridden, so nothing depends
       // on which stylesheet the browser happened to read last
