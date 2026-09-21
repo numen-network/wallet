@@ -64,7 +64,8 @@ interface PayoutDraft {
 
 const BLANK: PayoutDraft = { to: '', amount: '', on: '' }
 
-const COLUMNS = 'grid grid-cols-[1fr_176px_168px_28px] gap-x-2'
+/** Payouts take one line while the address column gets at least 350px, and two lines below that. */
+const COLUMNS = 'grid grid-cols-[1fr_1fr_28px] gap-x-2 @min-[746px]:grid-cols-[1fr_176px_168px_28px]'
 
 /** The spender tracks share one entry, since the amount picks among them. */
 const SPEND = 'spend'
@@ -359,8 +360,8 @@ export function ProposeModal({
         )}
 
         {!chosen && (
-          <>
-            <div className={cn('mt-4', COLUMNS)}>
+          <div className="@container">
+            <div className={cn('mt-4 @max-[746px]:hidden', COLUMNS)}>
               <span className={CAPTION}>Address</span>
               <span className={CAPTION}>Amount</span>
               <span className={CAPTION}>Release</span>
@@ -374,7 +375,7 @@ export function ProposeModal({
                   value={row.to}
                   onChange={(next: string) => editPayout(index, { to: next })}
                   accounts={accounts}
-                  className="w-full"
+                  className="col-span-2 w-full @min-[746px]:col-span-1"
                   labelled={false}
                 />
 
@@ -397,7 +398,7 @@ export function ProposeModal({
                   variant="ghost"
                   size="icon"
                   aria-label={`Remove payout ${index + 1}`}
-                  className="mt-1"
+                  className="mt-1 @max-[746px]:col-start-3 @max-[746px]:row-start-1"
                   onClick={() => {
                     // Removing the only payout leaves a blank one, so the form never goes empty
                     const rest = payouts.filter((_row, at) => at !== index)
@@ -408,7 +409,9 @@ export function ProposeModal({
                 </Button>
 
                 {/* What the date works out to, which is the block the call carries */}
-                <span className="col-span-3 text-right text-[11.5px] text-dim">{untilOf(row)}</span>
+                <span className="col-span-2 text-right text-[11.5px] text-dim @min-[746px]:col-span-3">
+                  {untilOf(row)}
+                </span>
               </div>
             ))}
 
@@ -421,7 +424,7 @@ export function ProposeModal({
               <Plus />
               Add
             </Button>
-          </>
+          </div>
         )}
 
         {(chosen?.shape === 'cancel' || chosen?.shape === 'kill') && (

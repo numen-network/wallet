@@ -29,7 +29,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        'fixed inset-0 isolate z-90 grid place-items-center bg-overlay p-5 animation-duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        'fixed inset-0 isolate z-90 grid place-items-center bg-overlay p-5 animation-duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 max-[560px]:items-end max-[560px]:px-0 max-[560px]:pb-0',
         className,
       )}
       {...props}
@@ -39,8 +39,8 @@ function DialogOverlay({
 
 /*
   The content sits inside the overlay rather than beside it. The overlay row
-  centres it and grows with it, so the viewport is the cap, less the padding
-  the overlay keeps around the dialog.
+  centres it, or docks it to the bottom on a phone. The row grows with it, so
+  the viewport is the cap, less the padding the overlay keeps around the dialog.
 */
 function DialogContent({
   className,
@@ -56,7 +56,7 @@ function DialogContent({
         <DialogPrimitive.Content
           data-slot="dialog-content"
           className={cn(
-            'relative flex max-h-[calc(100dvh-40px)] w-full flex-col gap-4 rounded-lg border border-border bg-card p-4 text-sm text-card-foreground shadow-lift animation-duration-100 will-change-transform outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 sm:max-w-sm',
+            'relative flex max-h-[calc(100dvh-40px)] w-full min-w-0 flex-col gap-4 rounded-lg border border-border bg-card p-4 text-sm text-card-foreground shadow-lift animation-duration-100 will-change-transform outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 max-[560px]:max-h-[calc(100dvh-20px)] max-[560px]:rounded-b-none max-[560px]:border-x-0 max-[560px]:border-b-0 sm:max-w-sm',
             className,
           )}
           {...props}

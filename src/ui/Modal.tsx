@@ -56,7 +56,7 @@ export function ModalFrame({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="gap-0 px-[22px] py-5"
+        className="gap-0 px-[22px] py-5 max-[560px]:px-4"
         style={{ maxWidth: width }}
         aria-describedby={undefined}
       >
@@ -101,14 +101,16 @@ export function ModalPage({
       <DialogFooter>
         <div className="mt-3.5 empty:hidden">{footer}</div>
 
-        <div className="mt-3.5 flex items-center gap-2.5">
-          <div className="flex-1 text-[11.5px] text-dim">
+        <div className="mt-3.5 flex items-center gap-2.5 max-[560px]:flex-wrap">
+          <div className="flex-1 text-[11.5px] text-dim max-[560px]:basis-full max-[560px]:empty:hidden">
             {fee}
             {footNote && <p>{footNote}</p>}
           </div>
           {cancelLabel && (
             <DialogClose asChild>
-              <Button type="button" variant="outline">{cancelLabel}</Button>
+              <Button type="button" variant="outline" className="max-[560px]:flex-1">
+                {cancelLabel}
+              </Button>
             </DialogClose>
           )}
           {submitLabel !== null && (
@@ -116,6 +118,7 @@ export function ModalPage({
               type="submit"
               variant={danger ? 'destructive' : 'default'}
               disabled={disabled || busy}
+              className="max-[560px]:flex-1"
             >
               {busy && <Spinner />}
               {submitLabel}

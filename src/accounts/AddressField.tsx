@@ -139,7 +139,7 @@ export function AddressField<T extends Pickable>({
         disabled={!offers}
         className={cn(
           BOX,
-          'flex min-w-[350px] items-center gap-3 pr-2 text-left',
+          'flex items-center gap-3 pr-2 text-left',
           labelled && 'mt-2.5 first:mt-0',
           className,
           'data-[state=open]:border-primary',
@@ -151,7 +151,7 @@ export function AddressField<T extends Pickable>({
 
         <span className="min-w-0 flex-1">
           {labelled && (
-            <span className="flex items-baseline gap-3 text-[11.5px] text-dim">
+            <span className="flex items-baseline gap-3 text-[11.5px] whitespace-nowrap text-dim">
               {label}
               <span className="ml-auto truncate">{aside || holds}</span>
             </span>

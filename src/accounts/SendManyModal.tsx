@@ -104,53 +104,60 @@ export function SendMany({
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
 
-      <div className="mt-4 grid grid-cols-[1fr_200px_28px] gap-x-2">
-        <span className={CAPTION}>Address</span>
-        <span className={CAPTION}>Amount</span>
-        <span />
-      </div>
+      {/* Payments take one line while the address column gets at least 350px, and two lines below that */}
+      <div className="@container">
+        <div className="mt-4 grid grid-cols-[1fr_200px_28px] gap-x-2 @max-[594px]:hidden">
+          <span className={CAPTION}>Address</span>
+          <span className={CAPTION}>Amount</span>
+          <span />
+        </div>
 
-      {rows.map((row, index) => {
-        const problem = shown ? rowProblem(row) : null
+        {rows.map((row, index) => {
+          const problem = shown ? rowProblem(row) : null
 
-        return (
-          <div key={index} className="mt-1.5 grid grid-cols-[1fr_200px_28px] items-start gap-x-2">
-            <span>
-              <AddressField
-                label={`Address ${index + 1}`}
-                value={row.to}
-                onChange={(to) => setRow(index, { to })}
-                accounts={others}
-                className="w-full"
+          return (
+            <div
+              key={index}
+              className="mt-1.5 grid grid-cols-[1fr_28px] items-start gap-x-2 @min-[594px]:grid-cols-[1fr_200px_28px]"
+            >
+              <span>
+                <AddressField
+                  label={`Address ${index + 1}`}
+                  value={row.to}
+                  onChange={(to) => setRow(index, { to })}
+                  accounts={others}
+                  className="w-full"
+                  labelled={false}
+                />
+                <FieldError>{problem}</FieldError>
+              </span>
+
+              <AmountField
+                label={`Amount ${index + 1}`}
+                value={row.amount}
+                onChange={(amount) => setRow(index, { amount })}
                 labelled={false}
               />
-              <FieldError>{problem}</FieldError>
-            </span>
 
-            <AmountField
-              label={`Amount ${index + 1}`}
-              value={row.amount}
-              onChange={(amount) => setRow(index, { amount })}
-              labelled={false}
-            />
-
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={`Remove row ${index + 1}`}
-              onClick={() => {
-                // Removing the only row leaves a blank one, so the form never
-                // goes empty and a filled row can always be cleared
-                const rest = rows.filter((_, at) => at !== index)
-                patch({ rows: rest.length > 0 ? rest : [BLANK] })
-              }}
-            >
-              <Trash2 />
-            </Button>
-          </div>
-        )
-      })}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={`Remove row ${index + 1}`}
+                className="@max-[594px]:col-start-2 @max-[594px]:row-start-1"
+                onClick={() => {
+                  // Removing the only row leaves a blank one, so the form never
+                  // goes empty and a filled row can always be cleared
+                  const rest = rows.filter((_, at) => at !== index)
+                  patch({ rows: rest.length > 0 ? rest : [BLANK] })
+                }}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          )
+        })}
+      </div>
 
       <div className="mt-3 flex items-center gap-3">
         <Button type="button" variant="outline" onClick={() => patch({ rows: [...rows, BLANK] })}>

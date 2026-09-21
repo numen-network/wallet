@@ -363,7 +363,10 @@ function CardBody({
       <CardContent className="mt-auto pt-1">
         {/* What the account holds, to the planck. The split under it is rounded
             for reading, and says so */}
-        <div data-nodrag className={cn('font-mono text-xl font-semibold tracking-tight', PICKABLE)}>
+        <div
+          data-nodrag
+          className={cn('font-mono text-xl font-semibold tracking-tight wrap-anywhere max-[560px]:text-base', PICKABLE)}
+        >
           {formatAmount(totalOf(holdings), { precision: DECIMALS, pad: false })}
           <span className="ml-1 text-[11.5px] font-bold tracking-wide">{symbol}</span>
         </div>

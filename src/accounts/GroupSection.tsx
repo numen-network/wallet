@@ -130,7 +130,7 @@ export function GroupSection({
           <SortableContext items={accounts.map((account) => account.address)} strategy={settled}>
             <div
               className={cn(
-                'mt-0.5 grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-0.5 rounded-lg',
+                'mt-0.5 grid grid-cols-[repeat(auto-fill,minmax(min(400px,100%),1fr))] gap-0.5 rounded-lg',
                 dropTarget && 'outline-[1.5px] outline-dashed outline-primary outline-offset-2',
               )}
             >

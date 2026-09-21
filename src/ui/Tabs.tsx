@@ -39,7 +39,7 @@ export function TabBar<T extends string>({
   className?: string
 }) {
   return (
-    <TabsList className={cn(CONTROL, className)}>
+    <TabsList className={cn(CONTROL, 'no-scrollbar overflow-x-auto', className)}>
       {options.map((option) => (
         <TabsTrigger key={option.id} value={option.id}>
           {option.label}
