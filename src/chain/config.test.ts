@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { isEvmAddress } from '@/lib/address'
 import { defaultNetwork, explorerAccount, explorerToken, NETWORKS, TOKENS } from './config'
@@ -52,10 +53,18 @@ describe('the network a deployment opens on', () => {
 })
 
 describe('the tokens the wallet shows', () => {
+  const tokens = Object.values(TOKENS).flat()
+
   it('names each contract in lowercase, since every lookup compares lowercase', () => {
-    for (const address of Object.values(TOKENS).flat()) {
+    for (const { address } of tokens) {
       expect(isEvmAddress(address)).toBe(true)
       expect(address).toBe(address.toLowerCase())
+    }
+  })
+
+  it('ships a logo for each one', () => {
+    for (const { icon } of tokens) {
+      expect(existsSync(`public${icon}`)).toBe(true)
     }
   })
 })

@@ -24,7 +24,7 @@ export function transferCall(to: string, amount: bigint): string {
 export function readToken(
   address: string,
   answers: { name: string; symbol: string; decimals: string },
-): Token {
+): Omit<Token, 'icon'> {
   return {
     address,
     name: erc20.name.decodeOutput(hexToU8a(answers.name)),

@@ -394,6 +394,7 @@ export interface Token {
   name: string
   symbol: string
   decimals: number
+  icon: string
 }
 
 /** One spender track, as the runtime publishes it. */

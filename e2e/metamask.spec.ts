@@ -234,6 +234,7 @@ test('lists what an EVM address holds in a dialog, not on its card', async ({ pa
 
   const dialog = await tokenBalances(page, 'Mirror')
   await expect(dialog.getByText('Mock Dollar')).toBeVisible()
+  await expect(dialog.locator('img[src="/wtmr.svg"]')).toHaveCount(2)
   await expect(dialog.getByText('525.694')).toBeVisible()
   await expect(dialog.getByText('1,866.8')).toBeVisible()
   await expect(dialog.getByRole('link', { name: 'View on the explorer' }).first()).toHaveAttribute(

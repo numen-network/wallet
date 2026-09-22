@@ -97,12 +97,14 @@ const TOKENS: Token[] = [
     name: 'Mock Dollar',
     symbol: 'mUSD',
     decimals: 6,
+    icon: '/wtmr.svg',
   },
   {
     address: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
     name: 'Wrapped Mock',
     symbol: 'wMOCK',
     decimals: 1,
+    icon: '/wtmr.svg',
   },
 ]
 

@@ -21,10 +21,12 @@ export const IDENTITY_CHECK_FEE = 10n * UNIT
 
 /**
  * ERC20 contracts the wallet shows, keyed by the EVM chain id they live on.
- * The chain keeps no token list, so this one names them. Name, symbol and
- * decimals come from each contract.
+ * The chain keeps no token list or logos, so this one names each contract and
+ * its logo under public/. Name, symbol and decimals come from each contract.
  */
-export const TOKENS: Record<number, string[]> = {}
+export const TOKENS: Record<number, { address: string; icon: string }[]> = {
+  32026: [{ address: '0xa1795b3c6f74866c7def1df390f9e2e403dca2e9', icon: '/wtmr.svg' }],
+}
 
 export type NetworkId = 'mainnet' | 'testnet' | 'local'
 

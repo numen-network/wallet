@@ -2,6 +2,7 @@ import { Fragment } from 'react'
 import { explorerToken } from '@/chain/config'
 import { useChain } from '@/chain/provider'
 import { shorten } from '@/lib/address'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
 import {
@@ -10,6 +11,7 @@ import {
   ItemContent,
   ItemDescription,
   ItemGroup,
+  ItemMedia,
   ItemSeparator,
   ItemTitle,
 } from '@/components/ui/item'
@@ -63,6 +65,11 @@ export function TokenBalancesModal({
             <Fragment key={holding.token.address}>
               {index > 0 && <ItemSeparator />}
               <Item>
+                <ItemMedia>
+                  <Avatar>
+                    <AvatarImage src={holding.token.icon} alt="" />
+                  </Avatar>
+                </ItemMedia>
                 <ItemContent>
                   <ItemTitle>
                     {holding.token.symbol}

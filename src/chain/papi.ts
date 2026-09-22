@@ -1545,13 +1545,13 @@ export function createPapiRepository(network: Network): ChainRepository {
     async tokens(): Promise<Token[]> {
       const { evmChainId } = await chainFacts()
       return Promise.all(
-        (TOKENS[evmChainId] ?? []).map(async (address) => {
+        (TOKENS[evmChainId] ?? []).map(async ({ address, icon }) => {
           const [name, symbol, decimals] = await Promise.all([
             ethCall(address, NAME_CALL, 'latest'),
             ethCall(address, SYMBOL_CALL, 'latest'),
             ethCall(address, DECIMALS_CALL, 'latest'),
           ])
-          return readToken(address, { name, symbol, decimals })
+          return { ...readToken(address, { name, symbol, decimals }), icon }
         }),
       )
     },

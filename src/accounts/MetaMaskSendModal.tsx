@@ -16,6 +16,7 @@ import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Field, INSIDE } from '@/ui/Field'
 import { LEDE, Modal } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { FieldError, NOTE } from '@/components/ui/field'
 import { toast, toastProblem } from '@/ui/Toast'
 import { AddressField } from './AddressField'
@@ -25,6 +26,15 @@ import type { Account } from './types'
 
 /** The Token box's value for the coin, which no contract address can clash with. */
 const COIN = 'coin'
+
+const COIN_ICON = '/logo.svg'
+
+/** Sized to the tick's column, so every row reads from the same left edge. */
+const mark = (icon: string) => (
+  <Avatar className="size-3.5">
+    <AvatarImage src={icon} alt="" />
+  </Avatar>
+)
 
 const NONE: Holding[] = []
 
@@ -177,17 +187,21 @@ export function MetaMaskSendModal({
             {
               value: COIN,
               label: facts?.symbol ?? '',
+              icon: mark(COIN_ICON),
               detail: formatAmount(there, { precision: 4 }),
             },
             ...holdings.map((holding) => ({
               value: holding.token.address,
               label: `${holding.token.symbol}, ${holding.token.name}`,
+              icon: mark(holding.token.icon),
               detail: tokenAmount(holding),
             })),
           ]}
           label="Token"
           className={INSIDE}
-        />
+        >
+          {mark(token?.token.icon ?? COIN_ICON)}
+        </Select>
       </Field>
 
       {token ? (
