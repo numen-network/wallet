@@ -13,6 +13,8 @@ export interface SelectOption {
   label: string
   /** A mark beside the label, for a value that reads as a state. */
   icon?: ReactNode
+  /** Shown right of the label in the open list, for a figure worth choosing by. */
+  detail?: ReactNode
 }
 
 interface SelectProps {
@@ -71,7 +73,12 @@ export function Select({
 
       <SelectContent position="popper" align="start" sideOffset={6}>
         {options.map((option) => (
-          <SelectItem key={option.value} value={option.value} icon={option.icon}>
+          <SelectItem
+            key={option.value}
+            value={option.value}
+            icon={option.icon}
+            detail={option.detail}
+          >
             {option.label}
           </SelectItem>
         ))}

@@ -2,6 +2,7 @@ import { u8aToHex } from '@polkadot/util'
 import { keccakAsU8a } from '@polkadot/util-crypto'
 import type { Network } from '@/chain/config'
 import type { ChainFacts } from '@/chain/types'
+import { transferCall } from './erc20'
 
 /**
  * Numen runs an EVM alongside the substrate side, and MetaMask is where people
@@ -128,6 +129,23 @@ export async function withdrawToSubstrate(
   await provider.request({
     method: 'eth_sendTransaction',
     params: [{ from, to: facts.balancesErc20, data: withdrawCall(publicKey, amount) }],
+  })
+}
+
+/** Hands MetaMask a token transfer to sign. Gas is paid in the coin, from the same address. */
+export async function sendToken(
+  network: Network,
+  facts: ChainFacts,
+  from: string,
+  token: string,
+  to: string,
+  amount: bigint,
+): Promise<void> {
+  const provider = await onNumen(network, facts)
+
+  await provider.request({
+    method: 'eth_sendTransaction',
+    params: [{ from, to: token, data: transferCall(to, amount) }],
   })
 }
 

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { defaultNetwork, explorerAccount, NETWORKS } from './config'
+import { isEvmAddress } from '@/lib/address'
+import { defaultNetwork, explorerAccount, explorerToken, NETWORKS, TOKENS } from './config'
 
 const ALICE = 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb'
 
@@ -10,6 +11,13 @@ describe('the explorer link', () => {
     )
     expect(explorerAccount(NETWORKS.testnet, ALICE)).toBe(
       `https://testnet.explorer.numen-network.org/account/${ALICE}`,
+    )
+  })
+
+  it('points at the token page of the network in use', () => {
+    const token = '0xa1795b3c6f74866c7def1df390f9e2e403dca2e9'
+    expect(explorerToken(NETWORKS.mainnet, token)).toBe(
+      `https://explorer.numen-network.org/token/${token}`,
     )
   })
 
@@ -40,5 +48,14 @@ describe('the network a deployment opens on', () => {
 
     servedFrom('wallet-preview.pages.dev')
     expect(defaultNetwork()).toBe('local')
+  })
+})
+
+describe('the tokens the wallet shows', () => {
+  it('names each contract in lowercase, since every lookup compares lowercase', () => {
+    for (const address of Object.values(TOKENS).flat()) {
+      expect(isEvmAddress(address)).toBe(true)
+      expect(address).toBe(address.toLowerCase())
+    }
   })
 })

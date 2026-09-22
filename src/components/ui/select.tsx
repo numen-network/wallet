@@ -91,10 +91,13 @@ function SelectItem({
   className,
   children,
   icon,
+  detail,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Item> & {
   /** What stands in the tick's column where a value brings a mark of its own. */
   icon?: React.ReactNode
+  /** Shown right of the label in the open list, since the trigger shows the label alone. */
+  detail?: React.ReactNode
 }) {
   return (
     <SelectPrimitive.Item
@@ -114,6 +117,7 @@ function SelectItem({
         )}
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      {detail && <span className="ml-auto pl-4 font-mono text-dim">{detail}</span>}
     </SelectPrimitive.Item>
   )
 }

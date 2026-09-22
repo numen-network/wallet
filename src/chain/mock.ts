@@ -54,6 +54,7 @@ import {
   type Proxy,
   type Reach,
   type ReadCall,
+  type Token,
   type TxProgress,
   type Unsubscribe,
 } from './types'
@@ -87,6 +88,28 @@ function seedBalance(address: string): AccountBalance {
     transferable: transferableOf(free, reserved, frozen, FACTS.existentialDeposit),
     locked: frozen,
   }
+}
+
+/** Six decimals and one, so nothing gets to lean on the coin's eighteen. */
+const TOKENS: Token[] = [
+  {
+    address: '0x5fbdb2315678afecb367f032d93f642f64180aa3',
+    name: 'Mock Dollar',
+    symbol: 'mUSD',
+    decimals: 6,
+  },
+  {
+    address: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
+    name: 'Wrapped Mock',
+    symbol: 'wMOCK',
+    decimals: 1,
+  },
+]
+
+/** Derived like the native balance, so an address holds the same tokens on every load. */
+function seedTokenBalance(token: string, holder: string, decimals: number): bigint {
+  const h = hash(`${token}:${holder.toLowerCase()}`)
+  return h % 5n === 0n ? 0n : ((h % 10_000_000n) * 10n ** BigInt(decimals)) / 1_000n
 }
 
 const FEE = 6_400_000_000_000_000n
@@ -1454,6 +1477,16 @@ export function createMockRepository(): ChainRepository {
 
     async readKeys(hex: string): Promise<SessionKeys> {
       return splitKeys(hex)
+    },
+
+    async tokens(): Promise<Token[]> {
+      return TOKENS.map((token) => ({ ...token }))
+    },
+
+    subscribeTokenBalance(token, holder, onBalance): Unsubscribe {
+      const decimals = TOKENS.find((entry) => entry.address === token)?.decimals ?? 0
+      onBalance(seedTokenBalance(token, holder, decimals))
+      return () => {}
     },
 
     async estimateFee() {

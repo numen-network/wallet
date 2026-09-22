@@ -70,8 +70,9 @@ export type CardAction =
   | 'subs'
   | 'vesting'
   | 'sign'
-  | 'bringIn'
+  | 'metaMaskSend'
   | 'validator'
+  | 'tokenBalances'
 
 interface CardProps {
   account: Account
@@ -192,10 +193,10 @@ function CardBody({
   // The menu writes to this account's own record, so a parent's is no answer here
   const identity = standing?.own ?? null
   const asked = pendingWith(identity) !== null
-  // Nothing here holds the key to an EVM address, so spending from one is a
-  // withdrawal MetaMask signs rather than a transfer the wallet sends
-  const withdraws = account.evmAddress !== null
-  const shut = !withdraws && !canSend(account)
+  // Nothing here holds the key to an EVM address, so whatever leaves one is a
+  // call MetaMask signs rather than one the wallet sends
+  const viaMetaMask = account.evmAddress !== null
+  const shut = !viaMetaMask && !canSend(account)
   // Which registrar this account is, if the chain lists it as one
   const seat = seatOf(registrars ?? [], account.address)
 
@@ -380,23 +381,28 @@ function CardBody({
         </div>
       </CardContent>
 
-      <CardFooter className="flex-nowrap">
+      <CardFooter className="grid auto-cols-fr grid-flow-col">
         <Tip text={shut ? CANNOT_SEND[account.source] : undefined}>
-          <span className="flex flex-1 has-[:disabled]:cursor-not-allowed">
+          <span className="flex has-[:disabled]:cursor-not-allowed">
             <Button
               type="button"
               data-nodrag
               className="flex-1"
               disabled={shut}
-              onClick={ask(withdraws ? 'bringIn' : 'send')}
+              onClick={ask(viaMetaMask ? 'metaMaskSend' : 'send')}
             >
               Send
             </Button>
           </span>
         </Tip>
-        <Button type="button" variant="outline" data-nodrag className="flex-1" onClick={ask('receive')}>
+        <Button type="button" variant="outline" data-nodrag onClick={ask('receive')}>
           Receive
         </Button>
+        {account.evmAddress && (
+          <Button type="button" variant="outline" data-nodrag onClick={ask('tokenBalances')}>
+            Tokens
+          </Button>
+        )}
       </CardFooter>
     </>
   )

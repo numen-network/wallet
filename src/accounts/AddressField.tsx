@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useBalances, useStanding, useSymbol } from '@/chain/queries'
 import { labelOf } from '@/chain/identity'
 import { cn } from '@/lib/cn'
-import { resolveAddress, shorten } from '@/lib/address'
+import { isEvmAddress, resolveAddress, shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { NOTE } from '@/components/ui/field'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -31,7 +31,7 @@ const WIDE = 'w-full'
  * A display name on its own is only a claim, and picking the wrong address is
  * the mistake this list exists to prevent.
  */
-function Chain({ address, shown }: { address: string; shown: string }) {
+function Chain({ address, shown, evm }: { address: string; shown: string; evm: boolean }) {
   const { data: standing } = useStanding(address)
   const named = standing ? labelOf(standing) : ''
 
@@ -43,7 +43,7 @@ function Chain({ address, shown }: { address: string; shown: string }) {
           <span className="max-w-[180px] truncate">{named}</span>
         </span>
       )}
-      <span className="block font-mono text-[13px] text-dim">{shorten(shown)}</span>
+      <span className="block font-mono text-[13px] text-dim">{shorten(shown, { evm })}</span>
     </span>
   )
 }
@@ -86,7 +86,8 @@ export function AddressField<T extends Pickable>({
   onPick,
   aside,
   className = WIDE,
-  placeholder = 'nu… or 0x…',
+  evm = false,
+  placeholder = evm ? '0x…' : 'nu… or 0x…',
   labelled = true,
   readOnly = false,
 }: {
@@ -99,6 +100,11 @@ export function AddressField<T extends Pickable>({
   /** The last word on the right, for whatever the chain says about it. */
   aside?: ReactNode
   className?: string
+  /**
+   * For a token, which only an H160 can hold. The box then takes nothing else
+   * and shows the H160 instead of the Numen account it maps onto.
+   */
+  evm?: boolean
   placeholder?: string
   /** Off in a table, where the column heading has already said it once. */
   labelled?: boolean
@@ -111,6 +117,10 @@ export function AddressField<T extends Pickable>({
   const [typed, setTyped] = useState('')
 
   const resolved = resolveAddress(value)
+  const accepts = (input: string) =>
+    evm ? isEvmAddress(input.trim()) : resolveAddress(input) !== null
+  const shown = (address: string) =>
+    evm ? shorten(address, { evm }) : shorten(resolveAddress(address) ?? '')
   const known = accounts.find((entry) => entry.address === value || entry.address === resolved)
   // A list whose only entry is what is already there is not a choice
   const choices = accounts.filter((entry) => entry.address !== value)
@@ -164,12 +174,12 @@ export function AddressField<T extends Pickable>({
                 !value && 'text-hint',
               )}
             >
-              {known?.name || (resolved ? shorten(resolved) : value) || placeholder}
+              {known?.name || (accepts(value) ? shown(value) : value) || placeholder}
             </span>
             {/* Its own column whoever the address belongs to, so a table of
                 these reads down the right as well as across */}
-            {resolved && (
-              <span className={cn('shrink-0 font-mono', NOTE)}>{shorten(resolved)}</span>
+            {accepts(value) && (
+              <span className={cn('shrink-0 font-mono', NOTE)}>{shown(value)}</span>
             )}
           </span>
         </span>
@@ -200,16 +210,16 @@ export function AddressField<T extends Pickable>({
           )}
 
           <CommandList>
-            {!readOnly && typed !== '' && !resolveAddress(typed) && (
-              <p className="px-3 py-2.5 text-[13.5px] text-destructive">Not a Numen or EVM address</p>
+            {!readOnly && typed !== '' && !accepts(typed) && (
+              <p className="px-3 py-2.5 text-[13.5px] text-destructive">
+                {evm ? 'Not an EVM address' : 'Not a Numen or EVM address'}
+              </p>
             )}
-            {!readOnly && resolveAddress(typed) && (
+            {!readOnly && accepts(typed) && (
               <CommandItem value={typed} onSelect={() => take(typed)}>
                 <Identicon address={resolveAddress(typed)!} size={26} />
                 Use this address
-                <span className="ml-auto pl-4 font-mono text-[13px] text-dim">
-                  {shorten(resolveAddress(typed)!)}
-                </span>
+                <span className="ml-auto pl-4 font-mono text-[13px] text-dim">{shown(typed)}</span>
               </CommandItem>
             )}
 
@@ -225,7 +235,7 @@ export function AddressField<T extends Pickable>({
                         account wears, which is the account being picked */}
                     <Identicon address={resolveAddress(entry.address) ?? ''} size={26} />
                     <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                    <Chain address={resolveAddress(entry.address) ?? ''} shown={entry.address} />
+                    <Chain address={resolveAddress(entry.address) ?? ''} shown={entry.address} evm={evm} />
                   </CommandItem>
                 ))}
               </CommandGroup>

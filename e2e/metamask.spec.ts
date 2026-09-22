@@ -195,7 +195,168 @@ test('offers no menu item for what the Send button already does', async ({ page 
   for (const name of ['Mirror', 'Vault']) {
     await card(page, name).getByRole('button', { name: 'Account menu' }).click()
     await expect(page.getByRole('menuitem', { name: 'Rename this account' })).toBeVisible()
-    await expect(page.getByRole('menuitem', { name: 'Bring in from MetaMask' })).toHaveCount(0)
+    await expect(page.getByRole('menuitem', { name: 'Send from MetaMask' })).toHaveCount(0)
+    await expect(page.getByRole('menuitem', { name: 'Token balances' })).toHaveCount(0)
     await page.keyboard.press('Escape')
   }
+})
+
+/** The mock chain's token on six decimals. */
+const MUSD = '0x5fbdb2315678afecb367f032d93f642f64180aa3'
+
+/** A second address MetaMask does not hold, for a token to land on. */
+const EVM2 = '0x9e4c2b1f7a3d5e6f8091a2b3c4d5e6f708192a3b'
+const MIRROR2 = 'nu5JDu2uZr7yS4ujGYsSBrHghTHzYcKRspQiXBqgJnTgLB9LQ'
+
+/** Opens Send on the card and switches the dialog over to a token. */
+async function sendingToken(page: Page, name: string, token: RegExp) {
+  await card(page, name).getByRole('button', { name: 'Send' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('combobox', { name: 'Token' }).click()
+  await page.getByRole('option', { name: token }).click()
+  return dialog
+}
+
+/** An address the mock chain credits with neither of its tokens. */
+const BARE = '0x5a1e7f3c9b2d4e6f8a0b1c2d3e4f5a6b7c8d0009'
+const BARE_MIRROR = 'nu4CxPqtTtXohWLqjKxB6eSjHcbeFKccK2zvawcjc4m36z5aa'
+
+const tokenBalances = async (page: Page, name: string) => {
+  await card(page, name).getByRole('button', { name: 'Tokens' }).click()
+  return page.getByRole('dialog')
+}
+
+test('lists what an EVM address holds in a dialog, not on its card', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  await expect(card(page, 'Mirror').getByText('mUSD')).toHaveCount(0)
+
+  const dialog = await tokenBalances(page, 'Mirror')
+  await expect(dialog.getByText('Mock Dollar')).toBeVisible()
+  await expect(dialog.getByText('525.694')).toBeVisible()
+  await expect(dialog.getByText('1,866.8')).toBeVisible()
+  await expect(dialog.getByRole('link', { name: 'View on the explorer' }).first()).toHaveAttribute(
+    'href',
+    `http://127.0.0.1:3000/token/${MUSD}`,
+  )
+})
+
+test('says so when an EVM address holds none of the tokens', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: BARE_MIRROR, evmAddress: BARE, name: 'Bare' }])
+
+  const dialog = await tokenBalances(page, 'Bare')
+  await expect(dialog.getByText('Bare holds none of the tokens the wallet shows.')).toBeVisible()
+})
+
+test("opens Send with the row's token already picked", async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [
+    { address: MIRROR, evmAddress: EVM, name: 'Mirror' },
+    { address: MIRROR2, evmAddress: EVM2, name: 'Cold' },
+  ])
+
+  await (await tokenBalances(page, 'Mirror')).getByRole('button', { name: 'Send mUSD' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('combobox', { name: 'Token' })).toContainText('mUSD, Mock Dollar')
+  await pickAddress(page, dialog, 'To', /Cold/)
+  await dialog.getByPlaceholder('0.0').fill('2')
+  await dialog.getByRole('button', { name: 'Ask MetaMask' }).click()
+  await expect(page.getByText('MetaMask is sending it')).toBeVisible()
+
+  const asked = (await calls(page)) as unknown as Array<{
+    method: string
+    params: Array<{ to: string; data: string }>
+  }>
+  const sent = asked.find((call) => call.method === 'eth_sendTransaction')
+  expect(sent!.params[0]!.to).toBe(MUSD)
+  expect(sent!.params[0]!.data.endsWith((2_000_000).toString(16).padStart(64, '0'))).toBe(true)
+})
+
+test('opens Receive with only the EVM address for a token', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  await (await tokenBalances(page, 'Mirror')).getByRole('button', { name: 'Receive mUSD' }).click()
+
+  const dialog = page.getByRole('dialog', { name: 'Receive mUSD' })
+  await expect(dialog.getByText('EVM address')).toBeVisible()
+  await expect(dialog.getByText(EVM)).toBeVisible()
+  await expect(dialog.getByText('Numen address')).toHaveCount(0)
+})
+
+test('keeps token balances off a Numen account', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: VAULT, evmAddress: null, name: 'Vault' }])
+
+  await expect(card(page, 'Vault').getByRole('button', { name: 'Receive' })).toBeVisible()
+  await expect(card(page, 'Vault').getByRole('button', { name: 'Tokens' })).toHaveCount(0)
+})
+
+test('offers what an EVM address holds in its Send dialog', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  await card(page, 'Mirror').getByRole('button', { name: 'Send' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('combobox', { name: 'Token' }).click()
+  await expect(page.getByRole('option', { name: 'tNUMN' })).toBeVisible()
+  await expect(page.getByRole('option', { name: 'wMOCK, Wrapped Mock' })).toBeVisible()
+  await page.getByRole('option', { name: 'mUSD, Mock Dollar' }).click()
+
+  await expect(dialog.getByText('holds 525.694 mUSD')).toBeVisible()
+})
+
+test('asks MetaMask for a token transfer to the contract', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [
+    { address: MIRROR, evmAddress: EVM, name: 'Mirror' },
+    { address: MIRROR2, evmAddress: EVM2, name: 'Cold' },
+  ])
+
+  const dialog = await sendingToken(page, 'Mirror', /mUSD/)
+  await pickAddress(page, dialog, 'To', /Cold/)
+  await dialog.getByPlaceholder('0.0').fill('1.5')
+  await dialog.getByRole('button', { name: 'Ask MetaMask' }).click()
+  await expect(page.getByText('MetaMask is sending it')).toBeVisible()
+
+  const asked = (await calls(page)) as unknown as Array<{
+    method: string
+    params: Array<{ from: string; to: string; data: string }>
+  }>
+  const sent = asked.find((call) => call.method === 'eth_sendTransaction')
+
+  // Six decimals, so one and a half is 1,500,000 of the smallest unit
+  expect(sent!.params[0]!.from).toBe(EVM)
+  expect(sent!.params[0]!.to).toBe(MUSD)
+  expect(sent!.params[0]!.data).toBe(
+    `0xa9059cbb${EVM2.slice(2).padStart(64, '0')}${(1_500_000).toString(16).padStart(64, '0')}`,
+  )
+})
+
+test('refuses a Numen address as the place a token goes', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  const dialog = await sendingToken(page, 'Mirror', /mUSD/)
+  await dialog.getByRole('button', { name: 'To', exact: true }).click()
+  await page.getByPlaceholder('0x…').fill(VAULT)
+  await expect(page.getByText('Not an EVM address')).toBeVisible()
+  await expect(page.getByText('Use this address')).toHaveCount(0)
+})
+
+test('refuses to send a token into its own contract', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  const dialog = await sendingToken(page, 'Mirror', /mUSD/)
+  await dialog.getByRole('button', { name: 'To', exact: true }).click()
+  await page.getByPlaceholder('0x…').fill(MUSD)
+  await page.getByText('Use this address').click()
+  await dialog.getByPlaceholder('0.0').fill('1')
+
+  await expect(dialog.getByText("That is the token's own contract")).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Ask MetaMask' })).toBeDisabled()
 })

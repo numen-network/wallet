@@ -31,6 +31,38 @@ export function useBalances(addresses: string[]): Record<string, AccountBalance>
   return balances
 }
 
+/** What an EVM address holds of each token, as live as the native balance beside it. */
+export function useTokenBalances(holder: string | null, tokens: string[]): Record<string, bigint> {
+  const { repository } = useChain()
+  const [balances, setBalances] = useState<Record<string, bigint>>({})
+  const key = holder ? tokens.join(',') : ''
+
+  useEffect(() => {
+    if (!holder) return
+    const unsubscribes = (key ? key.split(',') : []).map((token) =>
+      repository.subscribeTokenBalance(token, holder, (balance) =>
+        setBalances((current) => ({ ...current, [token]: balance })),
+      ),
+    )
+    return () => {
+      for (const unsubscribe of unsubscribes) unsubscribe()
+    }
+  }, [repository, holder, key])
+
+  return balances
+}
+
+/** The tokens the wallet shows, read once, since neither the list nor the contracts change. */
+export function useTokenList() {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['tokens', network.id],
+    queryFn: () => repository.tokens(),
+    staleTime: Infinity,
+  })
+}
+
 /**
  * How the link is holding up, sampled rather than watched. Nothing on chain
  * changes it, so a poll on a slow clock says as much as a subscription would.

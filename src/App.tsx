@@ -5,7 +5,7 @@ import { RefusalModal } from '@/chain/RefusalModal'
 import { useChain } from '@/chain/provider'
 import { useBalances, useFacts, useHead, useReach } from '@/chain/queries'
 import { quality, type Quality } from '@/chain/reach'
-import { totalOf } from '@/chain/types'
+import { totalOf, type Token } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
 import { formatAmount } from '@/lib/balance'
 import { plural } from '@/lib/plural'
@@ -51,7 +51,9 @@ import { ProxiedModal } from '@/accounts/ProxiedModal'
 import { QuitSubModal, SubsModal } from '@/accounts/SubsModal'
 import { SignModal } from '@/accounts/SignModal'
 import { VestingModal } from '@/accounts/VestingModal'
-import { BringInModal } from '@/accounts/BringInModal'
+import { MetaMaskSendModal } from '@/accounts/MetaMaskSendModal'
+import { TokenBalancesModal } from '@/accounts/TokenBalancesModal'
+import type { Holding } from '@/accounts/tokens'
 import { ReceiveModal } from '@/accounts/ReceiveModal'
 import { JudgeModal, SetFeeModal } from '@/accounts/JudgeModal'
 import { SendModal } from '@/accounts/SendModal'
@@ -70,7 +72,7 @@ type Modal =
   | { kind: 'multisig' }
   | { kind: 'proxied' }
   | { kind: 'send'; address: string }
-  | { kind: 'receive'; address: string }
+  | { kind: 'receive'; address: string; token?: Token }
   | { kind: 'renameAccount'; address: string }
   | { kind: 'changePassword'; address: string }
   | { kind: 'backup'; address: string }
@@ -90,8 +92,9 @@ type Modal =
   | { kind: 'judge'; address: string }
   | { kind: 'setFee'; address: string }
   | { kind: 'sign'; address?: string }
-  | { kind: 'bringIn'; address: string }
+  | { kind: 'metaMaskSend'; address: string; holding?: Holding }
   | { kind: 'validator'; address: string }
+  | { kind: 'tokenBalances'; address: string }
   | { kind: 'endpoint' }
   | { kind: 'forget'; address: string }
   | { kind: 'newGroup' }
@@ -467,12 +470,29 @@ export function App() {
         />
       )}
 
-      {modal?.kind === 'bringIn' && selected?.evmAddress && (
-        <BringInModal source={selected.evmAddress} accounts={accounts} onClose={close} />
+      {modal?.kind === 'metaMaskSend' && selected?.evmAddress && (
+        <MetaMaskSendModal
+          source={selected.evmAddress}
+          accounts={accounts}
+          initial={modal.holding}
+          onClose={close}
+        />
+      )}
+
+      {modal?.kind === 'tokenBalances' && selected?.evmAddress && (
+        <TokenBalancesModal
+          account={selected}
+          source={selected.evmAddress}
+          onSend={(holding) =>
+            setModal({ kind: 'metaMaskSend', address: selected.address, holding })
+          }
+          onReceive={(token) => setModal({ kind: 'receive', address: selected.address, token })}
+          onClose={close}
+        />
       )}
 
       {modal?.kind === 'receive' && selected && (
-        <ReceiveModal account={selected} onClose={close} />
+        <ReceiveModal account={selected} token={modal.token} onClose={close} />
       )}
 
       {modal?.kind === 'renameAccount' && selected && (

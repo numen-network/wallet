@@ -6,6 +6,7 @@ import { Identicon } from '@/ui/Identicon'
 import { Modal } from '@/ui/Modal'
 import { Qr, QR_SIZE } from '@/ui/Qr'
 import { copyText } from '@/ui/clipboard'
+import type { Token } from '@/chain/types'
 import type { Account } from './types'
 
 function AddressBlock({ kind, address }: { kind: string; address: string }) {
@@ -52,15 +53,29 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
   )
 }
 
-export function ReceiveModal({ account, onClose }: { account: Account; onClose: () => void }) {
+export function ReceiveModal({
+  account,
+  token,
+  onClose,
+}: {
+  account: Account
+  /** A token, which only the EVM address can receive, so the Numen one is left out. */
+  token?: Token | undefined
+  onClose: () => void
+}) {
   return (
-    <Modal title="Receive" submitLabel="Done" cancelLabel={null} onClose={onClose}>
+    <Modal
+      title={token ? `Receive ${token.symbol}` : 'Receive'}
+      submitLabel="Done"
+      cancelLabel={null}
+      onClose={onClose}
+    >
       <div className="flex flex-col items-center gap-2.5 text-center">
         <Identicon address={account.address} size={54} />
         <div className="text-base font-bold">{account.name}</div>
 
         <div className="flex flex-wrap justify-center gap-3.5 self-stretch">
-          <AddressBlock kind="Numen" address={account.address} />
+          {!token && <AddressBlock kind="Numen" address={account.address} />}
           {account.evmAddress && <AddressBlock kind="EVM" address={account.evmAddress} />}
         </div>
       </div>

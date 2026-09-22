@@ -24,6 +24,7 @@ export function AmountField({
   aside,
   disabled = false,
   labelled = true,
+  unit,
 }: {
   label: string
   value: string
@@ -34,8 +35,11 @@ export function AmountField({
   disabled?: boolean
   /** Off in a table, where the column heading has already said it once. */
   labelled?: boolean
+  /** A token's ticker and decimals, for an amount that is not the chain's own coin. */
+  unit?: { symbol: string; decimals: number } | undefined
 }) {
-  const symbol = useSymbol()
+  const coin = useSymbol()
+  const { symbol, decimals } = unit ?? { symbol: coin, decimals: DECIMALS }
 
   const box = (
     <InputGroup>
@@ -47,14 +51,14 @@ export function AmountField({
         autoComplete="off"
         aria-label={labelled ? undefined : label}
         disabled={disabled}
-        onChange={(event) => onChange(amountInput(event.target.value))}
+        onChange={(event) => onChange(amountInput(event.target.value, decimals))}
       />
       <InputGroupAddon>
         {max !== undefined && (
           <InputGroupButton
             disabled={disabled || max === 0n}
             onClick={() =>
-              onChange(formatAmount(max, { precision: DECIMALS, grouped: false, pad: false }))
+              onChange(formatAmount(max, { precision: decimals, grouped: false, pad: false, decimals }))
             }
           >
             MAX

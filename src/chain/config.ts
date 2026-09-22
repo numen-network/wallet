@@ -19,6 +19,13 @@ export const UNIT = 10n ** BigInt(DECIMALS)
  */
 export const IDENTITY_CHECK_FEE = 10n * UNIT
 
+/**
+ * ERC20 contracts the wallet shows, keyed by the EVM chain id they live on.
+ * The chain keeps no token list, so this one names them. Name, symbol and
+ * decimals come from each contract.
+ */
+export const TOKENS: Record<number, string[]> = {}
+
 export type NetworkId = 'mainnet' | 'testnet' | 'local'
 
 export interface Network {
@@ -83,6 +90,11 @@ export function explorerAccount(network: Network, address: string): string {
 /** One submitted call, which is all the wallet has to point at after it lands. */
 export function explorerExtrinsic(network: Network, hash: string): string {
   return `${network.explorer}/extrinsic/${hash}`
+}
+
+/** A token's holders and transfers, which the wallet does not index. */
+export function explorerToken(network: Network, address: string): string {
+  return `${network.explorer}/token/${address}`
 }
 
 /** Where a referendum is kept once the wallet stops carrying it, and while it runs. */

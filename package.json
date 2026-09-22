@@ -34,6 +34,7 @@
     "cn": "^0.2.4",
     "date-fns": "^4.4.0",
     "lucide-react": "1.39.0",
+    "micro-eth-signer": "^0.20.1",
     "polkadot-api": "^2.2.2",
     "qr": "^0.6.0",
     "radix-ui": "^1.6.7",

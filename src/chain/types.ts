@@ -384,6 +384,18 @@ export interface ReadCall {
   args: CallArg[]
 }
 
+/**
+ * An ERC20 on the EVM side, as its contract describes itself. Only an H160 can
+ * hold one, so a Numen account never has a balance of it.
+ */
+export interface Token {
+  /** The contract, lowercase, which is how the wallet keys it. */
+  address: string
+  name: string
+  symbol: string
+  decimals: number
+}
+
 /** One spender track, as the runtime publishes it. */
 export interface Spender {
   track: number
@@ -498,6 +510,14 @@ export interface ChainRepository {
   validatorOf(address: string): Promise<ValidatorRecord>
   /** Splits the keys a node hands out into the ones they are made of, refusing anything else. */
   readKeys(hex: string): Promise<SessionKeys>
+  /** The tokens the wallet shows on this chain, as their contracts describe them. */
+  tokens(): Promise<Token[]>
+  /** What an EVM address holds of a token, read again on every finalized block. */
+  subscribeTokenBalance(
+    token: string,
+    holder: string,
+    onBalance: (balance: bigint) => void,
+  ): Unsubscribe
   /**
    * Resolves with the transaction hash once the call is finalized. The progress
    * arrives long before that, so nothing has to be held open waiting for it.

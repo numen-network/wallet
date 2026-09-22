@@ -164,3 +164,26 @@ describe('amountOrZero', () => {
     expect(amountOrZero('nonsense')).toBe(0n)
   })
 })
+
+describe('an amount on decimals of its own', () => {
+  it('parses and filters to them', () => {
+    expect(parseAmount('6.2', 1)).toBe(62n)
+    expect(() => parseAmount('6.25', 1)).toThrow(AmountError)
+    expect(amountInput('6.25', 1)).toBe('6.2')
+    expect(amountProblem('6.25', 1n, 1)).toBe('More than 1 decimal: 6.25')
+  })
+
+  it('formats on them, truncating the same way', () => {
+    expect(formatAmount(62n, { decimals: 1, precision: 1 })).toBe('6.2')
+    expect(formatAmount(1_234_567n, { decimals: 6, precision: 2 })).toBe('≈1.23')
+    expect(formatAmount(1_500_000n, { decimals: 6, precision: 6, pad: false })).toBe('1.5')
+    expect(formatAmount(2_500_000_000n, { decimals: 6, precision: 2, compact: true })).toBe('2.50K')
+  })
+
+  it('takes only whole numbers when there are no decimals', () => {
+    expect(parseAmount('7', 0)).toBe(7n)
+    expect(() => parseAmount('7.5', 0)).toThrow(AmountError)
+    expect(amountInput('7.5', 0)).toBe('7.')
+    expect(formatAmount(7n, { decimals: 0, precision: 0 })).toBe('7')
+  })
+})

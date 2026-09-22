@@ -9,6 +9,7 @@ Browser wallet for the Numen chain, static SPA with no backend, keys never leave
 - Multisigs, proxies, and vesting schedules
 - Validator seats and session keys
 - Numen added to MetaMask in one click, and EVM balances brought back to Substrate accounts
+- ERC20 transfers from EVM accounts, signed in MetaMask
 
 ## Running it
 
@@ -38,7 +39,7 @@ None of this applies to the wallet `pnpm dev` serves from localhost, or to publi
 ## What it does not do
 
 - **Hardware wallets.** Ledger needs its own Numen app registered before the device will recognise anything this page hands it.
-- **Ethereum signing.** Contract calls and ERC20 tokens stay MetaMask's job, and the balance shown here is the native one.
+- **Ethereum signing.** MetaMask holds the EVM keys and signs the token transfers and withdrawals the wallet builds. Other contract calls stay in MetaMask.
 
 ## Security
 

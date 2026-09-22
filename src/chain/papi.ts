@@ -18,9 +18,17 @@ import {
   type TypedApi,
 } from 'polkadot-api'
 import { getWsProvider } from 'polkadot-api/ws'
+import {
+  balanceOfCall,
+  DECIMALS_CALL,
+  NAME_CALL,
+  readBalance,
+  readToken,
+  SYMBOL_CALL,
+} from '@/evm/erc20'
 import { palletAccount } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
-import { DECIMALS, SS58_PREFIX, type Network } from './config'
+import { DECIMALS, SS58_PREFIX, TOKENS, type Network } from './config'
 import { ChainError, refusalMessage, type Validity } from './refusal'
 import {
   hasRefund,
@@ -74,6 +82,7 @@ import {
   type Reach,
   type ReadCall,
   type Timepoint,
+  type Token,
   type TxProgress,
   type Unsubscribe,
 } from './types'
@@ -373,6 +382,10 @@ export function createPapiRepository(network: Network): ChainRepository {
 
   /** The last nonce each address went out with, for sends fired back to back. */
   const sentNonces = new Map<string, number>()
+
+  /** The node's EVM RPC, served over the same socket as everything else. */
+  const ethCall = (to: string, data: string, at: string) =>
+    client._request<string, [{ to: string; data: string }, string]>('eth_call', [{ to, data }, at])
 
   /**
    * What one argument of a call says. The runtime's own metadata has already
@@ -1527,6 +1540,40 @@ export function createPapiRepository(network: Network): ChainRepository {
     async readKeys(hex: string): Promise<SessionKeys> {
       const keys = await decodeKeys(hex)
       return { grandpa: keys.grandpa, imOnline: keys.im_online }
+    },
+
+    async tokens(): Promise<Token[]> {
+      const { evmChainId } = await chainFacts()
+      return Promise.all(
+        (TOKENS[evmChainId] ?? []).map(async (address) => {
+          const [name, symbol, decimals] = await Promise.all([
+            ethCall(address, NAME_CALL, 'latest'),
+            ethCall(address, SYMBOL_CALL, 'latest'),
+            ethCall(address, DECIMALS_CALL, 'latest'),
+          ])
+          return readToken(address, { name, symbol, decimals })
+        }),
+      )
+    },
+
+    /**
+     * Read at each finalized block, so the figure keeps pace with the native
+     * balance beside it. A block the node cannot answer for is skipped, and the
+     * next one asks again.
+     */
+    subscribeTokenBalance(token, holder, onBalance): Unsubscribe {
+      let last: bigint | undefined
+      const sub = client.finalizedBlock$.subscribe((block) => {
+        ethCall(token, balanceOfCall(holder), `0x${block.number.toString(16)}`)
+          .then(readBalance)
+          .then((balance) => {
+            if (balance === last) return
+            last = balance
+            onBalance(balance)
+          })
+          .catch(() => {})
+      })
+      return () => sub.unsubscribe()
     },
 
     async estimateFee(from: string, operation: Operation): Promise<bigint> {
