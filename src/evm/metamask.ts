@@ -15,6 +15,7 @@ export interface EvmChainParams {
   chainName: string
   nativeCurrency: { name: string; symbol: string; decimals: number }
   rpcUrls: string[]
+  blockExplorerUrls: string[]
 }
 
 // MetaMask speaks HTTP, which a substrate node serves on the socket's own port
@@ -27,6 +28,7 @@ export function evmChainParams(network: Network, facts: ChainFacts): EvmChainPar
     chainName: network.name,
     nativeCurrency: { name: network.name, symbol: facts.symbol, decimals: facts.decimals },
     rpcUrls: [httpRpc(network)],
+    blockExplorerUrls: [network.explorer],
   }
 }
 

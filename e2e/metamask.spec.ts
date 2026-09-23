@@ -80,6 +80,7 @@ test('hands MetaMask the network the wallet is pointed at', async ({ page }) => 
       chainName: string
       nativeCurrency: { symbol: string; decimals: number }
       rpcUrls: string[]
+      blockExplorerUrls: string[]
     }>
   }>
 
@@ -92,6 +93,7 @@ test('hands MetaMask the network the wallet is pointed at', async ({ page }) => 
     decimals: 18,
   })
   expect(call!.params[0]!.rpcUrls).toEqual(['http://127.0.0.1:9944'])
+  expect(call!.params[0]!.blockExplorerUrls).toEqual(['http://127.0.0.1:3000'])
 })
 
 test('follows the endpoint picker', async ({ page }) => {
@@ -101,12 +103,13 @@ test('follows the endpoint picker', async ({ page }) => {
   await page.getByRole('button', { name: 'Add to MetaMask' }).click()
 
   const [call] = (await calls(page)) as unknown as Array<{
-    params: Array<{ chainId: string; rpcUrls: string[] }>
+    params: Array<{ chainId: string; rpcUrls: string[]; blockExplorerUrls: string[] }>
   }>
   // The endpoint follows the picker, the chain id follows whatever chain
   // answers there, which for the mock is the same chain as before
   expect(parseInt(call!.params[0]!.chainId, 16)).toBe(320262)
   expect(call!.params[0]!.rpcUrls).toEqual(['https://rpc.numen-network.org'])
+  expect(call!.params[0]!.blockExplorerUrls).toEqual(['https://explorer.numen-network.org'])
 })
 
 test('says nothing when the user clicks the prompt away', async ({ page }) => {
