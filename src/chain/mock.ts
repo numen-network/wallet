@@ -1,5 +1,6 @@
 import { stringToU8a } from '@polkadot/util'
 import { encodeMultiAddress } from '@polkadot/util-crypto'
+import wtmr from '@/assets/tokens/wtmr.svg'
 import { palletAccount } from '@/lib/address'
 import { replaceBigInt, reviveBigInt } from '@/lib/json'
 import { DECIMALS, SS58_PREFIX, UNIT } from './config'
@@ -97,14 +98,14 @@ const TOKENS: Token[] = [
     name: 'Mock Dollar',
     symbol: 'mUSD',
     decimals: 6,
-    icon: '/wtmr.svg',
+    icon: wtmr,
   },
   {
     address: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
     name: 'Wrapped Mock',
     symbol: 'wMOCK',
     decimals: 1,
-    icon: '/wtmr.svg',
+    icon: wtmr,
   },
 ]
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import logo from '@/assets/logo.svg'
 import { useChain } from '@/chain/provider'
 import { useBalances, useFacts } from '@/chain/queries'
 import { totalOf } from '@/chain/types'
@@ -26,8 +27,6 @@ import type { Account } from './types'
 
 /** The Token box's value for the coin, which no contract address can clash with. */
 const COIN = 'coin'
-
-const COIN_ICON = '/logo.svg'
 
 /** Sized to the tick's column, so every row reads from the same left edge. */
 const mark = (icon: string) => (
@@ -187,7 +186,7 @@ export function MetaMaskSendModal({
             {
               value: COIN,
               label: facts?.symbol ?? '',
-              icon: mark(COIN_ICON),
+              icon: mark(logo),
               detail: formatAmount(there, { precision: 4 }),
             },
             ...holdings.map((holding) => ({
@@ -200,7 +199,7 @@ export function MetaMaskSendModal({
           label="Token"
           className={INSIDE}
         >
-          {mark(token?.token.icon ?? COIN_ICON)}
+          {mark(token?.token.icon ?? logo)}
         </Select>
       </Field>
 

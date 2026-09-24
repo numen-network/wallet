@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import logo from '@/assets/logo.svg'
 import { usingMock } from '@/chain'
 import { EndpointModal } from '@/chain/EndpointModal'
 import { RefusalModal } from '@/chain/RefusalModal'
@@ -283,7 +284,7 @@ export function App() {
       <header ref={setHeader} className="sticky top-0 z-40 border-b border-border bg-card">
         <div className={cn(SHELL, 'flex flex-wrap items-center gap-3 py-2.5')}>
           <div className="flex items-center gap-2.5 text-[15px] font-bold tracking-tight">
-            <img src="/logo.svg" width={22} height={22} alt="" />
+            <img src={logo} width={22} height={22} alt="" />
             Numen Wallet
           </div>
 
