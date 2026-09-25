@@ -162,7 +162,6 @@ export function GovernanceView({
         )}
         <div className="ml-auto flex flex-wrap gap-2 max-[560px]:ml-0">
           {pill('Referendum', <Plus />, { kind: 'propose' })}
-          {pill('Bounty', <Plus />, { kind: 'proposeBounty' })}
           {pill(
             'Batch vote',
             <Vote />,

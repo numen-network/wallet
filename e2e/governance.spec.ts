@@ -180,19 +180,16 @@ test('each list is a tab, and everything that adds one sits on the tab row', asy
   await governance(page)
 
   const propose = page.getByRole('button', { name: 'Referendum', exact: true })
-  const bounty = page.getByRole('button', { name: 'Bounty', exact: true })
 
   // Referenda opens first
   await expect(page.getByRole('region', { name: 'Running referenda' })).toBeVisible()
   await expect(propose).toBeVisible()
-  await expect(bounty).toBeVisible()
 
   // A tab swaps the list under the row and leaves the row itself alone
   await tab(page, 'Deposits to return')
   await expect(page.getByRole('region', { name: 'Running referenda' })).toHaveCount(0)
   await expect(page.getByRole('region', { name: 'Deposits to return' })).toBeVisible()
   await expect(propose).toBeVisible()
-  await expect(bounty).toBeVisible()
 })
 
 test('a vote lands', async ({ page }) => {
