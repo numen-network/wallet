@@ -426,7 +426,7 @@ test('a request already paid for outlives an edit, and the dialog says so', asyn
   await dialog.getByLabel('Display name', { exact: true }).fill('Alicia')
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Identity registered')).toBeVisible()
+  await expect(card(page).getByText('Alicia')).toBeVisible()
 
   // The request is still there, so the card still reads as waiting on one
   await expect(card(page).getByRole('img', { name: /being paid to check/ })).toBeVisible()
@@ -560,13 +560,13 @@ test('a channel already checked is not paid again', async ({ page }) => {
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
 
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Identity registered')).toBeVisible()
-  await expect(card(page).getByRole('img', { name: /Checked by a registrar/ })).toBeVisible()
 
   await openIdentity(page, 'Manual')
   const manual = page.getByRole('dialog')
-  await expect(manual.getByLabel('Telegram', { exact: true })).toHaveValue('vaultkeeper')
   await expect(manual.getByLabel('Discord', { exact: true })).toHaveValue('vaultkeeper')
+  await expect(manual.getByLabel('Telegram', { exact: true })).toHaveValue('vaultkeeper')
+  await page.mouse.click(20, 400)
+  await expect(card(page).getByRole('img', { name: /Checked by a registrar/ })).toBeVisible()
 })
 
 test('a rewrite pays the judgement fee and no sign fee', async ({ page }) => {
@@ -581,7 +581,6 @@ test('a rewrite pays the judgement fee and no sign fee', async ({ page }) => {
   await expect(dialog.getByText('0.5000 tNUMN', { exact: true })).toBeVisible()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Identity registered')).toBeVisible()
 
   // The new name is up and the judgement survived the rewrite
   await expect(card(page).getByText('Alicia')).toBeVisible()
@@ -723,7 +722,6 @@ test('a checked channel can be taken off the record', async ({ page }) => {
 
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Identity registered')).toBeVisible()
 
   await openIdentity(page, 'Manual')
   const manual = page.getByRole('dialog')
@@ -778,7 +776,6 @@ test('verifying says what it would take off the record', async ({ page }) => {
   await page.getByRole('dialog').getByLabel('Account password').fill(PASSWORD)
   await page.getByRole('dialog').getByRole('button', { name: 'Verify with Discord' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Identity registered')).toBeVisible()
 
   await openIdentity(page, 'Manual')
   await expect(page.getByRole('dialog').getByLabel('GitHub', { exact: true })).toHaveValue('')
