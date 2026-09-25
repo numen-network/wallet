@@ -30,6 +30,19 @@ pnpm e2e         # playwright, needs `pnpm exec playwright install chromium` onc
 pnpm build       # tsc then vite build
 ```
 
+## Deploying
+
+The wallet runs on Cloudflare Workers as static assets. `wrangler.jsonc` points the Worker at `dist/`.
+
+1. In the Cloudflare dashboard, go to **Workers & Pages** > **Create application** > **Import a repository** and pick this repo.
+2. Name the Worker `wallet`. It has to match `name` in `wrangler.jsonc`, or the build fails.
+3. Set the build command to `pnpm run build` and leave the deploy command as `npx wrangler deploy`.
+4. Add the build variable `PNPM_VERSION=11.20.0`. Cloudflare's default pnpm is too old for this repo, and the install fails with `packages field missing or empty`.
+5. Select **Save and Deploy**.
+6. Under **Settings** > **Domains & Routes**, add `wallet.numen-network.org` and `testnet.wallet.numen-network.org` as custom domains.
+
+Every push to `master` redeploys the Worker. Both domains serve the same build. `HOSTS` in `src/chain/config.ts` maps each hostname to the network the wallet opens on. Any other host, `workers.dev` included, falls back to the local node.
+
 ## Local node
 
 The wallet hosted on numen-network.org needs your browser's permission to reach a node on your own machine. Chrome and Edge ask for it when the page first connects to `ws://127.0.0.1:9944`. If you dismissed or blocked the prompt, open Site settings from the icon left of the URL and set **Apps on device** to **Allow**. Older versions call it **Local network access**.
