@@ -692,7 +692,7 @@ test('one signature frees a track no vote is left on', async ({ page }) => {
 
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Sent')).toBeVisible()
+  await expect(page.getByText('Balance unlocked')).toBeVisible()
 
   await page
     .locator('article')
