@@ -743,6 +743,20 @@ export function createPapiRepository(network: Network): ChainRepository {
           suffix: encoder.encode(motion.suffix),
           authority: Enum('Id', motion.authority),
         })
+      case 'approveBounty':
+        return api.tx.Bounties.approve_bounty({ bounty_id: motion.bounty })
+      case 'approveBountyWithCurator':
+        return api.tx.Bounties.approve_bounty_with_curator({
+          bounty_id: motion.bounty,
+          curator: Enum('Id', motion.curator),
+          fee: motion.fee,
+        })
+      case 'proposeCurator':
+        return api.tx.Bounties.propose_curator({
+          bounty_id: motion.bounty,
+          curator: Enum('Id', motion.curator),
+          fee: motion.fee,
+        })
     }
   }
 

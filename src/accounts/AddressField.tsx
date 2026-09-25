@@ -8,7 +8,7 @@ import { NOTE } from '@/components/ui/field'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Identicon } from '@/ui/Identicon'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 import { BOX } from '@/ui/Field'
 import { IdentityVerdict } from './IdentityVerdict'
 import { useAccountsStore } from './store'
@@ -90,6 +90,7 @@ export function AddressField<T extends Pickable>({
   placeholder = evm ? '0x…' : 'nu… or 0x…',
   labelled = true,
   readOnly = false,
+  clearable = false,
 }: {
   label: string
   value: string
@@ -110,6 +111,8 @@ export function AddressField<T extends Pickable>({
   labelled?: boolean
   /** For the places only a listed entry will do, where the list is the answer. */
   readOnly?: boolean
+  /** For a box that may stay empty, so the list offers to clear it. */
+  clearable?: boolean
 }) {
   const symbol = useSymbol()
   const groups = useAccountsStore((state) => state.layout.groups)
@@ -210,6 +213,12 @@ export function AddressField<T extends Pickable>({
           )}
 
           <CommandList>
+            {clearable && value !== '' && typed === '' && (
+              <CommandItem value="clear" onSelect={() => take('')}>
+                <X className="size-[26px] p-1.5 text-dim" />
+                Clear
+              </CommandItem>
+            )}
             {!readOnly && typed !== '' && !accepts(typed) && (
               <p className="px-3 py-2.5 text-[13.5px] text-destructive">
                 {evm ? 'Not an EVM address' : 'Not a Numen or EVM address'}

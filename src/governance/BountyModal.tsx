@@ -40,7 +40,7 @@ const ASKS: Record<BountyAct | ChildAct, Ask> = {
   },
   unassign: {
     title: 'Stand down as curator',
-    note: 'The bounty goes back to looking for a curator. Standing down after the update was due costs the deposit.',
+    note: 'The bounty goes back to looking for a curator, and any deposit you put down is returned.',
     wants: 'nothing',
   },
   extend: {
@@ -273,7 +273,7 @@ export function ProposeBountyModal({
       <Field label="What it is for">
         <Input
           value={description}
-          placeholder="Port the explorer to mobile"
+          placeholder="The job, in one line"
           autoComplete="off"
           onChange={(event) => setDescription(event.target.value)}
         />

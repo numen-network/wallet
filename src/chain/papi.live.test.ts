@@ -26,7 +26,7 @@ import { getWsProvider } from 'polkadot-api/ws'
 import { publicKeyOf, toNumenAddress } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { NETWORKS, SS58_PREFIX, UNIT } from './config'
-import { dumpBytes, metadataDump, remarkBytes, type Motion } from './governance'
+import { dumpBytes, metadataDump, remarkBytes, trackFor, type Motion } from './governance'
 import { depositFor, EMPTY_IDENTITY, isQualified, labelOf } from './identity'
 import { createPapiRepository } from './papi'
 import {
@@ -618,6 +618,39 @@ describe('governance', () => {
       )
       expect(copy?.len).toBe(length)
       expect(copy?.amount).toBe(preimageBaseDeposit + BigInt(length) * preimageByteDeposit)
+    }
+  })
+
+  /**
+   * Submitting never looks at the bounty, so one proposed bounty carries all
+   * three calls, each on the track the dialog would pick for it.
+   */
+  it('opens a bounty referendum on the spender track its value needs', { timeout: 400_000 }, async () => {
+    await send({ kind: 'proposeBounty', value: 5_000n * UNIT, description: `Audit it ${Date.now()}` })
+    const [bounty] = await repository.bounties()
+    const track = trackFor(bounty!.value, (await repository.facts()).spenders)!
+
+    const motions: [Motion, string][] = [
+      [{ kind: 'approveBounty', bounty: bounty!.index }, 'Bounties.approve_bounty'],
+      [
+        { kind: 'approveBountyWithCurator', bounty: bounty!.index, curator: alice.address, fee: UNIT },
+        'Bounties.approve_bounty_with_curator',
+      ],
+      [
+        { kind: 'proposeCurator', bounty: bounty!.index, curator: alice.address, fee: UNIT },
+        'Bounties.propose_curator',
+      ],
+    ]
+
+    for (const [motion, label] of motions) {
+      const before = await repository.referenda()
+      await send({ kind: 'propose', track, motion, title: `${label} ${Date.now()}`, description: '' })
+
+      const opened = (await repository.referenda()).find(
+        (referendum) => !before.some((old) => old.index === referendum.index),
+      )
+      expect(opened?.track).toBe(track)
+      expect(opened?.proposal).toEqual({ kind: 'other', label })
     }
   })
 

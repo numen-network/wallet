@@ -484,6 +484,71 @@ test('identity admin offers what the chain already has seated', async ({ page })
   await expect(page.getByRole('option', { name: /1 · 0\.5/ })).toBeVisible()
 })
 
+test('a bounty spend lists the bounties awaiting governance, and the value picks the track', async ({
+  page,
+}) => {
+  await createKey(page)
+  await governance(page)
+
+  // One still to fund, beside the funded one the mock seeds without a curator
+  await page.getByRole('button', { name: 'Bounty', exact: true }).click()
+  const proposing = page.getByRole('dialog')
+  await proposing.getByLabel('What it is for').fill('Audit the bridge contracts')
+  await proposing.getByLabel('Amount').fill('500000')
+  await proposing.getByLabel('Account password').fill(PASSWORD)
+  await proposing.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Bounty proposed')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Referendum', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await choose(page, dialog, 'Spend', 'Bounty')
+  await expect(dialog.getByLabel('Amount 1')).toHaveCount(0)
+
+  // Nothing picked yet, and the box stands as tall as a filled one
+  const box = (name: string) => dialog.getByRole('combobox', { name })
+  await expect(box('Bounty')).toHaveText('Pick one')
+  expect((await box('Bounty').boundingBox())?.height).toBe((await box('Spend').boundingBox())?.height)
+
+  await dialog.getByRole('combobox', { name: 'Bounty' }).click()
+  await expect(page.getByRole('option')).toHaveText([
+    '#4 Audit the bridge contracts500,000 tNUMN',
+    '#0 Translate the docs into Japanese8,000 tNUMN',
+  ])
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('option')).toHaveCount(0)
+
+  const later = dialog.getByText(/Leave the curator and fee empty to fund it now/)
+  await choose(page, dialog, 'Bounty', '#4 Audit the bridge contracts')
+  await expect(dialog.getByText('Medium spender', { exact: true })).toBeVisible()
+  await expect(later).toBeVisible()
+
+  // Already funded, so all that's left is a curator
+  await choose(page, dialog, 'Bounty', '#0 Translate the docs into Japanese')
+  await expect(dialog.getByText('Small spender', { exact: true })).toBeVisible()
+  await expect(later).toHaveCount(0)
+})
+
+test('only an address box that may stay empty offers to clear it', async ({ page }) => {
+  await createKey(page)
+  await governance(page)
+
+  await page.getByRole('button', { name: 'Referendum', exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await choose(page, dialog, 'Spend', 'Bounty')
+
+  await fillAddress(page, dialog, 'Curator', BENEFICIARY)
+  await expectAddress(dialog, 'Curator', `${BENEFICIARY.slice(0, 7)}…${BENEFICIARY.slice(-4)}`)
+  await dialog.getByRole('button', { name: 'Curator', exact: true }).click()
+  await page.getByRole('option', { name: 'Clear', exact: true }).click()
+  await expectAddress(dialog, 'Curator', 'nu… or 0x…')
+
+  // A payout always goes somewhere, so its box keeps asking for an address
+  await choose(page, dialog, 'Spend', 'Payouts')
+  await dialog.getByRole('button', { name: 'Address 1', exact: true }).click()
+  await expect(page.getByPlaceholder('nu… or 0x…')).toBeVisible()
+  await expect(page.getByRole('option', { name: 'Clear', exact: true })).toHaveCount(0)
+})
+
 test('an approved spend pays nobody until somebody claims it', async ({ page }) => {
   await createKey(page)
   await governance(page)

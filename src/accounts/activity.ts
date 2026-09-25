@@ -416,6 +416,16 @@ function runs(
       }
     case 'removeUsernameAuthority':
       return { 'removes authority': who(motion.authority), suffix: motion.suffix }
+    case 'approveBounty':
+      return { 'funds bounty': String(motion.bounty) }
+    case 'approveBountyWithCurator':
+      return {
+        'funds bounty': String(motion.bounty),
+        curator: who(motion.curator),
+        fee: amount(motion.fee),
+      }
+    case 'proposeCurator':
+      return { bounty: String(motion.bounty), curator: who(motion.curator), fee: amount(motion.fee) }
   }
 }
 

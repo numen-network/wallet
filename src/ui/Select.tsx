@@ -29,6 +29,8 @@ interface SelectProps {
   className?: string
   /** Sits inside the trigger ahead of the value, for a status mark and the like. */
   children?: ReactNode
+  /** What the box says while nothing on offer is picked. */
+  placeholder?: string
 }
 
 /**
@@ -45,6 +47,7 @@ export function Select({
   variant,
   className,
   children,
+  placeholder = 'Pick one',
 }: SelectProps) {
   // Told rather than inferred. Radix works the text out from the items it has
   // mounted, so a list that arrives after the first render leaves it blank
@@ -52,7 +55,8 @@ export function Select({
 
   return (
     <SelectRoot
-      value={value}
+      // The placeholder stands in until the value is one on offer
+      value={current ? value : ''}
       // A value nobody offered is not a choice. Radix keeps a hidden native
       // select for form compatibility, and a value set while the items are
       // unmounted lands on its empty option, which it then reports back
@@ -66,7 +70,7 @@ export function Select({
               being pushed away from its own label */}
           <span className="flex items-center gap-1.5">
             {children}
-            <SelectValue>{current?.label}</SelectValue>
+            <SelectValue placeholder={placeholder}>{current?.label}</SelectValue>
           </span>
         </SelectTrigger>
       </Tip>

@@ -18,6 +18,7 @@ import {
 import { isQualified, shortfall } from '@/chain/identity'
 import { parseISO } from 'date-fns'
 import {
+  useBounties,
   useFacts,
   useHead,
   useReferenda,
@@ -45,9 +46,11 @@ import { Plus, Trash2 } from 'lucide-react'
 import { AddressField } from '@/accounts/AddressField'
 import { AmountField } from '@/accounts/AmountField'
 import {
+  BountyFields,
   IdentityFields,
   missing,
   PollField,
+  readBounty,
   readIdentity,
   ready,
   type IdentityAct,
@@ -70,9 +73,17 @@ const COLUMNS = 'grid grid-cols-[1fr_1fr_28px] gap-x-2 @min-[746px]:grid-cols-[1
 /** The spender tracks share one entry, since the amount picks among them. */
 const SPEND = 'spend'
 
-type Shape = 'spend' | 'remark' | 'identity' | 'cancel' | 'kill'
+type Shape = 'spend' | 'bounty' | 'remark' | 'identity' | 'cancel' | 'kill'
 
-const SHAPES: Partial<Record<string, Exclude<Shape, 'spend'>>> = {
+/** A spender track pays accounts directly or funds a bounty. */
+type Outlay = Extract<Shape, 'spend' | 'bounty'>
+
+const OUTLAYS: { value: Outlay; label: string }[] = [
+  { value: 'spend', label: 'Payouts' },
+  { value: 'bounty', label: 'Bounty' },
+]
+
+const SHAPES: Partial<Record<string, Exclude<Shape, Outlay>>> = {
   WishForChange: 'remark',
   IdentityAdmin: 'identity',
   ReferendumCanceller: 'cancel',
@@ -82,6 +93,8 @@ const SHAPES: Partial<Record<string, Exclude<Shape, 'spend'>>> = {
 const LEDES: Record<Shape, string> = {
   spend:
     'A referendum here asks the treasury to pay somebody, in one go or against milestones. Which track it runs on follows from the whole ask, and the bigger the ask the longer it runs and the more it costs to start deciding.',
+  bounty:
+    "Passing this funds a bounty from the treasury, or puts a curator on one already funded. Propose the bounty with the Bounty button first, then pick it below. The bounty's value decides the track.",
   remark:
     'Nothing runs if this passes, so the title and description are the whole proposal. Any question for the network goes here.',
   identity:
@@ -109,6 +122,7 @@ export function ProposeModal({
   const { data: referenda } = useReferenda()
   const { data: registrars } = useRegistrars()
   const { data: authorities } = useUsernameAuthorities()
+  const { data: bounties } = useBounties()
   const head = useHead()
   const [draft, patch, sent] = useDraft('propose', {
     address: accounts[0].address,
@@ -117,12 +131,16 @@ export function ProposeModal({
     // Most proposals pay whoever opens them, so the first row starts there
     payouts: [{ ...BLANK, to: accounts[0].address }] as PayoutDraft[],
     pick: SPEND,
+    outlay: 'spend' as Outlay,
     poll: '',
     act: 'addRegistrar' as IdentityAct,
     account: '',
     registrar: null as number | null,
     suffix: '',
     allocation: '',
+    bounty: null as number | null,
+    curator: '',
+    fee: '',
   })
   const { address, title, description, payouts, pick, poll } = draft
   const call = useCall(onClose)
@@ -136,6 +154,7 @@ export function ProposeModal({
     return shape ? [{ track: entry, shape }] : []
   })
   const chosen = offered.find((entry) => String(entry.track.id) === pick)
+  const shape: Shape = chosen?.shape ?? draft.outlay
   const picks = [
     { value: SPEND, label: 'Spender' },
     ...offered.map((entry) => ({ value: String(entry.track.id), label: entry.track.name })),
@@ -144,6 +163,8 @@ export function ProposeModal({
 
   const readMotion = (shape: Exclude<Shape, 'spend'>): Reading => {
     switch (shape) {
+      case 'bounty':
+        return readBounty(draft, bounties ?? [])
       case 'remark':
         return ready({ kind: 'remark', text: metadataDump(title, description) })
       case 'cancel':
@@ -188,13 +209,16 @@ export function ProposeModal({
     return [{ amount: planck, beneficiary: target, validFrom: release(row) }]
   })
 
-  const asked = booked.reduce((sum, payout) => sum + payout.amount, 0n)
+  // The cap is checked against a bounty's whole value, curator fee included
+  const asked =
+    shape === 'bounty'
+      ? (bounties?.find((entry) => entry.index === draft.bounty)?.value ?? 0n)
+      : booked.reduce((sum, payout) => sum + payout.amount, 0n)
   // The track has to clear the whole ask. Sizing it off the largest single
   // payout would let instalments walk a big spend onto a small track
   const track = chosen ? chosen.track.id : facts ? trackFor(asked, facts.spenders) : null
-  const motion: Motion | null = chosen
-    ? readMotion(chosen.shape).motion
-    : { kind: 'spend', payouts: booked }
+  const motion: Motion | null =
+    shape === 'spend' ? { kind: 'spend', payouts: booked } : readMotion(shape).motion
   const running = tracks?.find((entry) => entry.id === track)
   const trackName = track === null ? 'Over every cap' : trackLabel(tracks, track)
   // Held by the submit call itself, so the track it lands on never changes it
@@ -244,11 +268,18 @@ export function ProposeModal({
       return call.refuse('Give it a title, since that is what the list shows')
     }
 
-    if (chosen) {
-      const reading = readMotion(chosen.shape)
-      return reading.motion === null
-        ? call.refuse(reading.problem)
-        : propose(chosen.track.id, reading.motion)
+    const overCap = () => {
+      const biggest = facts.spenders.reduce(
+        (most, spender) => (spender.cap > most ? spender.cap : most),
+        0n,
+      )
+      return call.refuse(`One referendum can ask for at most ${formatAmount(biggest, { precision: 0 })}`)
+    }
+
+    if (shape !== 'spend') {
+      const reading = readMotion(shape)
+      if (reading.motion === null) return call.refuse(reading.problem)
+      return track === null ? overCap() : propose(track, reading.motion)
     }
 
     if (booked.length !== payouts.length) {
@@ -260,13 +291,7 @@ export function ProposeModal({
       return call.refuse('Every payout needs an amount and an address to pay it to')
     }
 
-    if (track === null) {
-      const biggest = facts.spenders.reduce(
-        (most, spender) => (spender.cap > most ? spender.cap : most),
-        0n,
-      )
-      return call.refuse(`One referendum can ask for at most ${formatAmount(biggest, { precision: 0 })}`)
-    }
+    if (track === null) return overCap()
 
     // pallet_treasury throws out a spend whose claim window has already shut by
     // the time the referendum enacts, and batch_all takes the rest down with it
@@ -301,7 +326,7 @@ export function ProposeModal({
       onClose={onClose}
       onSubmit={form}
     >
-      <p className={LEDE}>{LEDES[chosen?.shape ?? 'spend']}</p>
+      <p className={LEDE}>{LEDES[shape]}</p>
 
       {/* What the referendum says, then what it does */}
       <div className="mt-3.5">
@@ -360,6 +385,18 @@ export function ProposeModal({
         )}
 
         {!chosen && (
+          <Field label="Spend">
+            <Select
+              value={draft.outlay}
+              onValueChange={(next) => patch({ outlay: next as Outlay })}
+              options={OUTLAYS}
+              label="Spend"
+              className={INSIDE}
+            />
+          </Field>
+        )}
+
+        {shape === 'spend' && (
           <div className="@container">
             <div className={cn('mt-4 @max-[746px]:hidden', COLUMNS)}>
               <span className={CAPTION}>Address</span>
@@ -427,6 +464,15 @@ export function ProposeModal({
           </div>
         )}
 
+        {shape === 'bounty' && (
+          <BountyFields
+            draft={draft}
+            accounts={accounts}
+            bounties={bounties ?? []}
+            onChange={patch}
+          />
+        )}
+
         {(chosen?.shape === 'cancel' || chosen?.shape === 'kill') && (
           <PollField value={poll} onChange={(next) => patch({ poll: next })} />
         )}
@@ -454,7 +500,7 @@ export function ProposeModal({
         deposit, which can be you or anybody else.
       </p>
 
-      {!chosen && payouts.length > 1 && facts && track !== null && (
+      {shape === 'spend' && payouts.length > 1 && facts && track !== null && (
         <p className={cn('mt-2', NOTE)}>
           A date is read against today, not against the day the referendum passes, and this track
           can take {waitFor(runsFor, facts.blockSeconds)} to get there. Each payout is then

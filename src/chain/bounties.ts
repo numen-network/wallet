@@ -43,6 +43,10 @@ export const BOUNTY_LABELS: Record<BountyState, string> = {
   pendingPayout: 'awarded',
 }
 
+/** Governance funds a proposed bounty and puts a curator on a funded one. */
+export const awaitsGovernance = (bounty: Bounty): boolean =>
+  bounty.state === 'proposed' || bounty.state === 'funded'
+
 /**
  * A curator splitting their bounty into pieces. Everything about one is the
  * parent curator's or the child curator's, so governance never sees it.

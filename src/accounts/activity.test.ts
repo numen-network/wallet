@@ -94,6 +94,16 @@ group('a referendum in the log', () => {
       { name: 'track', value: 'Track 10' },
     ])
   })
+
+  it('names the bounty it funds and who would curate it', () => {
+    const motion: Motion = { kind: 'approveBountyWithCurator', bounty: 4, curator: OTHER, fee: UNIT }
+    expect(said(propose(31, motion)).fields).toEqual([
+      { name: 'funds bounty', value: '4' },
+      { name: 'curator', value: 'nu2uaQW…nASg' },
+      { name: 'fee', value: '1.0000 tNUMN' },
+      { name: 'track', value: 'Track 31' },
+    ])
+  })
 })
 
 group('a validator call in the log', () => {

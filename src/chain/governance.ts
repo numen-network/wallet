@@ -75,6 +75,9 @@ export type Motion =
   | { kind: 'removeRegistrar'; registrar: number }
   | { kind: 'addUsernameAuthority'; authority: string; suffix: string; allocation: number }
   | { kind: 'removeUsernameAuthority'; authority: string; suffix: string }
+  | { kind: 'approveBounty'; bounty: number }
+  | { kind: 'approveBountyWithCurator'; bounty: number; curator: string; fee: bigint }
+  | { kind: 'proposeCurator'; bounty: number; curator: string; fee: bigint }
 
 /** One booking a proposal makes, as the chain has it written down. */
 export interface ProposalSpend {

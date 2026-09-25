@@ -267,6 +267,9 @@ const CALL_NAMES: Record<Exclude<Motion['kind'], 'spend'>, string> = {
   removeRegistrar: 'Identity.remove_registrar',
   addUsernameAuthority: 'Identity.add_username_authority',
   removeUsernameAuthority: 'Identity.remove_username_authority',
+  approveBounty: 'Bounties.approve_bounty',
+  approveBountyWithCurator: 'Bounties.approve_bounty_with_curator',
+  proposeCurator: 'Bounties.propose_curator',
 }
 
 const proposalOf = (motion: Motion): Proposal =>

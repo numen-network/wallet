@@ -14,7 +14,7 @@ function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.V
 }
 
 const selectTriggerVariants = cva(
-  'inline-flex cursor-pointer items-center gap-1.5 outline-none select-none disabled:cursor-not-allowed disabled:opacity-50 data-placeholder:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'inline-flex cursor-pointer items-center gap-1.5 outline-none select-none disabled:cursor-not-allowed disabled:opacity-50 data-placeholder:text-hint [&_svg]:pointer-events-none [&_svg]:shrink-0',
   {
     variants: {
       variant: {
