@@ -180,11 +180,22 @@ const encodeCall = (operation: Operation): string =>
     byte.toString(16).padStart(2, '0'),
   ).join('')}`
 
+/** A value as the real chain writes one out, with the kind as the variant name. */
+const spell = (value: unknown): string => {
+  if (value === null || value === undefined) return 'none'
+  if (Array.isArray(value)) return value.map(spell).join(', ')
+  if (typeof value !== 'object') return String(value)
+
+  const { kind, ...fields } = value as { kind?: string }
+  const written = Object.entries(fields).map(([name, held]) => `${name} ${spell(held)}`)
+  return [kind, written.join(', ')].filter(Boolean).join(' ')
+}
+
 /** Everything the operation carries past which one it is. */
 const callArgs = (operation: Operation): CallArg[] =>
   Object.entries(operation)
     .filter(([name]) => name !== 'kind')
-    .map(([name, value]) => ({ name, value: String(value) }))
+    .map(([name, value]) => ({ name, value: spell(value) }))
 
 const decodeCall = (hex: string): Operation => {
   const bytes = hex.slice(2).match(/../g) ?? []

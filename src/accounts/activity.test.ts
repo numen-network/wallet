@@ -1,11 +1,13 @@
 import { describe as group, expect, it } from 'vitest'
 import { UNIT } from '@/chain/config'
 import type { Motion } from '@/chain/governance'
+import { createMockRepository } from '@/chain/mock'
 import type { Operation } from '@/chain/types'
 import { describe } from './activity'
 
 const TO = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 const OTHER = 'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg'
+const MULTISIG = 'nu2ojmYR9qXUFZgJkJSmfjzJRDakd1GaY6g96HX6QgeT5gWJQ'
 
 const pay = (to: string, whole: bigint): Operation => ({
   kind: 'transfer',
@@ -165,5 +167,45 @@ group('addresses in full', () => {
     )
 
     expect(written.fields[0]?.value).toContain(TO)
+  })
+})
+
+group('a call as the mock chain writes it out', () => {
+  const chain = createMockRepository()
+
+  it('writes out the call a multisig signature carries', async () => {
+    const { args } = await chain.callData({
+      kind: 'multisigApprove',
+      threshold: 2,
+      others: [TO, OTHER],
+      multisig: MULTISIG,
+      call: pay(TO, 1n),
+    })
+
+    expect(args).toEqual([
+      { name: 'threshold', value: '2' },
+      { name: 'others', value: `${TO}, ${OTHER}` },
+      { name: 'multisig', value: MULTISIG },
+      { name: 'call', value: `transfer to ${TO}, amount ${UNIT}` },
+    ])
+  })
+
+  it('writes out a record field by field, and none where there is nothing', async () => {
+    const delegate = await chain.callData({
+      kind: 'delegate',
+      delegation: { track: 2, to: TO, conviction: 'Locked1x', amount: UNIT },
+    })
+    const edit = await chain.callData({
+      kind: 'editMetadata',
+      poll: 3,
+      title: 'A title',
+      description: '',
+      clear: null,
+    })
+
+    expect(delegate.args).toEqual([
+      { name: 'delegation', value: `track 2, to ${TO}, conviction Locked1x, amount ${UNIT}` },
+    ])
+    expect(edit.args).toContainEqual({ name: 'clear', value: 'none' })
   })
 })
