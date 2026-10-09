@@ -351,7 +351,7 @@ function CardBody({
               kind="EVM"
               label="EVM"
               full={account.evmAddress}
-              short={shorten(account.evmAddress, { evm: true })}
+              short={shorten(account.evmAddress)}
             />
           )}
         </div>

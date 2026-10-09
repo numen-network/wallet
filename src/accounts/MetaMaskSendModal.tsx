@@ -168,7 +168,7 @@ export function MetaMaskSendModal({
         label="From"
         value={source}
         onChange={() => {}}
-        accounts={[{ address: source, name: shorten(source, { evm: true }) }]}
+        accounts={[{ address: source, name: shorten(source) }]}
         aside={`holds ${formatAmount(there, { precision: 4 })} ${facts?.symbol ?? ''}`}
         readOnly
       />

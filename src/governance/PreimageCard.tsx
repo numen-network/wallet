@@ -1,5 +1,6 @@
 import type { NotedPreimage } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
+import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +26,7 @@ export function PreimageCard({
   return (
     <Card>
       <CardHeader>
-        <CardMark>{preimage.hash.slice(0, 12)}…</CardMark>
+        <CardMark>{shorten(preimage.hash)}</CardMark>
         <CardTitle>{preimage.len.toLocaleString('en-US')} bytes</CardTitle>
       </CardHeader>
 

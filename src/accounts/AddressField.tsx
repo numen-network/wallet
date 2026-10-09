@@ -31,7 +31,7 @@ const WIDE = 'w-full'
  * A display name on its own is only a claim, and picking the wrong address is
  * the mistake this list exists to prevent.
  */
-function Chain({ address, shown, evm }: { address: string; shown: string; evm: boolean }) {
+function Chain({ address, shown }: { address: string; shown: string }) {
   const { data: standing } = useStanding(address)
   const named = standing ? labelOf(standing) : ''
 
@@ -43,7 +43,7 @@ function Chain({ address, shown, evm }: { address: string; shown: string; evm: b
           <span className="max-w-[180px] truncate">{named}</span>
         </span>
       )}
-      <span className="block font-mono text-[13px] text-dim">{shorten(shown, { evm })}</span>
+      <span className="block font-mono text-[13px] text-dim">{shorten(shown)}</span>
     </span>
   )
 }
@@ -120,7 +120,7 @@ export function AddressField<T extends Pickable>({
   const accepts = (input: string) =>
     evm ? isEvmAddress(input.trim()) : resolveAddress(input) !== null
   const shown = (address: string) =>
-    evm ? shorten(address, { evm }) : shorten(resolveAddress(address) ?? '')
+    evm ? shorten(address) : shorten(resolveAddress(address) ?? '')
   const known = accounts.find((entry) => entry.address === value || entry.address === resolved)
   // A list whose only entry is what is already there is not a choice
   const choices = accounts.filter((entry) => entry.address !== value)
@@ -235,7 +235,7 @@ export function AddressField<T extends Pickable>({
                         account wears, which is the account being picked */}
                     <Identicon address={resolveAddress(entry.address) ?? ''} size={26} />
                     <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                    <Chain address={resolveAddress(entry.address) ?? ''} shown={entry.address} evm={evm} />
+                    <Chain address={resolveAddress(entry.address) ?? ''} shown={entry.address} />
                   </CommandItem>
                 ))}
               </CommandGroup>

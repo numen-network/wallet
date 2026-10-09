@@ -203,7 +203,7 @@ function WaitingCall({
           {call.approvals.length} of {threshold} signed
         </CardTitle>
         <span className="ml-auto text-[12px] text-dim">
-          call hash <span className="font-mono">{call.callHash.slice(0, 12)}…</span>
+          call hash <span className="font-mono">{shorten(call.callHash)}</span>
         </span>
         <CopyButton text={call.callHash} label="Copy the call hash" />
       </CardHeader>

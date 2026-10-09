@@ -110,7 +110,11 @@ describe('address kinds', () => {
 describe('shortening', () => {
   it('keeps both ends readable', () => {
     expect(shorten(ALICE_NUMEN)).toBe('nu7SVAy…SUyb')
-    expect(shorten(H160, { evm: true })).toBe('0x1234…5678')
+  })
+
+  it('cuts anything in 0x to four digits on each side', () => {
+    expect(shorten(H160)).toBe('0x1234…5678')
+    expect(shorten(ALICE_PUBLIC_KEY)).toBe('0xd435…a27d')
   })
 
   it('hands back the whole address when asked', () => {

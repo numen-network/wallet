@@ -97,11 +97,11 @@ group('a referendum in the log', () => {
 })
 
 group('a validator call in the log', () => {
-  it('shortens the keys like an address, and writes them out where they are signed', () => {
+  it('shortens the keys like any 0x value, and writes them out where they are signed', () => {
     const keys = `0x${'ab'.repeat(32)}${'cd'.repeat(32)}`
     const call: Operation = { kind: 'setKeys', keys, proof: '0x00' }
 
-    expect(said(call).fields).toEqual([{ name: 'keys', value: '0xababa…cdcd' }])
+    expect(said(call).fields).toEqual([{ name: 'keys', value: '0xabab…cdcd' }])
     expect(describe(call, 'tNUMN', { whole: true }).fields).toEqual([{ name: 'keys', value: keys }])
   })
 })

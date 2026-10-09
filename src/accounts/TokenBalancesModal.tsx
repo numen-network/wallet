@@ -78,7 +78,7 @@ export function TokenBalancesModal({
                     </span>
                   </ItemTitle>
                   <ItemDescription className="flex items-center gap-1.5 font-mono">
-                    {shorten(holding.token.address, { evm: true })}
+                    {shorten(holding.token.address)}
                     <CopyButton text={holding.token.address} label="Copy contract address" />
                     <Tip text="View on the explorer">
                       <Button asChild variant="plain" size="icon-xs">
