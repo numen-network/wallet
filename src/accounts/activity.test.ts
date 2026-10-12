@@ -39,6 +39,16 @@ group('a call read out argument by argument', () => {
     })
   })
 
+  it('says whose vote is taken back off somebody else', () => {
+    expect(said({ kind: 'removeOtherVote', target: TO, track: 30, poll: 12 })).toEqual({
+      title: 'Take back the vote on 12',
+      fields: [
+        { name: 'track', value: 'Track 30' },
+        { name: 'for', value: 'nu3oNks…Co98' },
+      ],
+    })
+  })
+
   it('hangs what a wrapper adds off the end of what it wraps', () => {
     expect(said({ kind: 'asProxy', real: OTHER, call: pay(TO, 1n) })).toEqual({
       title: 'Transfer',

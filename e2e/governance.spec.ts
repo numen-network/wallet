@@ -8,6 +8,7 @@ import { expectAddress, fillAddress, pickAddress } from './address'
  */
 const PASSWORD = 'correct horse battery'
 const BENEFICIARY = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
+const BOB = 'nu5sKtuEZG5GH9emAghk9MTdVPBJbieEsSD8Z6UKkA45afKcv'
 
 /** A date box takes yyyy-MM-dd, and the form only accepts days still ahead. */
 const inDays = (days: number) => {
@@ -614,6 +615,40 @@ test('voting locks the balance and the lock says what holds it', async ({ page }
 
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(dialog.getByText('Nothing is free to unlock yet')).toBeVisible()
+})
+
+test("somebody else's locks free only the votes their conviction has let go", async ({ page }) => {
+  await createKey(page)
+  await page
+    .locator('article')
+    .filter({ hasText: 'Vault' })
+    .getByRole('button', { name: 'Account menu' })
+    .click()
+  await page.getByRole('menuitem', { name: 'Release vote locks' }).click()
+
+  let dialog = page.getByRole('dialog')
+  await fillAddress(page, dialog, 'For', BOB)
+  await expect(dialog.getByText('Small spender')).toBeVisible()
+  await expect(dialog.getByText('free, losing side')).toBeVisible()
+  // #12 is still held by its conviction, and only Bob may take that one back
+  await expect(dialog.getByText('Unlocks 30,000.00 tNUMN by taking back 3 votes.')).toBeVisible()
+  await expect(dialog.getByText('20,000.00 tNUMN stays locked.')).toBeVisible()
+
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('All of it went through')).toBeVisible()
+
+  await page
+    .locator('article')
+    .filter({ hasText: 'Vault' })
+    .getByRole('button', { name: 'Account menu' })
+    .click()
+  await page.getByRole('menuitem', { name: 'Release vote locks' }).click()
+  dialog = page.getByRole('dialog')
+  await fillAddress(page, dialog, 'For', BOB)
+  await expect(dialog.getByText('#12')).toBeVisible()
+  await expect(dialog.getByText('#11')).toHaveCount(0)
+  await expect(dialog.getByText('Medium spender')).toHaveCount(0)
 })
 
 test('a whole board of deposits goes back in one signature', async ({ page }) => {

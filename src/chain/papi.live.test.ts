@@ -634,6 +634,7 @@ describe('governance', () => {
       { kind: 'vote', poll: 0, ballot: { kind: 'nay', conviction: 'None', amount: UNIT } },
       { kind: 'vote', poll: 0, ballot: { kind: 'abstain', amount: UNIT } },
       { kind: 'removeVote', track: 0, poll: 0 },
+      { kind: 'removeOtherVote', target: alice.address, track: 0, poll: 0 },
       { kind: 'unlock', track: 0, target: alice.address },
     ]
 
@@ -675,6 +676,7 @@ describe('governance', () => {
         kind: 'batch',
         calls: [
           { kind: 'removeVote', track: 0, poll: 0 },
+          { kind: 'removeOtherVote', target: alice.address, track: 0, poll: 0 },
           { kind: 'unlock', track: 0, target: alice.address },
         ],
       },

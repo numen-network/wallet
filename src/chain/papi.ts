@@ -1077,6 +1077,12 @@ export function createPapiRepository(network: Network): ChainRepository {
           class: operation.track,
           index: operation.poll,
         })
+      case 'removeOtherVote':
+        return api.tx.ConvictionVoting.remove_other_vote({
+          target: Enum('Id', operation.target),
+          class: operation.track,
+          index: operation.poll,
+        })
       case 'unlock':
         return api.tx.ConvictionVoting.unlock({
           class: operation.track,

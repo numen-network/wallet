@@ -581,6 +581,7 @@ export function App() {
       {modal?.kind === 'unlock' && selected && (
         <UnlockModal
           account={selected}
+          accounts={accounts}
           signers={signers}
           onClose={close}
         />

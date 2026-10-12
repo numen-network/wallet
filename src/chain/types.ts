@@ -244,6 +244,8 @@ export type Operation =
   | { kind: 'requestExit' }
   | { kind: 'vote'; poll: number; ballot: Ballot }
   | { kind: 'removeVote'; track: number; poll: number }
+  /** Only takes a vote whose conviction has already let go. */
+  | { kind: 'removeOtherVote'; target: string; track: number; poll: number }
   /** Releases whatever the conviction locks have finished holding. */
   | { kind: 'unlock'; track: number; target: string }
   | { kind: 'decisionDeposit'; poll: number }

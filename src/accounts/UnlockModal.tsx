@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import {
   lockAfter,
   releaseOf,
@@ -10,6 +10,7 @@ import {
 } from '@/chain/governance'
 import { useFacts, useHead, useLocks, useSymbol, useTracks } from '@/chain/queries'
 import { batched, type Operation } from '@/chain/types'
+import { resolveAddress } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { plural } from '@/lib/plural'
 import { daySpan } from '@/lib/blocks'
@@ -17,6 +18,7 @@ import { cn } from '@/lib/cn'
 import { Empty } from '@/components/ui/empty'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { LEDE } from '@/ui/Modal'
+import { AddressField } from './AddressField'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
@@ -43,16 +45,21 @@ function ballotOf(vote: CastVote): string {
  */
 export function UnlockModal({
   account,
+  accounts,
   signers,
   onClose,
 }: {
   account: Account
+  /** Anybody's locks can be released, so any of these may be the one asked for. */
+  accounts: Account[]
   signers: Account[]
   onClose: () => void
 }) {
+  const [target, setTarget] = useState(account.address)
+  const own = target === account.address
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
-  const { data: locks } = useLocks(account.address)
+  const { data: locks } = useLocks(target)
   const { data: facts } = useFacts()
   const head = useHead()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
@@ -66,8 +73,12 @@ export function UnlockModal({
   const held = locks ?? []
   const stays = (lock: ClassLock) => lockAfter(lock, period, height)
   // A vote on a referendum that is still running is a say somebody still has,
-  // and none of this is worth taking that away
-  const finished = (lock: ClassLock) => lock.votes.filter((vote) => vote.outcome.kind !== 'running')
+  // and none of this is worth taking that away. Off somebody else, the chain
+  // only lets a vote go once its conviction has
+  const removable = (lock: ClassLock) =>
+    lock.votes.filter((vote) =>
+      own ? vote.outcome.kind !== 'running' : releaseOf(vote, period, height).kind === 'free',
+    )
 
   const wait = (blocks: number) =>
     facts ? `${daySpan(blocks, facts.blockSeconds)} left` : 'held by the conviction'
@@ -100,11 +111,12 @@ export function UnlockModal({
     ? []
     : [
         ...held.flatMap((lock) =>
-          finished(lock).map((vote) => ({
-            kind: 'removeVote' as const,
-            track: lock.track,
-            poll: vote.poll,
-          })),
+          removable(lock).map(
+            (vote): Operation =>
+              own
+                ? { kind: 'removeVote', track: lock.track, poll: vote.poll }
+                : { kind: 'removeOtherVote', target, track: lock.track, poll: vote.poll },
+          ),
         ),
         // remove_vote leaves the number on the account alone, so a track only
         // lets go once update_lock has run
@@ -113,7 +125,7 @@ export function UnlockModal({
           .map((lock) => ({
             kind: 'unlock' as const,
             track: lock.track,
-            target: account.address,
+            target,
           })),
       ]
   const operation = batched(calls)
@@ -124,7 +136,7 @@ export function UnlockModal({
     return call.run(submit(operation, call.password))
   }
 
-  const takes = calls.filter((entry) => entry.kind === 'removeVote').length
+  const takes = calls.filter((entry) => entry.kind !== 'unlock').length
   // Locks overlap rather than stack, so the account is held by the largest of them
   const most = (amounts: bigint[]) => amounts.reduce((top, one) => (one > top ? one : top), 0n)
   const now = most(held.map((lock) => lock.amount))
@@ -144,13 +156,20 @@ export function UnlockModal({
       onClose={onClose}
       onSubmit={form}
     >
+      <AddressField
+        label="For"
+        value={target}
+        onChange={(address) => setTarget(resolveAddress(address)!)}
+        accounts={accounts}
+      />
+
       {!ready ? (
-        <Empty className="mt-0 p-6">Reading the chain…</Empty>
+        <Empty className="mt-2.5 p-6">Reading the chain…</Empty>
       ) : held.length === 0 ? (
-        <Empty className="mt-0 p-6">No vote is locking anything here.</Empty>
+        <Empty className="mt-2.5 p-6">No vote is locking anything here.</Empty>
       ) : (
         <>
-          <p className={cn(LEDE, 'mb-2.5')}>Each track locks its largest vote, not the sum.</p>
+          <p className={cn(LEDE, 'mt-2.5 mb-2.5')}>Each track locks its largest vote, not the sum.</p>
 
           <ItemGroup variant="outline" className="bg-muted">
             {held.map((lock, index) => (

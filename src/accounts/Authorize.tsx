@@ -282,6 +282,7 @@ const STALE: Partial<Record<Operation['kind'], Cache[]>> = {
   requestExit: ['validators'],
   vote: ['referenda', 'locks'],
   removeVote: ['referenda', 'locks'],
+  removeOtherVote: ['locks'],
   unlock: ['locks'],
   decisionDeposit: ['referenda'],
   payout: ['spends'],

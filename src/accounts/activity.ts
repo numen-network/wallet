@@ -40,6 +40,7 @@ export const SETTLED: Record<Operation['kind'], string> = {
   requestExit: 'Leaving the validator set',
   vote: 'Vote counted',
   removeVote: 'Vote taken back',
+  removeOtherVote: 'Vote taken back',
   unlock: 'Balance unlocked',
   decisionDeposit: 'Decision deposit placed',
   payout: 'Treasury spend paid',
@@ -299,6 +300,11 @@ export function describe(
       return {
         title: `Take back the vote on ${operation.poll}`,
         fields: row({ track: track(operation.track) }),
+      }
+    case 'removeOtherVote':
+      return {
+        title: `Take back the vote on ${operation.poll}`,
+        fields: row({ track: track(operation.track), for: who(operation.target) }),
       }
     case 'unlock':
       return {

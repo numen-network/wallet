@@ -715,6 +715,38 @@ export function createMockRepository(): ChainRepository {
   const pieces = SEEDED_CHILDREN.map((child) => ({ ...child }))
   const waiting: Pending[] = []
   const locks = new Map<string, Map<number, Held>>()
+  /** Bob voted before this chain was looked at, so releasing somebody else's locks has something to do. */
+  const seedLocks = () => {
+    locks.clear()
+    locks.set(
+      BOB,
+      new Map<number, Held>([
+        [
+          30,
+          {
+            amount: 50_000n * UNIT,
+            cast: [
+              { poll: 12, side: 'aye', conviction: 'Locked1x', amount: 20_000n * UNIT },
+              { poll: 11, side: 'aye', conviction: 'Locked2x', amount: 50_000n * UNIT },
+            ],
+            prior: NOTHING_PRIOR,
+          },
+        ],
+        [
+          31,
+          {
+            amount: 8_000n * UNIT,
+            cast: [
+              { poll: 9, side: 'aye', conviction: 'Locked3x', amount: 8_000n * UNIT },
+              { poll: 10, side: 'nay', conviction: 'Locked1x', amount: 3_000n * UNIT },
+            ],
+            prior: NOTHING_PRIOR,
+          },
+        ],
+      ]),
+    )
+  }
+  seedLocks()
   // Nothing here rotates sessions, so whoever joins stays queued
   const sitting = [ALICE]
   const elected = [ALICE]
@@ -1027,6 +1059,20 @@ export function createMockRepository(): ChainRepository {
           prior: standing?.prior ?? NOTHING_PRIOR,
         })
         relock(account.address, target.track)
+        return
+      }
+      case 'removeOtherVote': {
+        const held = lockedBy(operation.target).get(operation.track)
+        const gone = held?.cast.find((entry) => entry.poll === operation.poll)
+        if (!held || !gone) throw new Error('ConvictionVoting: NotVoter')
+        // Off somebody else, only a vote whose conviction has let go, so nothing moves into prior
+        const release = releaseOf(withOutcome(gone), FACTS.voteLockingPeriod, height)
+        if (release.kind === 'running') throw new Error('ConvictionVoting: NoPermission')
+        if (release.kind === 'held') throw new Error('ConvictionVoting: NoPermissionYet')
+        lockedBy(operation.target).set(operation.track, {
+          ...held,
+          cast: held.cast.filter((entry) => entry.poll !== operation.poll),
+        })
         return
       }
       case 'removeVote': {
@@ -1529,7 +1575,7 @@ export function createMockRepository(): ChainRepository {
       delegated.clear()
       proxies.clear()
       seedIdentities()
-      locks.clear()
+      seedLocks()
       seedValidators()
     },
   }
