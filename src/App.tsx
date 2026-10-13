@@ -61,6 +61,7 @@ import { SendModal } from '@/accounts/SendModal'
 import { UnlockModal } from '@/accounts/UnlockModal'
 import { ValidatorModal } from '@/accounts/ValidatorModal'
 import { GovernanceView } from '@/governance/GovernanceView'
+import { voters } from '@/governance/Voter'
 import { isSystemGroup, UNGROUPED_ID } from '@/accounts/layout'
 import { useAccountsStore } from '@/accounts/store'
 import { useAccounts } from '@/accounts/useAccounts'
@@ -82,7 +83,7 @@ type Modal =
   | { kind: 'clearIdentity'; address: string }
   | { kind: 'quitSub'; address: string }
   | { kind: 'derive'; address: string }
-  | { kind: 'delegate'; address: string }
+  | { kind: 'delegate'; address?: string; to?: string }
   | { kind: 'undelegate'; address: string }
   | { kind: 'addProxy'; address: string }
   | { kind: 'removeProxy'; address: string }
@@ -233,10 +234,18 @@ function Stat({ label, planck, lead = false }: { label: string; planck: bigint; 
   )
 }
 
+const DELEGATE_PARAM = 'delegate'
+
+/** A `?delegate=` link opens the delegation dialog with the delegate filled in. */
+function linkedDelegation(): Modal | null {
+  const to = new URLSearchParams(location.search).get(DELEGATE_PARAM)
+  return to === null ? null : { kind: 'delegate', to }
+}
+
 export function App() {
   const { accounts, byAddress, groups, connectExtension } = useAccounts()
   const store = useAccountsStore()
-  const [modal, setModal] = useState<Modal | null>(null)
+  const [modal, setModal] = useState<Modal | null>(linkedDelegation)
   const [view, setView] = useState<View>('accounts')
   const [header, setHeader] = useState<HTMLElement | null>(null)
 
@@ -265,6 +274,14 @@ export function App() {
     modal && 'id' in modal ? store.layout.groups.find((group) => group.id === modal.id) : undefined
 
   const close = () => setModal(null)
+  const delegators = voters(accounts)
+
+  // Taken off the address bar once read, so a reload does not ask again
+  useEffect(() => {
+    const url = new URL(location.href)
+    url.searchParams.delete(DELEGATE_PARAM)
+    history.replaceState(history.state, '', url)
+  }, [])
 
   const deleteGroup = (id: string) => {
     store.removeGroup(id)
@@ -543,12 +560,13 @@ export function App() {
         <DeriveModal account={selected} onClose={close} />
       )}
 
-      {modal?.kind === 'delegate' && selected && (
+      {modal?.kind === 'delegate' && delegators && (
         <DelegateModal
-          account={selected}
+          delegators={delegators}
           accounts={accounts}
-          signers={signers}
-          balance={balances[selected.address]}
+          balances={balances}
+          from={modal.address ?? delegators[0].address}
+          to={modal.to ?? ''}
           onClose={close}
         />
       )}

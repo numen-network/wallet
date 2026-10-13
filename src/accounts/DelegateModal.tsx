@@ -7,17 +7,22 @@ import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { LEDE } from '@/ui/Modal'
+import { useVoter, VoterField, type Voters } from '@/governance/Voter'
 import { AmountField } from './AmountField'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import { ConvictionField } from './ConvictionField'
 import type { Account } from './types'
 
 interface DelegateProps {
-  account: Account
+  /** The accounts that can sign, any of which may be the one delegating. */
+  delegators: Voters
   /** Everything the wallet holds, since a delegate can be one of them. */
   accounts: Account[]
-  signers: Account[]
-  balance: AccountBalance | undefined
+  balances: Record<string, AccountBalance>
+  /** The account picked when the dialog opens. */
+  from: string
+  /** The delegate filled in when the dialog opens. */
+  to: string
   onClose: () => void
 }
 
@@ -66,13 +71,23 @@ export function TrackField({
  * Votes are delegated one track at a time, and the balance behind them stays
  * locked for as long as the conviction says after the delegation ends.
  */
-export function DelegateModal({ account, accounts, signers, balance, onClose }: DelegateProps) {
+export function DelegateModal({
+  delegators,
+  accounts,
+  balances,
+  from,
+  to: initial,
+  onClose,
+}: DelegateProps) {
   const symbol = useSymbol()
-  const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
+  const [address, setAddress] = useState(from)
+  const voter = useVoter(delegators, address)
+  const { account, wrap, submit, needsPassword } = voter
+  const balance = balances[account.address]
   const [chosen, setChosen] = useState<number[]>([])
   // Delegating to yourself is a call that does nothing
   const others = accounts.filter((entry) => entry.address !== account.address)
-  const [to, setTo] = useState('')
+  const [to, setTo] = useState(initial)
   const [conviction, setConviction] = useState<Conviction>('Locked1x')
   const [amount, setAmount] = useState('')
   const call = useCall(onClose)
@@ -107,7 +122,7 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
       submitLabel="Sign and send"
       busy={call.busy}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
-      from={signer.address}
+      from={voter.signer.address}
       needsPassword={needsPassword}
       operation={wrap(delegating(account.address, held))}
       password={call.password}
@@ -116,6 +131,13 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
       onClose={onClose}
       onSubmit={form}
     >
+      <VoterField
+        label="Delegating as"
+        accounts={delegators}
+        voter={voter}
+        onChange={setAddress}
+      />
+
       <TrackField chosen={chosen} onChange={setChosen} />
 
       <AddressField
@@ -128,8 +150,6 @@ export function DelegateModal({ account, accounts, signers, balance, onClose }: 
       <ConvictionField value={conviction} onChange={setConviction} />
 
       <AmountField label="Amount" value={amount} onChange={setAmount} />
-
-      <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
     </CallModal>
   )
 }

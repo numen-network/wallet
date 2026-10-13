@@ -32,15 +32,17 @@ export function VoterField({
   accounts,
   voter,
   onChange,
+  label = 'Voting as',
 }: {
   accounts: Voters
   voter: Voter
   onChange: (address: string) => void
+  label?: string
 }) {
   return (
     <>
       <AddressField
-        label="Voting as"
+        label={label}
         value={voter.account.address}
         onChange={onChange}
         accounts={accounts}

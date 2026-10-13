@@ -612,6 +612,25 @@ test('one delegation covers every track it is ticked for', async ({ page }) => {
   await expect(sent.locator('article')).toHaveCount(1)
 })
 
+test('a delegate link opens the delegation with the delegate filled in', async ({ page }) => {
+  await createKey(page)
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Done' }).click()
+
+  await page.goto(`/?delegate=${DESTINATION}`)
+
+  const dialog = page.getByRole('dialog', { name: 'Delegate votes' })
+  await expectAddress(dialog, 'Delegating as', 'Vault')
+  await expectAddress(dialog, 'Delegate to', /nu3oNks.*Co98/)
+  await expect(page).not.toHaveURL(/delegate=/)
+
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
+  await dialog.getByPlaceholder('0.0').fill('100')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Votes delegated')).toBeVisible()
+})
+
 async function watchTheCorner({ page }: { page: Page }) {
   await createKey(page)
   await page.getByRole('checkbox').check()
