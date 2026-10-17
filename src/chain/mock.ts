@@ -42,13 +42,7 @@ import {
   type ValidatorRecord,
   type ValidatorSet,
 } from './validator'
-import {
-  lockedAt,
-  releasable,
-  stillLocked,
-  type Vesting,
-  type VestingSchedule,
-} from './vesting'
+import { lockedAt, stillLocked, type Vesting, type VestingSchedule } from './vesting'
 import {
   transferableOf,
   type AccountBalance,
@@ -887,7 +881,6 @@ export function createMockRepository(): ChainRepository {
   const vest = (address: string) => {
     const vesting = vestingOf(address)
     if (vesting.schedules.length === 0) throw new Error('Vesting: NotVesting')
-    write(address, read(address).free + releasable(vesting, height))
     settle(address, vesting.schedules)
   }
 
