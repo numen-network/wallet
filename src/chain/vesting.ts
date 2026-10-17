@@ -11,6 +11,17 @@ export interface VestingSchedule {
   startingBlock: number
 }
 
+/** An account's schedules and the freeze the chain holds for them. */
+export interface Vesting {
+  schedules: VestingSchedule[]
+  /**
+   * The vesting entry of Balances.Locks. The pallet sets it to what the
+   * schedules still hold whenever one is added or vest runs, and nothing moves
+   * it in between.
+   */
+  lock: bigint
+}
+
 /**
  * What this schedule still holds at that block, the way VestingInfo::locked_at
  * works it out. Nothing has thawed before the starting block, and the answer
@@ -26,13 +37,12 @@ export const stillLocked = (schedules: VestingSchedule[], height: number): bigin
   schedules.reduce((total, schedule) => total + lockedAt(schedule, height), 0n)
 
 /**
- * What calling vest would free. The chain is still holding whatever the
- * schedules started with, so the difference is what has thawed and not been
- * asked for.
+ * What calling vest would free, which is how far the lock has fallen behind the
+ * schedules. A lock written after `height` has nothing to give at it.
  */
-export function releasable(schedules: VestingSchedule[], height: number): bigint {
-  const started = schedules.reduce((total, schedule) => total + schedule.locked, 0n)
-  return started - stillLocked(schedules, height)
+export function releasable({ schedules, lock }: Vesting, height: number): bigint {
+  const still = stillLocked(schedules, height)
+  return lock > still ? lock - still : 0n
 }
 
 /** Blocks in a day, since a grant is written in days and stored per block. */

@@ -68,7 +68,7 @@ import {
 } from './identity'
 import type { Bounty, BountyState, ChildBounty, ChildState } from './bounties'
 import type { SessionKeys, ValidatorRecord, ValidatorSet } from './validator'
-import type { VestingSchedule } from './vesting'
+import type { Vesting } from './vesting'
 import {
   lockedOf,
   transferableOf,
@@ -94,7 +94,7 @@ interface AccountInfo {
   data: { free: bigint; reserved: bigint; frozen: bigint }
 }
 
-/** One entry of Balances.Locks. What put it there is `id`, which nothing reads. */
+/** One entry of Balances.Locks. What put it there is `id`, which the balance never reads. */
 interface BalanceLock {
   amount: bigint
 }
@@ -158,6 +158,9 @@ type BountyStatus = Awaited<
  * turns out not to exist costs more than one that shows up late.
  */
 const BEST = { at: 'best' } as const
+
+/** The id pallet_vesting files its lock under, a pallet constant the metadata leaves out. */
+const VESTING_LOCK = Binary.toHex(Binary.fromText('vesting '))
 
 /** What frame_support takes inline, past which a proposal has to be a preimage. */
 const INLINE_BOUND = 128
@@ -1270,13 +1273,19 @@ export function createPapiRepository(network: Network): ChainRepository {
       ).sort((one, other) => other.index - one.index)
     },
 
-    async vesting(address: string): Promise<VestingSchedule[]> {
-      const schedules = await api.query.Vesting.Vesting.getValue(address, BEST)
-      return (schedules ?? []).map((schedule) => ({
-        locked: schedule.locked,
-        perBlock: schedule.per_block,
-        startingBlock: schedule.starting_block,
-      }))
+    async vesting(address: string): Promise<Vesting> {
+      const [schedules, locks] = await Promise.all([
+        api.query.Vesting.Vesting.getValue(address, BEST),
+        api.query.Balances.Locks.getValue(address, BEST),
+      ])
+      return {
+        schedules: (schedules ?? []).map((schedule) => ({
+          locked: schedule.locked,
+          perBlock: schedule.per_block,
+          startingBlock: schedule.starting_block,
+        })),
+        lock: locks.find((lock) => lock.id === VESTING_LOCK)?.amount ?? 0n,
+      }
     },
 
     async standingOf(address: string): Promise<Standing> {

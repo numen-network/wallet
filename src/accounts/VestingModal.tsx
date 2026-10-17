@@ -8,6 +8,7 @@ import {
   releasable,
   scheduleOver,
   stillLocked,
+  type Vesting,
   type VestingSchedule,
 } from '@/chain/vesting'
 import { resolveAddress } from '@/lib/address'
@@ -42,6 +43,8 @@ const MODES: TabOption<Mode>[] = [
   { id: 'release', label: 'Release' },
   { id: 'grant', label: 'Grant' },
 ]
+
+const UNVESTED: Vesting = { schedules: [], lock: 0n }
 
 /**
  * Collecting what a schedule has thawed and putting somebody on one are the two
@@ -79,15 +82,15 @@ function Release({
 }: VestingModalProps & { tabs: ReactNode }) {
   const symbol = useSymbol()
   const [target, setTarget] = useState(account.address)
-  const { data: schedules } = useVesting(target)
+  const { data: vesting = UNVESTED } = useVesting(target)
   const { data: facts } = useFacts()
   const head = useHead()
   const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const height = head?.number ?? 0
-  const held = schedules ?? []
-  const free = releasable(held, height)
+  const held = vesting.schedules
+  const free = releasable(vesting, height)
   const operation: Operation =
     target === account.address ? { kind: 'vest' } : { kind: 'vestOther', target }
 
@@ -130,7 +133,7 @@ function Release({
         <Empty className="mt-2.5 p-6">Nothing is vesting on this account.</Empty>
       ) : (
         <>
-          {/* The two figures every schedule adds up to, since what is worth
+          {/* The two figures the lock splits into, since what is worth
               signing for is the first of them */}
           <div className="mt-2.5 grid grid-cols-2 gap-2.5">
             <Figure label="Ready to release" value={amount(free)} lit={free > 0n} />

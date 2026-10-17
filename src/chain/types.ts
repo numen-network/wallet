@@ -19,7 +19,7 @@ import type {
   UsernameAuthority,
 } from './identity'
 import type { SessionKeys, ValidatorRecord, ValidatorSet } from './validator'
-import type { VestingSchedule } from './vesting'
+import type { Vesting, VestingSchedule } from './vesting'
 
 /**
  * Domain types the UI speaks. No PAPI type crosses this boundary, that is what
@@ -475,7 +475,7 @@ export interface ChainRepository {
   /** The accounts hanging off this one, and what it is holding for them. */
   subsOf(address: string): Promise<Subs>
   /** What this account has vesting, which nothing thaws without being asked. */
-  vesting(address: string): Promise<VestingSchedule[]>
+  vesting(address: string): Promise<Vesting>
   /** Who may check an identity, and what they charge for it. */
   registrars(): Promise<Registrar[]>
   /** Who may hand out usernames, and under which suffix. */

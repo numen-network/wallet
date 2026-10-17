@@ -9,6 +9,7 @@ import {
   releasable,
   scheduleOver,
   stillLocked,
+  type Vesting,
   type VestingSchedule,
 } from './vesting'
 
@@ -42,11 +43,42 @@ describe('what a vesting schedule is still holding', () => {
   })
 })
 
+/** What the account carries once the pallet has worked the lock out at `at`. */
+const vestedAt = (schedules: VestingSchedule[], at: number): Vesting => ({
+  schedules,
+  lock: stillLocked(schedules, at),
+})
+
 describe('what calling vest would free', () => {
-  it('is everything thawed and not yet asked for', () => {
-    expect(releasable([schedule()], 1_000)).toBe(0n)
-    expect(releasable([schedule()], 1_030)).toBe(30n * UNIT)
-    expect(releasable([schedule()], 5_000)).toBe(100n * UNIT)
+  it('is everything thawed since the grant when nobody has asked for it', () => {
+    expect(releasable(vestedAt([schedule()], 0), 1_000)).toBe(0n)
+    expect(releasable(vestedAt([schedule()], 0), 1_030)).toBe(30n * UNIT)
+    expect(releasable(vestedAt([schedule()], 0), 5_000)).toBe(100n * UNIT)
+  })
+
+  it('is only what thawed since the lock was last worked out', () => {
+    expect(releasable(vestedAt([schedule()], 1_020), 1_030)).toBe(10n * UNIT)
+  })
+
+  it('adds up across the schedules an account carries', () => {
+    const held = [schedule(), schedule({ locked: 40n * UNIT, perBlock: 2n * UNIT })]
+    expect(releasable(vestedAt(held, 1_010), 1_020)).toBe(30n * UNIT)
+  })
+
+  // The head is finalized and the lock is read at the best block
+  it('is nothing when the lock was worked out after the block asked about', () => {
+    expect(releasable(vestedAt([schedule()], 1_040), 1_030)).toBe(0n)
+  })
+
+  // Read off mainnet the block before this account vested at 206,761
+  it('frees what the chain freed', () => {
+    const granted = schedule({
+      locked: 49_309_252_606_758_216_526_604n,
+      perBlock: 7_817_930_715_176_024n,
+      startingBlock: 0,
+    })
+    const vesting = { schedules: [granted], lock: 49_270_460_034_549_513_095_516n }
+    expect(releasable(vesting, 206_761)).toBe(1_577_650_600_391_806_467_176n)
   })
 })
 

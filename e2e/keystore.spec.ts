@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { expectAddress, fillAddress } from './address'
+import { expectAddress, fillAddress, pickAddress } from './address'
 
 /**
  * The path that needs no extension at all. Runs against VITE_CHAIN=mock, which
@@ -188,8 +188,9 @@ test('what has vested stays frozen until it is asked for', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'Vesting' }).click()
 
   const dialog = page.getByRole('dialog')
-  // Twenty thousand blocks in at one a block, so a third of it has thawed
-  await expect(dialog.getByText('20,000.0000 tNUMN', { exact: true })).toBeVisible()
+  // Twenty thousand blocks in at one a block and vested five thousand blocks
+  // ago, so only what thawed since then is ready
+  await expect(dialog.getByText('5,000.0000 tNUMN', { exact: true })).toBeVisible()
   await expect(dialog.getByText('40,000.0000 tNUMN', { exact: true })).toBeVisible()
   await expect(dialog.getByText('40,000.0000 of 60,000.0000 tNUMN')).toBeVisible()
 
@@ -235,27 +236,25 @@ test('releases a schedule on behalf of another account', async ({ page }) => {
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Done' }).click()
 
+  // The schedule sits on the first account, so a second one does the asking
   await card(page).getByRole('button', { name: 'Account menu' }).click()
-  await page.getByRole('menuitem', { name: 'Vesting' }).click()
+  await page.getByRole('menuitem', { name: 'Derive an account' }).click()
 
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('tab', { name: 'Grant' }).click()
-  await fillAddress(page, dialog, 'To', DESTINATION)
-  await dialog.getByLabel('Amount').fill('10')
-  await dialog.getByLabel('Unlocks over').fill('30')
-  // Block 1 is long past, so the grant lands fully thawed
-  await dialog.getByLabel('Starts at block').fill('1')
-  await dialog.getByLabel('Account password').fill(PASSWORD)
-  await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Vesting schedule granted')).toBeVisible()
+  await dialog.getByLabel('Name').fill('Child')
+  await dialog.getByLabel('Password for Vault').fill(PASSWORD)
+  await dialog.getByLabel('New account password').fill('child password')
+  await dialog.getByLabel('Repeat').fill('child password')
+  await dialog.getByRole('button', { name: 'Derive' }).click()
+  await expect(page.locator('article')).toHaveCount(2)
 
-  await card(page).getByRole('button', { name: 'Account menu' }).click()
+  const child = page.locator('article').filter({ hasText: 'Child' })
+  await child.getByRole('button', { name: 'Account menu' }).click()
   await page.getByRole('menuitem', { name: 'Vesting' }).click()
-  await dialog.getByRole('tab', { name: 'Release' }).click()
-  await fillAddress(page, dialog, 'For', DESTINATION)
-  await expect(dialog.getByText('10.0000 tNUMN', { exact: true })).toBeVisible()
+  await pickAddress(page, dialog, 'For', 'Vault')
+  await expect(dialog.getByText('5,000.0000 tNUMN', { exact: true })).toBeVisible()
 
-  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByLabel('Account password').fill('child password')
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Vested balance released')).toBeVisible()
 })

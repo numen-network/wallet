@@ -42,7 +42,13 @@ import {
   type ValidatorRecord,
   type ValidatorSet,
 } from './validator'
-import { releasable, type VestingSchedule } from './vesting'
+import {
+  lockedAt,
+  releasable,
+  stillLocked,
+  type Vesting,
+  type VestingSchedule,
+} from './vesting'
 import {
   transferableOf,
   type AccountBalance,
@@ -710,7 +716,7 @@ export function createMockRepository(): ChainRepository {
   const spends = SEEDED_SPENDS.map((spend) => ({ ...spend }))
   const closed = SEEDED_SETTLED.map((entry) => ({ ...entry }))
   const cleared = new Set<string>()
-  const schedules = new Map<string, VestingSchedule[]>()
+  const vestings = new Map<string, Vesting>()
   const rewards = SEEDED_BOUNTIES.map((bounty) => ({ ...bounty }))
   const pieces = SEEDED_CHILDREN.map((child) => ({ ...child }))
   const waiting: Pending[] = []
@@ -855,24 +861,34 @@ export function createMockRepository(): ChainRepository {
     for (const notify of listeners.get(address) ?? []) notify(next)
   }
 
-  /** One schedule on the first account the tab ever looked at, and none anywhere else. */
-  const vestingOf = (address: string): VestingSchedule[] => {
-    const known = schedules.get(address)
+  /**
+   * One schedule on the first account the tab ever looked at, and none anywhere
+   * else. It was vested five thousand blocks ago, so the lock trails it.
+   */
+  const vestingOf = (address: string): Vesting => {
+    const known = vestings.get(address)
     if (known) return known
     const [first] = [...balances.keys()]
-    const seeded =
+    const held =
       address === first
         ? [{ locked: 60_000n * UNIT, perBlock: UNIT, startingBlock: height - 20_000 }]
         : []
-    schedules.set(address, seeded)
+    const seeded = { schedules: held, lock: stillLocked(held, height - 5_000) }
+    vestings.set(address, seeded)
     return seeded
   }
 
+  /** What pallet_vesting does after every call, dropping what has run out and freezing the rest. */
+  const settle = (address: string, held: VestingSchedule[]) => {
+    const left = held.filter((schedule) => lockedAt(schedule, height) > 0n)
+    vestings.set(address, { schedules: left, lock: stillLocked(left, height) })
+  }
+
   const vest = (address: string) => {
-    const held = vestingOf(address)
-    if (held.length === 0) throw new Error('Vesting: NotVesting')
-    schedules.set(address, [])
-    write(address, read(address).free + releasable(held, height))
+    const vesting = vestingOf(address)
+    if (vesting.schedules.length === 0) throw new Error('Vesting: NotVesting')
+    write(address, read(address).free + releasable(vesting, height))
+    settle(address, vesting.schedules)
   }
 
   /**
@@ -1254,7 +1270,7 @@ export function createMockRepository(): ChainRepository {
         if (from.transferable < locked + FEE) throw new Error('Token: FundsUnavailable')
         write(account.address, from.free - locked - FEE)
         write(operation.to, read(operation.to).free + locked)
-        schedules.set(operation.to, [...held, operation.schedule])
+        settle(operation.to, [...held.schedules, operation.schedule])
         return
       }
       case 'setSubs': {
@@ -1415,7 +1431,7 @@ export function createMockRepository(): ChainRepository {
       return rewards.map((bounty) => ({ ...bounty }))
     },
 
-    async vesting(address: string): Promise<VestingSchedule[]> {
+    async vesting(address: string): Promise<Vesting> {
       return vestingOf(address)
     },
 

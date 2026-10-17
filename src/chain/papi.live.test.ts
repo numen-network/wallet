@@ -259,13 +259,16 @@ describe('vesting', () => {
   it('grants a schedule the chain reads back whole', { timeout: 200_000 }, async () => {
     const bob = toNumenAddress(new Keyring({ type: 'sr25519' }).addFromUri('//Bob').address)
     // Whatever an earlier run left, since a grant only ever adds to the list
-    const held = await repository.vesting(bob)
+    const { schedules: held } = await repository.vesting(bob)
     const { blockSeconds } = await repository.facts()
     const schedule = scheduleOver(100n * UNIT, 30, 1_000, blockSeconds)
 
     await send({ kind: 'vestedTransfer', to: bob, schedule })
 
-    expect(await repository.vesting(bob)).toEqual([...held, schedule])
+    const after = await repository.vesting(bob)
+    expect(after.schedules).toEqual([...held, schedule])
+    // The lock is picked out by its id, and a wrong id reads as no lock at all
+    expect(after.lock).toBeGreaterThan(0n)
   })
 
   it('releases a schedule on behalf of another account', { timeout: 200_000 }, async () => {
@@ -403,7 +406,7 @@ describe('governance', () => {
     expect(await repository.bounties()).toEqual([])
     expect(await repository.childBounties()).toEqual([])
     expect(await repository.pending([alice.address])).toEqual([])
-    expect(await repository.vesting(alice.address)).toEqual([])
+    expect(await repository.vesting(alice.address)).toEqual({ schedules: [], lock: 0n })
     expect(await repository.subsOf(alice.address)).toEqual({ deposit: 0n, list: [] })
     expect(await repository.usernameAuthorities()).toEqual([])
   })
