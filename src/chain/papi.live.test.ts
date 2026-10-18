@@ -30,6 +30,7 @@ import { dumpBytes, metadataDump, remarkBytes, type Motion } from './governance'
 import { depositFor, EMPTY_IDENTITY, isQualified, labelOf } from './identity'
 import { createPapiRepository } from './papi'
 import {
+  lockedOf,
   transferableOf,
   type AccountBalance,
   type ChainRepository,
@@ -293,20 +294,17 @@ describe('vesting', () => {
 })
 
 describe('balances', () => {
-  it('reads the lock list rather than working a figure out of frozen', async () => {
+  it('counts every lock the chain holds as locked', async () => {
     let stop: (() => void) | undefined
     const held = await new Promise<AccountBalance>((resolve) => {
       stop = repository.subscribeBalance(alice.address, resolve)
     })
     stop?.()
 
-    // Alice authors every block, so her free balance moves between one read and
-    // the next. Only the lock list is worth reading twice
     const locks = await api.query.Balances.Locks.getValue(alice.address)
     const biggest = locks.reduce((most, lock) => (lock.amount > most ? lock.amount : most), 0n)
 
-    // The governance suite leaves a conviction lock behind, so there is one here
-    expect(held.locked).toBe(biggest)
+    expect(lockedOf(held)).toBeGreaterThanOrEqual(biggest)
     const { existentialDeposit } = await repository.facts()
     expect(held.transferable).toBe(
       transferableOf(held.free, held.reserved, held.frozen, existentialDeposit),

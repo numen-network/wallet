@@ -3,8 +3,8 @@ import { UNIT } from './config'
 import { lockedOf, totalOf, transferableOf } from './types'
 
 /**
- * The two computed figures, worked out the way polkadot.js works them out and
- * the way the explorer reads them back. Neither comes out of storage as it
+ * The two computed figures, worked out the way the explorer reads them back.
+ * Neither comes out of storage as it
  * stands, so both are kept here rather than at the call sites.
  */
 
@@ -46,19 +46,33 @@ describe('what may leave the account', () => {
 })
 
 describe('what the locks hold', () => {
-  it('is nothing when there are none', () => {
-    expect(lockedOf([])).toBe(0n)
+  const held = (free: bigint, reserved: bigint, frozen: bigint) => ({
+    free,
+    reserved,
+    frozen,
+    transferable: transferableOf(free, reserved, frozen, 0n),
   })
 
-  // Locks overlap rather than stack, so adding them up would report more than
-  // the chain ever froze
-  it('is the biggest of them rather than their sum', () => {
-    expect(lockedOf([30n * UNIT, 5n * UNIT, 12n * UNIT])).toBe(30n * UNIT)
+  it('is nothing when nothing is frozen or reserved', () => {
+    expect(lockedOf(held(50n * UNIT, 0n, 0n))).toBe(0n)
   })
 
-  it('leaves out the lock that holds everything', () => {
-    expect(lockedOf([WHOLE_BALANCE, 12n * UNIT])).toBe(12n * UNIT)
-    expect(lockedOf([WHOLE_BALANCE])).toBe(0n)
+  it('counts a deposit no lock covers', () => {
+    expect(lockedOf(held(98_512_014_386_512_943_379n, 5_870_000_000_000_000_000n, 0n))).toBe(5_870_000_000_000_000_000n)
+  })
+
+  it('counts a deposit once when a bigger lock covers it', () => {
+    const balance = held(2_122_000_258_102_383_578_190_096n, 2_000n * UNIT, 2_124_000n * UNIT)
+    expect(lockedOf(balance)).toBe(2_124_000n * UNIT)
+  })
+
+  it('is the whole balance when the freeze outgrows it', () => {
+    expect(lockedOf(held(10n * UNIT, 2n * UNIT, WHOLE_BALANCE))).toBe(12n * UNIT)
+  })
+
+  it('and transferable add up to the balance', () => {
+    const balance = held(70n * UNIT, 30n * UNIT, 50n * UNIT)
+    expect(balance.transferable + lockedOf(balance)).toBe(totalOf(balance))
   })
 })
 
@@ -69,7 +83,6 @@ describe('the whole of a balance', () => {
       reserved: 30n * UNIT,
       frozen: 50n * UNIT,
       transferable: 0n,
-      locked: 0n,
     }
     expect(totalOf(balance)).toBe(100n * UNIT)
   })

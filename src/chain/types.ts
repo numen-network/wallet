@@ -32,12 +32,6 @@ export interface AccountBalance {
   frozen: bigint
   /** What may leave the account, worked out the way `transferableOf` says. */
   transferable: bigint
-  /**
-   * What the lock list holds, which comes out of Balances.Locks rather than the
-   * frozen field. The two answer different questions, so this and transferable
-   * do not add up to the balance and are not meant to.
-   */
-  locked: bigint
 }
 
 /** Everything the account holds, sendable or not. */
@@ -45,16 +39,9 @@ export function totalOf(balance: AccountBalance): bigint {
   return balance.free + balance.reserved
 }
 
-/** A lock this size holds everything, and reporting it as a figure says nothing. */
-const WHOLE_BALANCE = (1n << 128n) - 1n
-
-/**
- * What the locks hold between them. Locks overlap rather than stack, so the
- * biggest of them is the whole of it, which is what pallet_balances freezes and
- * what the explorer and polkadot.js both show.
- */
-export function lockedOf(locks: readonly bigint[]): bigint {
-  return locks.reduce((most, lock) => (lock !== WHOLE_BALANCE && lock > most ? lock : most), 0n)
+/** Everything the account holds that cannot leave it, locks and deposits alike. */
+export function lockedOf(balance: AccountBalance): bigint {
+  return totalOf(balance) - balance.transferable
 }
 
 /**
@@ -80,7 +67,6 @@ export const ZERO_BALANCE: AccountBalance = {
   reserved: 0n,
   frozen: 0n,
   transferable: 0n,
-  locked: 0n,
 }
 
 export interface ChainHead {

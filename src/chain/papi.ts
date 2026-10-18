@@ -70,7 +70,6 @@ import type { Bounty, BountyState, ChildBounty, ChildState } from './bounties'
 import type { SessionKeys, ValidatorRecord, ValidatorSet } from './validator'
 import type { Vesting } from './vesting'
 import {
-  lockedOf,
   transferableOf,
   type AccountBalance,
   type ChainFacts,
@@ -92,11 +91,6 @@ type Api = TypedApi<typeof numen>
 /** The three amounts of System.Account a balance is worked out from. */
 interface AccountInfo {
   data: { free: bigint; reserved: bigint; frozen: bigint }
-}
-
-/** One entry of Balances.Locks. What put it there is `id`, which the balance never reads. */
-interface BalanceLock {
-  amount: bigint
 }
 
 /** What every call the api builds comes back as. */
@@ -342,18 +336,13 @@ export function toState(
   return status.deciding.confirming === undefined ? 'deciding' : 'confirming'
 }
 
-function toBalance(
-  info: AccountInfo,
-  locks: BalanceLock[],
-  existentialDeposit: bigint,
-): AccountBalance {
+function toBalance(info: AccountInfo, existentialDeposit: bigint): AccountBalance {
   const { free, reserved, frozen } = info.data
   return {
     free,
     reserved,
     frozen,
     transferable: transferableOf(free, reserved, frozen, existentialDeposit),
-    locked: lockedOf(locks.map((lock) => lock.amount)),
   }
 }
 
@@ -1154,13 +1143,12 @@ export function createPapiRepository(network: Network): ChainRepository {
      */
     subscribeBalance(address, onBalance): Unsubscribe {
       let info: AccountInfo | undefined
-      let locks: BalanceLock[] | undefined
       // The deposit decides what stays untouchable, so nothing can be reported
       // before it lands. It arrives once and every later update reuses it.
       let deposit: bigint | undefined
 
       const push = () => {
-        if (info && locks && deposit !== undefined) onBalance(toBalance(info, locks, deposit))
+        if (info && deposit !== undefined) onBalance(toBalance(info, deposit))
       }
 
       void chainFacts().then((facts) => {
@@ -1172,15 +1160,7 @@ export function createPapiRepository(network: Network): ChainRepository {
         info = update.value
         push()
       })
-      const held = api.query.Balances.Locks.watchValue(address).subscribe((update) => {
-        locks = update.value
-        push()
-      })
-
-      return () => {
-        account.unsubscribe()
-        held.unsubscribe()
-      }
+      return () => account.unsubscribe()
     },
 
     async proxies(address: string): Promise<Proxy[]> {

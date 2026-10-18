@@ -80,14 +80,11 @@ function seedBalance(address: string): AccountBalance {
   const free = (h % 900_000n) * UNIT + (h % 1_000_000_000_000_000_000n)
   const frozen = h % 4n === 0n ? free / 3n : 0n
   const reserved = h % 3n === 0n ? UNIT / 2n : 0n
-  // One lock is what froze the account, so the two figures agree the way the
-  // chain has them agree
   return {
     free,
     reserved,
     frozen,
     transferable: transferableOf(free, reserved, frozen, FACTS.existentialDeposit),
-    locked: frozen,
   }
 }
 

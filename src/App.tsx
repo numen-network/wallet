@@ -6,7 +6,7 @@ import { RefusalModal } from '@/chain/RefusalModal'
 import { useChain } from '@/chain/provider'
 import { useBalances, useFacts, useHead, useReach } from '@/chain/queries'
 import { quality, type Quality } from '@/chain/reach'
-import { totalOf, type Token } from '@/chain/types'
+import { lockedOf, totalOf, type Token } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
 import { formatAmount } from '@/lib/balance'
 import { plural } from '@/lib/plural'
@@ -260,11 +260,10 @@ export function App() {
       return {
         total: totals.total + totalOf(balance),
         transferable: totals.transferable + balance.transferable,
-        locked: totals.locked + balance.locked,
-        reserved: totals.reserved + balance.reserved,
+        locked: totals.locked + lockedOf(balance),
       }
     },
-    { total: 0n, transferable: 0n, locked: 0n, reserved: 0n },
+    { total: 0n, transferable: 0n, locked: 0n },
   )
 
   const selected =
@@ -339,7 +338,6 @@ export function App() {
         <Stat label="Total balance" planck={summary.total} lead />
         <Stat label="Transferable" planck={summary.transferable} />
         <Stat label="Locked" planck={summary.locked} />
-        <Stat label="Reserved" planck={summary.reserved} />
 
         <div className="ml-auto flex flex-wrap gap-2 max-[560px]:ml-0">
           <ToolButton

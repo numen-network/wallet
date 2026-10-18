@@ -2,7 +2,7 @@ import { memo, type ReactNode } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { AccountBalance } from '@/chain/types'
-import { totalOf, ZERO_BALANCE } from '@/chain/types'
+import { lockedOf, totalOf, ZERO_BALANCE } from '@/chain/types'
 import { backing, labelOf, pendingWith, seatOf, type Standing } from '@/chain/identity'
 import { IdentityVerdict } from './IdentityVerdict'
 import { useRegistrars, useStanding, useSymbol } from '@/chain/queries'
@@ -371,13 +371,9 @@ function CardBody({
           {formatAmount(totalOf(holdings), { precision: DECIMALS, pad: false })}
           <span className="ml-1 text-[11.5px] font-bold tracking-wide">{symbol}</span>
         </div>
-        {/* The three the total is made of, the way the explorer splits it. A
-            freeze and a deposit are not the same thing and do not come back the
-            same way, so one figure over both says less than it looks */}
         <div data-nodrag className={cn('mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground', PICKABLE)}>
           <span>transferable {formatAmount(holdings.transferable, { precision: 2, compact: true })}</span>
-          <span>locked {formatAmount(holdings.locked, { precision: 2, compact: true })}</span>
-          <span>reserved {formatAmount(holdings.reserved, { precision: 2, compact: true })}</span>
+          <span>locked {formatAmount(lockedOf(holdings), { precision: 2, compact: true })}</span>
         </div>
       </CardContent>
 
