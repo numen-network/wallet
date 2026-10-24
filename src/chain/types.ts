@@ -143,6 +143,22 @@ export interface Delegation {
 }
 
 /**
+ * What an account already has on a track, which decides what delegating there
+ * takes. The chain refuses a second delegation, and any delegation over votes
+ * still on record, even ones on referenda long over.
+ */
+export type TrackVoting =
+  | { track: number; kind: 'delegating'; delegation: Delegation }
+  | {
+      track: number
+      kind: 'voting'
+      /** Referenda still counting this account's vote. */
+      ongoing: number[]
+      /** Referenda that are over, whose votes only sit on the record. */
+      ended: number[]
+    }
+
+/**
  * Everything the wallet asks an account to sign. One shape for all of them, so a
  * fee is quoted for the call that gets submitted rather than for a stand in.
  */
@@ -512,6 +528,8 @@ export interface ChainRepository {
   childBounties(): Promise<ChildBounty[]>
   /** What this account has locked behind its votes, one entry per track. */
   locks(address: string): Promise<ClassLock[]>
+  /** The tracks this account delegates on or has votes on. A track with neither is left out. */
+  votingFor(address: string): Promise<TrackVoting[]>
   /** Total issuance less what is deactivated, which is what support is measured against. */
   activeIssuance(): Promise<bigint>
   validators(): Promise<ValidatorSet>

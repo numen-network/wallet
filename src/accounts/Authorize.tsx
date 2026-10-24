@@ -304,6 +304,8 @@ export function SignerField({
 
 /** What a settled call leaves out of date, since the next screen would read it. */
 const STALE: Partial<Record<Operation['kind'], Cache[]>> = {
+  delegate: ['voting'],
+  undelegate: ['voting'],
   addProxy: ['proxies'],
   removeProxy: ['proxies'],
   registerIdentity: ['identity'],
@@ -333,8 +335,8 @@ const STALE: Partial<Record<Operation['kind'], Cache[]>> = {
   setKeys: ['validators'],
   lockStake: ['validators'],
   requestExit: ['validators'],
-  vote: ['referenda', 'locks'],
-  removeVote: ['referenda', 'locks'],
+  vote: ['referenda', 'locks', 'voting'],
+  removeVote: ['referenda', 'locks', 'voting'],
   removeOtherVote: ['locks'],
   unlock: ['locks'],
   decisionDeposit: ['referenda'],

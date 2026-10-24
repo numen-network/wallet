@@ -51,7 +51,13 @@ function Field({
 
 /* Wraps the whole field, so a click anywhere in the box lands on the control. */
 function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>) {
-  return <Label data-slot="field-label" className={cn('block', className)} {...props} />
+  return (
+    <Label
+      data-slot="field-label"
+      className={cn('block peer-disabled:cursor-not-allowed peer-disabled:opacity-50', className)}
+      {...props}
+    />
+  )
 }
 
 function FieldTitle({ className, ...props }: React.ComponentProps<'span'>) {

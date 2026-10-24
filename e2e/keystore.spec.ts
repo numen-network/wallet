@@ -7,6 +7,7 @@ import { expectAddress, fillAddress, pickAddress } from './address'
  * key creation through to a submitted transfer.
  */
 const PASSWORD = 'correct horse battery'
+const OTHER_PASSWORD = 'another horse battery'
 const DESTINATION = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 const SECOND = 'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg'
 
@@ -382,18 +383,18 @@ test('delegating votes on a track, then taking them back', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click()
 
   const dialog = page.getByRole('dialog')
+  const menu = async (item: string) => {
+    await card(page).getByRole('button', { name: 'Account menu' }).click()
+    await page.getByRole('menuitem', { name: item }).click()
+  }
 
-  await card(page).getByRole('button', { name: 'Account menu' }).click()
-  await page.getByRole('menuitem', { name: 'Take a delegation back' }).click()
-  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
-  await dialog.getByLabel('Account password').fill(PASSWORD)
-  await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  // Nothing was delegated on that track. The dialog lets go once the call is
-  // out, so the chain's refusal arrives as a notice rather than in the form
-  await expect(page.getByText(/NotDelegating/)).toBeVisible()
+  // Nothing is delegated yet, so there is nothing to take back
+  await menu('Take a delegation back')
+  await expect(dialog.getByRole('checkbox', { name: 'Small spender' })).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: 'Sign and send' })).toBeDisabled()
+  await page.keyboard.press('Escape')
 
-  await card(page).getByRole('button', { name: 'Account menu' }).click()
-  await page.getByRole('menuitem', { name: 'Delegate votes' }).click()
+  await menu('Delegate votes')
   await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
   await fillAddress(page, dialog, 'Delegate to', DESTINATION)
   await dialog.getByPlaceholder('0.0').fill('100')
@@ -401,42 +402,47 @@ test('delegating votes on a track, then taking them back', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Votes delegated')).toBeVisible()
 
-  await card(page).getByRole('button', { name: 'Account menu' }).click()
-  await page.getByRole('menuitem', { name: 'Take a delegation back' }).click()
+  await menu('Take a delegation back')
+  await expect(dialog.getByRole('checkbox', { name: 'Medium spender' })).toBeDisabled()
   await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Delegation ended')).toBeVisible()
 })
 
-test('a failed part brings the dialog back on what failed', async ({ page }) => {
+/**
+ * Two accounts under two passwords, delegated together under the first. The
+ * second is never signed, and that is what fails.
+ */
+async function delegateFromTwo(page: Page) {
   await createKey(page)
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Done' }).click()
 
-  const dialog = page.getByRole('dialog')
-  const menu = async (item: string) => {
-    await card(page).getByRole('button', { name: 'Account menu' }).click()
-    await page.getByRole('menuitem', { name: item }).click()
-  }
-  const late = ['Referendum killer', 'Small spender', 'Medium spender', 'Big spender']
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
+  const adding = page.getByRole('dialog')
+  await adding.getByRole('radio', { name: 'New account' }).check()
+  await adding.getByLabel('Name').fill('Spare')
+  await adding.getByLabel('Password', { exact: true }).fill(OTHER_PASSWORD)
+  await adding.getByLabel('Repeat password').fill(OTHER_PASSWORD)
+  await adding.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Done' }).click()
 
-  // The first five tracks fill one transaction, the rest a second
-  await menu('Delegate votes')
-  await dialog.getByRole('button', { name: 'Select all' }).click()
-  for (const track of late) await dialog.getByRole('checkbox', { name: track }).uncheck()
+  await card(page).getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Delegate votes' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Delegate votes' })
+  await dialog.getByRole('tab', { name: 'Multiple' }).click()
+  await dialog.getByRole('group', { name: 'Delegating as' }).getByRole('checkbox', { name: 'Spare' }).check()
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
   await fillAddress(page, dialog, 'Delegate to', DESTINATION)
-  await dialog.getByPlaceholder('0.0').fill('100')
-  await dialog.getByLabel('Account password').fill(PASSWORD)
-  await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('All of it went through')).toBeVisible()
-
-  // Nothing is delegated on the second half, so that transaction fails alone
-  await menu('Take a delegation back')
-  await dialog.getByRole('button', { name: 'Select all' }).click()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(dialog).toHaveCount(0)
+}
+
+test('a failed part brings the dialog back on what failed', async ({ page }) => {
+  await delegateFromTwo(page)
 
   const failed = page.locator('[data-sonner-toast][data-type="error"]')
   await expect(failed).toContainText('1 of 2 failed')
@@ -445,59 +451,42 @@ test('a failed part brings the dialog back on what failed', async ({ page }) => 
   // The sidebar takes the failure over from the corner
   const sidebar = page.getByRole('dialog', { name: 'Activity' })
   const waiting = sidebar.getByRole('region', { name: 'Needs attention' })
-  await expect(waiting.getByText(/NotDelegating/)).toBeVisible()
+  await expect(waiting.getByText('Spare')).toBeVisible()
   await expect(failed).toHaveCount(0)
 
   // Walking away from a retry leaves the failure where it was
   await waiting.getByRole('button', { name: 'Edit and retry' }).click()
-  const again = page.getByRole('dialog', { name: 'Take a delegation back' })
-  await expect(again.getByRole('checkbox', { checked: true })).toHaveCount(late.length)
-  for (const track of late) await expect(again.getByRole('checkbox', { name: track })).toBeChecked()
+  const again = page.getByRole('dialog', { name: 'Delegate votes' })
+  const delegating = again.getByRole('group', { name: 'Delegating as' })
+  await expect(delegating.getByRole('checkbox', { name: 'Spare' })).toBeChecked()
+  await expect(delegating.getByRole('checkbox', { name: 'Vault' })).not.toBeChecked()
+  await expect(again.getByRole('checkbox', { name: 'Small spender' })).toBeChecked()
   await expect(again.getByLabel('Account password')).toHaveValue('')
   await again.getByRole('button', { name: 'Cancel' }).click()
-  await expect(waiting.getByText(/NotDelegating/)).toBeVisible()
+  await expect(waiting.getByText('Spare')).toBeVisible()
 
   // So does closing the sidebar, the way any panel here closes
   await page.mouse.click(40, 400)
   await expect(sidebar).toHaveCount(0)
   await page.getByRole('button', { name: 'Activity' }).click()
-  await expect(waiting.getByText(/NotDelegating/)).toBeVisible()
-  await page.keyboard.press('Escape')
+  await expect(waiting.getByText('Spare')).toBeVisible()
 
-  // Once those tracks are delegated, the retry goes through and the failure with it
-  await menu('Delegate votes')
-  for (const track of late) await dialog.getByRole('checkbox', { name: track }).check()
-  await fillAddress(page, dialog, 'Delegate to', DESTINATION)
-  await dialog.getByPlaceholder('0.0').fill('100')
-  await dialog.getByLabel('Account password').fill(PASSWORD)
-  await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(dialog).toHaveCount(0)
-
-  await page.getByRole('button', { name: 'Activity' }).click()
+  // Sent again under the right password, the failure goes with it
   await waiting.getByRole('button', { name: 'Edit and retry' }).click()
-  await again.getByLabel('Account password').fill(PASSWORD)
+  await again.getByLabel('Account password').fill(OTHER_PASSWORD)
   await again.getByRole('button', { name: 'Sign and send' }).click()
   await expect(again).toHaveCount(0)
   await expect(waiting).toHaveCount(0)
-  await expect(page.getByText('All of it went through').first()).toBeVisible()
+  await expect(page.getByText('Votes delegated')).toBeVisible()
 })
 
 test('a failure stays in the sidebar until it is dismissed', async ({ page }) => {
-  await createKey(page)
-  await page.getByRole('checkbox').check()
-  await page.getByRole('button', { name: 'Done' }).click()
-
-  const dialog = page.getByRole('dialog')
-  await card(page).getByRole('button', { name: 'Account menu' }).click()
-  await page.getByRole('menuitem', { name: 'Take a delegation back' }).click()
-  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
-  await dialog.getByLabel('Account password').fill(PASSWORD)
-  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await delegateFromTwo(page)
 
   await page.getByRole('button', { name: 'Activity' }).click()
   const sidebar = page.getByRole('dialog', { name: 'Activity' })
   const waiting = sidebar.getByRole('region', { name: 'Needs attention' })
-  await expect(waiting.getByText(/NotDelegating/)).toBeVisible()
+  await expect(waiting.getByText('Spare')).toBeVisible()
   // Seen in the sidebar, so the corner has nothing left to point at
   await expect(page.locator('[data-sonner-toast][data-type="error"]')).toHaveCount(0)
 
@@ -505,7 +494,7 @@ test('a failure stays in the sidebar until it is dismissed', async ({ page }) =>
   await expect(waiting).toHaveCount(0)
   // The log keeps what happened either way
   const sent = sidebar.getByRole('region', { name: 'Sent from this tab' })
-  await expect(sent.getByRole('term').filter({ hasText: 'refused' })).toBeVisible()
+  await expect(sent.getByText('Delegate votes')).toBeVisible()
 })
 
 test('sending the full balance closes the account out', async ({ page }) => {

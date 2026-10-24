@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useChain } from './provider'
 import { replaceBigInt } from '@/lib/json'
 import type { Registrar } from './identity'
-import type { AccountBalance, ChainHead, Operation, Reach } from './types'
+import type { AccountBalance, ChainHead, Operation, Reach, TrackVoting } from './types'
 
 /**
  * Chain state is server state. Balances arrive as live subscriptions, so they
@@ -105,6 +105,7 @@ export const CACHES = [
   'preimages',
   'pending',
   'locks',
+  'voting',
   'registrars',
   'validators',
 ] as const
@@ -326,6 +327,26 @@ export function useLocks(address: string) {
     queryKey: ['locks', network.id, address],
     queryFn: () => repository.locks(address),
     staleTime: 10_000,
+  })
+}
+
+/**
+ * What each account already has on the tracks, by address. Undefined until
+ * every one of them has been read.
+ */
+export function useVotingFor(addresses: string[]) {
+  const { repository, network } = useChain()
+
+  return useQueries({
+    queries: addresses.map((address) => ({
+      queryKey: ['voting', network.id, address],
+      queryFn: () => repository.votingFor(address),
+      staleTime: 10_000,
+    })),
+    combine: (results): Record<string, TrackVoting[]> | undefined =>
+      results.every((result) => result.data !== undefined)
+        ? Object.fromEntries(addresses.map((address, at) => [address, results[at]!.data!]))
+        : undefined,
   })
 }
 

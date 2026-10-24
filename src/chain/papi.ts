@@ -84,6 +84,7 @@ import {
   type ReadCall,
   type Timepoint,
   type Token,
+  type TrackVoting,
   type TxProgress,
   type Unsubscribe,
 } from './types'
@@ -1482,6 +1483,35 @@ export function createPapiRepository(network: Network): ChainRepository {
           return { track, amount, votes, prior: { until, amount: carried } }
         }),
       )
+    },
+
+    async votingFor(address: string): Promise<TrackVoting[]> {
+      const entries = await api.query.ConvictionVoting.VotingFor.getEntries(address, BEST)
+
+      const read = await Promise.all(
+        entries.map(async ({ keyArgs: [, track], value }): Promise<TrackVoting | null> => {
+          if (value.type === 'Delegating') {
+            const { target, conviction, balance } = value.value
+            return {
+              track,
+              kind: 'delegating',
+              delegation: { track, to: target, conviction: conviction.type, amount: balance },
+            }
+          }
+          const polls = value.value.votes.map(([poll]) => poll)
+          if (polls.length === 0) return null
+          const running = await Promise.all(
+            polls.map(async (poll) => (await pollOutcome(poll)).kind === 'running'),
+          )
+          return {
+            track,
+            kind: 'voting',
+            ongoing: polls.filter((_, at) => running[at]),
+            ended: polls.filter((_, at) => !running[at]),
+          }
+        }),
+      )
+      return read.filter((entry) => entry !== null)
     },
 
     async activeIssuance(): Promise<bigint> {

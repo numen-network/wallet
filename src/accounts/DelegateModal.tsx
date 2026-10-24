@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from 'react'
-import { useFeesEstimate, useSplit, useSymbol, useTracks } from '@/chain/queries'
+import { useFeesEstimate, useSplit, useSymbol, useTracks, useVotingFor } from '@/chain/queries'
 import { batched, totalOf, type AccountBalance, type Conviction, type Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
@@ -39,20 +39,24 @@ interface DelegateProps {
 export function TrackField({
   chosen,
   onChange,
+  enabled,
 }: {
   chosen: number[]
   onChange: (tracks: number[]) => void
+  /** The tracks that can be ticked, where the rest have nothing to act on. All of them when left out. */
+  enabled?: number[]
 }) {
   const { data: tracks = [] } = useTracks()
   const trackId = useId()
-  const every = tracks.map((track) => track.id)
+  const every = tracks.map((track) => track.id).filter((id) => !enabled || enabled.includes(id))
+  const all = every.length > 0 && every.every((id) => chosen.includes(id))
 
   return (
     <FieldSet className="mt-3.5 gap-0">
       <TickHead
         label="Tracks"
-        all={chosen.length === every.length}
-        onAll={() => onChange(chosen.length === every.length ? [] : every)}
+        all={all}
+        onAll={every.length === 0 ? null : () => onChange(all ? [] : every)}
       />
       <div
         className={cn(
@@ -65,6 +69,7 @@ export function TrackField({
             <Checkbox
               id={`${trackId}-${track.id}`}
               checked={chosen.includes(track.id)}
+              disabled={!every.includes(track.id)}
               onCheckedChange={(checked) =>
                 onChange(
                   checked === true
@@ -357,12 +362,15 @@ export function UndelegateModal({
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const [chosen, setChosen] = useField<number[]>('tracks', [])
   const call = useCall(onClose)
+  const has = useVotingFor([account.address])?.[account.address]
+  const delegated = has?.flatMap((entry) => (entry.kind === 'delegating' ? [entry.track] : []))
   const ending = (tracks: number[]) =>
     batched(tracks.map((track) => ({ kind: 'undelegate' as const, track })))
-  const parts = useTrackParts(chosen, (track) => ending([track]))
+  const taking = chosen.filter((track) => delegated?.includes(track))
+  const parts = useTrackParts(taking, (track) => ending([track]))
 
   const form = () => {
-    if (chosen.length === 0) return call.refuse('Pick at least one track')
+    if (taking.length === 0) return call.refuse('Pick at least one track')
     if (!parts) return false
 
     return call.run(
@@ -376,10 +384,10 @@ export function UndelegateModal({
       title="Take a delegation back"
       submitLabel="Sign and send"
       busy={call.busy}
-      disabled={chosen.length > 0 && !parts}
+      disabled={!delegated || delegated.length === 0 || (taking.length > 0 && !parts)}
       from={signer.address}
       needsPassword={needsPassword}
-      operation={(parts ?? [chosen]).map((part) => wrap(ending(part)))}
+      operation={taking.length > 0 ? (parts ?? [taking]).map((part) => wrap(ending(part))) : null}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}
@@ -391,7 +399,7 @@ export function UndelegateModal({
         the conviction it was delegated under.
       </p>
 
-      <TrackField chosen={chosen} onChange={setChosen} />
+      <TrackField chosen={chosen} onChange={setChosen} enabled={delegated ?? []} />
 
       <SignerField account={account} signer={signer} bench={bench} onChange={choose} />
     </CallModal>

@@ -505,6 +505,13 @@ describe('governance', () => {
       amount: 5_000n * UNIT,
       votes: [{ poll: index, side: 'aye', amount: 5_000n * UNIT, outcome: { kind: 'running' } }],
     })
+    // Still counting, so a delegation on that track has to wait for it
+    expect(await repository.votingFor(alice.address)).toContainEqual({
+      track: 30,
+      kind: 'voting',
+      ongoing: [index],
+      ended: [],
+    })
 
     await send({ kind: 'removeVote', track: 30, poll: index })
     expect(
@@ -942,8 +949,16 @@ describe('delegation on every track', () => {
     expect(delegating.length).toBeGreaterThan(1)
     for (const part of delegating) await put(batched(part), ferdie)
 
+    const held = await fresh.votingFor(ferdie.address)
+    expect(held.map((entry) => entry.track).sort((one, other) => one - other)).toEqual(tracks)
+    expect(held[0]).toMatchObject({
+      kind: 'delegating',
+      delegation: { to: alice.address, conviction: 'Locked1x', amount: UNIT },
+    })
+
     const ending = await fresh.split(tracks.map((track) => ({ kind: 'undelegate', track })))
     for (const part of ending) await put(batched(part), ferdie)
+    expect(await fresh.votingFor(ferdie.address)).toEqual([])
   })
 })
 

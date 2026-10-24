@@ -51,12 +51,14 @@ import {
   type ChainHead,
   type CallArg,
   type ChainRepository,
+  type Delegation,
   type Operation,
   type Pending,
   type Proxy,
   type Reach,
   type ReadCall,
   type Token,
+  type TrackVoting,
   type TxProgress,
   type Unsubscribe,
 } from './types'
@@ -703,7 +705,7 @@ export function createMockRepository(): ChainRepository {
   let height = NOW
   const balances = new Map<string, AccountBalance>()
   const listeners = new Map<string, Set<(balance: AccountBalance) => void>>()
-  const delegated = new Set<string>()
+  const delegated = new Map<string, Delegation>()
   let nonce = 0
   const proxies = new Map<string, Proxy[]>()
   const identities = new Map<string, Registration>()
@@ -913,10 +915,13 @@ export function createMockRepository(): ChainRepository {
         write(operation.to, read(operation.to).free + from.transferable - FEE)
         return
       }
-      // Delegations are only remembered so that taking one back can fail the
-      // way the chain fails it, with nothing there to take
       case 'delegate': {
-        delegated.add(`${account.address}:${operation.delegation.track}`)
+        const key = `${account.address}:${operation.delegation.track}`
+        if (delegated.has(key)) throw new Error('ConvictionVoting: AlreadyDelegating')
+        if (lockedBy(account.address).get(operation.delegation.track)?.cast.length) {
+          throw new Error('ConvictionVoting: AlreadyVoting')
+        }
+        delegated.set(key, operation.delegation)
         return
       }
       case 'undelegate': {
@@ -1538,6 +1543,25 @@ export function createMockRepository(): ChainRepository {
         votes: held.cast.map(withOutcome),
         prior: { ...held.prior },
       }))
+    },
+
+    async votingFor(address: string): Promise<TrackVoting[]> {
+      const delegating = [...delegated]
+        .filter(([key]) => key.startsWith(`${address}:`))
+        .map(([, delegation]): TrackVoting => ({ track: delegation.track, kind: 'delegating', delegation }))
+      const voting = [...(locks.get(address) ?? new Map<number, Held>())]
+        .filter(([, held]) => held.cast.length > 0)
+        .map(([track, held]): TrackVoting => {
+          const polls = held.cast.map((entry) => entry.poll)
+          const running = (poll: number) => outcomeOf(poll).kind === 'running'
+          return {
+            track,
+            kind: 'voting',
+            ongoing: polls.filter(running),
+            ended: polls.filter((poll) => !running(poll)),
+          }
+        })
+      return [...delegating, ...voting]
     },
 
     async activeIssuance(): Promise<bigint> {
