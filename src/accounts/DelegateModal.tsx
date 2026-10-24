@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { useFeesEstimate, useSplit, useSymbol, useTracks } from '@/chain/queries'
 import { batched, totalOf, type AccountBalance, type Conviction, type Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
@@ -7,6 +7,7 @@ import { cn } from '@/lib/cn'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Field as Row, FieldLabel, FieldSet } from '@/components/ui/field'
 import { LEDE, ModalFrame } from '@/ui/Modal'
+import { useField } from '@/ui/reopen'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { useVoter, VoterField, type Voters } from '@/governance/Voter'
 import { AccountsList, TICK_BOX, TickHead } from './AccountsList'
@@ -14,6 +15,7 @@ import { AddressField } from './AddressField'
 import { AmountField } from './AmountField'
 import { CallModal, CallPage, SignerField, useCall, useSend, useSigning } from './Authorize'
 import { ConvictionField } from './ConvictionField'
+import { actorOf, innerOf, type Part } from './jobs'
 import { needsPassword, type Account } from './types'
 
 interface DelegateProps {
@@ -115,29 +117,23 @@ const heldBy = (balances: Record<string, AccountBalance>, account: Account) => {
 /**
  * The tracks a transaction at a time, as the chain splits their calls. Each
  * call on a track weighs as much as the most votes the pallet allows, so a few
- * fill a transaction. What each account has already sent is remembered, since
- * the chain refuses a track twice and a retry has to send only the rest.
+ * fill a transaction. Undefined while the chain is still weighing them.
  */
 function useTrackParts(tracks: number[], call: (track: number) => Operation) {
   const { data } = useSplit(tracks.map(call))
-  const sent = useRef(new Map<string, number[]>()).current
   let at = 0
-  const parts = data?.map((part) => tracks.slice(at, (at += part.length)))
+  return data?.map((part) => tracks.slice(at, (at += part.length)))
+}
 
-  return {
-    /** Undefined while the chain is still weighing them. */
-    parts,
-    async send(account: Account, submit: (tracks: number[]) => Promise<void>) {
-      if (!parts) throw new Error('The chain has not weighed these calls yet')
-      for (const part of parts) {
-        const done = sent.get(account.address) ?? []
-        const left = part.filter((track) => !done.includes(track))
-        if (left.length === 0) continue
-        await submit(left)
-        sent.set(account.address, [...done, ...left])
-      }
-    },
-  }
+/** The tracks the failed calls were on, which is all a retry has to send again. */
+function tracksOf(failed: Part[]): number[] {
+  const tracks = failed.flatMap(({ operation }) => {
+    const inner = innerOf(operation)
+    return (inner.kind === 'batch' ? inner.calls : [inner]).flatMap((call) =>
+      call.kind === 'delegate' ? [call.delegation.track] : call.kind === 'undelegate' ? [call.track] : [],
+    )
+  })
+  return [...new Set(tracks)].sort((one, other) => one - other)
 }
 
 /** The delegate, or what is wrong with the terms. */
@@ -159,8 +155,8 @@ function checkTerms(terms: Terms, delegating: Account[]): { target: string } | {
  * switch, and the terms carry over when it is flipped.
  */
 export function DelegateModal(props: DelegateProps) {
-  const [mode, setMode] = useState<Mode>('single')
-  const [terms, setAll] = useState<Terms>({ tracks: [], to: props.to, conviction: 'Locked1x' })
+  const [mode, setMode] = useField<Mode>('mode', 'single')
+  const [terms, setAll] = useField<Terms>('terms', { tracks: [], to: props.to, conviction: 'Locked1x' })
   const setTerms = (patch: Partial<Terms>) => setAll((current) => ({ ...current, ...patch }))
   const page = { ...props, tabs: <TabBar options={MODES} className="w-fit" />, terms, setTerms }
 
@@ -199,13 +195,13 @@ function TermsFields({
 
 function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, terms, setTerms }: PageProps) {
   const symbol = useSymbol()
-  const [address, setAddress] = useState(from)
+  const [address, setAddress] = useField('address', from)
   const voter = useVoter(delegators, address)
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useField('amount', '')
   const call = useCall(onClose)
   const held = heldBy(balances, voter.account)
   const probe = (tracks: number[]) => delegating(tracks, terms, voter.account.address, held)
-  const tracks = useTrackParts(terms.tracks, (track) => probe([track]))
+  const parts = useTrackParts(terms.tracks, (track) => probe([track]))
 
   const form = () => {
     const checked = checkTerms(terms, [voter.account])
@@ -215,11 +211,11 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
     if (problem) return call.refuse(problem)
     const planck = parseAmount(amount)
     if (planck > held) return call.refuse('Enter an amount within what this account holds')
+    if (!parts) return false
+
     return call.run(
-      tracks.send(voter.account, (part) =>
-        voter.submit(delegating(part, terms, checked.target, planck), call.password),
-      ),
-      'Delegation sent',
+      parts.map((part) => voter.submit(delegating(part, terms, checked.target, planck), call.password)),
+      { again: (failed) => ({ terms: { ...terms, tracks: tracksOf(failed) } }) },
     )
   }
 
@@ -228,12 +224,12 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
       title="Delegate votes"
       submitLabel="Sign and send"
       busy={call.busy}
-      disabled={terms.tracks.length > 0 && !tracks.parts}
+      disabled={terms.tracks.length > 0 && !parts}
       aside={tabs}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
-      operation={(tracks.parts ?? [terms.tracks]).map((part) => voter.wrap(probe(part)))}
+      operation={(parts ?? [terms.tracks]).map((part) => voter.wrap(probe(part)))}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}
@@ -252,22 +248,24 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
 }
 
 /**
- * Each account delegates all it holds, one signature after another under the
- * one password. The ones already out leave the pick, so a retry after a refusal
- * sends only the rest.
+ * Each account delegates all it holds under the one password, every signature
+ * made at once and sent together, so one account the chain turns down holds up
+ * none of the others.
  */
 function DelegateMany({ delegators, accounts, balances, from, onClose, tabs, terms, setTerms }: PageProps) {
-  const [picked, setPicked] = useState<Voters>(() => [
-    delegators.find((entry) => entry.address === from) ?? delegators[0],
+  const [addresses, setAddresses] = useField('picked', () => [
+    (delegators.find((entry) => entry.address === from) ?? delegators[0]).address,
   ])
+  const chosen = delegators.filter((entry) => addresses.includes(entry.address))
+  const picked: Voters = chosen[0] ? [chosen[0], ...chosen.slice(1)] : [delegators[0]]
   const voter = useVoter(delegators, picked[0].address)
   const send = useSend()
   const call = useCall(onClose)
   const many = picked.length > 1
   const held = heldBy(balances, voter.account)
   const probe = (tracks: number[]) => delegating(tracks, terms, voter.account.address, held)
-  const tracks = useTrackParts(terms.tracks, (track) => probe([track]))
-  const priced = (tracks.parts ?? [terms.tracks]).map((part) => voter.wrap(probe(part)))
+  const parts = useTrackParts(terms.tracks, (track) => probe([track]))
+  const priced = (parts ?? [terms.tracks]).map((part) => voter.wrap(probe(part)))
   const fee = useFeesEstimate(voter.signer.address, priced)
   // The chain takes the fee before the call runs, and the lock leaves nothing for
   // the next part's fee, so an account paying its own keeps twice its fees back
@@ -278,35 +276,28 @@ function DelegateMany({ delegators, accounts, balances, from, onClose, tabs, ter
   }
 
   // The lone pick may be a multisig or a proxied account, which signs through somebody
-  const submitAs = (account: Account) => (operation: Operation) =>
+  const submitAs = (account: Account, operation: Operation) =>
     account === voter.account
       ? voter.submit(operation, call.password)
       : send(account, operation, call.password)
 
-  const sendEach = async (target: string) => {
-    let left: Account[] = picked
-    for (const account of picked) {
-      const planck = lockable(account)
-      await tracks
-        .send(account, (part) => submitAs(account)(delegating(part, terms, target, planck)))
-        .catch((problem: unknown) => {
-          // An empty message is a refusal the chain dialog already shows
-          throw problem instanceof Error && problem.message
-            ? new Error(`${account.name}: ${problem.message}`)
-            : problem
-        })
-      left = left.filter((entry) => entry !== account)
-      const [next, ...rest] = left
-      if (next) setPicked([next, ...rest])
-    }
-  }
-
   const form = () => {
     const checked = checkTerms(terms, picked)
     if ('problem' in checked) return call.refuse(checked.problem)
+    if (!parts) return false
+
     return call.run(
-      sendEach(checked.target),
-      many ? `Delegated from ${picked.length} accounts` : 'Delegation sent',
+      picked.flatMap((account) =>
+        parts.map((part) =>
+          submitAs(account, delegating(part, terms, checked.target, lockable(account))),
+        ),
+      ),
+      {
+        again: (failed) => ({
+          picked: [...new Set(failed.map(actorOf))],
+          terms: { ...terms, tracks: tracksOf(failed) },
+        }),
+      },
     )
   }
 
@@ -315,7 +306,7 @@ function DelegateMany({ delegators, accounts, balances, from, onClose, tabs, ter
       title="Delegate votes"
       submitLabel="Sign and send"
       busy={call.busy}
-      disabled={(terms.tracks.length > 0 && !tracks.parts) || fee === undefined}
+      disabled={(terms.tracks.length > 0 && !parts) || fee === undefined}
       aside={tabs}
       from={voter.signer.address}
       needsPassword={many ? picked.some(needsPassword) : voter.needsPassword}
@@ -331,7 +322,7 @@ function DelegateMany({ delegators, accounts, balances, from, onClose, tabs, ter
       <AccountsList
         label="Delegating as"
         value={picked}
-        onChange={setPicked}
+        onChange={(next) => setAddresses(next.map((entry) => entry.address))}
         accounts={delegators}
         balances={balances}
       />
@@ -364,16 +355,20 @@ export function UndelegateModal({
   onClose: () => void
 }) {
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
-  const [chosen, setChosen] = useState<number[]>([])
+  const [chosen, setChosen] = useField<number[]>('tracks', [])
   const call = useCall(onClose)
   const ending = (tracks: number[]) =>
     batched(tracks.map((track) => ({ kind: 'undelegate' as const, track })))
-  const tracks = useTrackParts(chosen, (track) => ending([track]))
+  const parts = useTrackParts(chosen, (track) => ending([track]))
 
   const form = () => {
     if (chosen.length === 0) return call.refuse('Pick at least one track')
+    if (!parts) return false
 
-    return call.run(tracks.send(account, (part) => submit(ending(part), call.password)))
+    return call.run(
+      parts.map((part) => submit(ending(part), call.password)),
+      { again: (failed) => ({ tracks: tracksOf(failed) }) },
+    )
   }
 
   return (
@@ -381,10 +376,10 @@ export function UndelegateModal({
       title="Take a delegation back"
       submitLabel="Sign and send"
       busy={call.busy}
-      disabled={chosen.length > 0 && !tracks.parts}
+      disabled={chosen.length > 0 && !parts}
       from={signer.address}
       needsPassword={needsPassword}
-      operation={(tracks.parts ?? [chosen]).map((part) => wrap(ending(part)))}
+      operation={(parts ?? [chosen]).map((part) => wrap(ending(part)))}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}

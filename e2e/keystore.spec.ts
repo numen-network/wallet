@@ -409,6 +409,50 @@ test('delegating votes on a track, then taking them back', async ({ page }) => {
   await expect(page.getByText('Delegation ended')).toBeVisible()
 })
 
+test('a failed part brings the dialog back on what failed', async ({ page }) => {
+  await createKey(page)
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Done' }).click()
+
+  const dialog = page.getByRole('dialog')
+  const menu = async (item: string) => {
+    await card(page).getByRole('button', { name: 'Account menu' }).click()
+    await page.getByRole('menuitem', { name: item }).click()
+  }
+  const late = ['Referendum killer', 'Small spender', 'Medium spender', 'Big spender']
+
+  // The first five tracks fill one transaction, the rest a second
+  await menu('Delegate votes')
+  await dialog.getByRole('button', { name: 'Select all' }).click()
+  for (const track of late) await dialog.getByRole('checkbox', { name: track }).uncheck()
+  await fillAddress(page, dialog, 'Delegate to', DESTINATION)
+  await dialog.getByPlaceholder('0.0').fill('100')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('All of it went through')).toBeVisible()
+
+  // Nothing is delegated on the second half, so that transaction fails alone
+  await menu('Take a delegation back')
+  await dialog.getByRole('button', { name: 'Select all' }).click()
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(dialog).toHaveCount(0)
+
+  const failed = page.locator('[data-sonner-toast][data-type="error"]')
+  await expect(failed).toContainText('1 of 2 failed')
+  await failed.getByRole('button').click()
+
+  const why = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Edit and retry' }) })
+  await expect(why.getByText(/NotDelegating/)).toBeVisible()
+  await why.getByRole('button', { name: 'Edit and retry' }).click()
+  await expect(failed).toHaveCount(0)
+
+  const again = page.getByRole('dialog', { name: 'Take a delegation back' })
+  await expect(again.getByRole('checkbox', { checked: true })).toHaveCount(late.length)
+  for (const track of late) await expect(again.getByRole('checkbox', { name: track })).toBeChecked()
+  await expect(again.getByLabel('Account password')).toHaveValue('')
+})
+
 test('sending the full balance closes the account out', async ({ page }) => {
   await createKey(page)
   await page.getByRole('checkbox').check()
@@ -448,8 +492,8 @@ test('a proxy goes on the chain list, then comes off it', async ({ page }) => {
   await fillAddress(page, dialog, 'Proxy account', DESTINATION)
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  // Sent, then settled. The list is only right once the chain agrees
-  await expect(page.getByText('Proxy sent')).toBeVisible()
+  // Signed, then settled. The list is only right once the chain agrees
+  await expect(dialog).toHaveCount(0)
   await expect(page.getByText('Proxy added')).toBeVisible()
 
   await menu('Remove proxy')
@@ -476,11 +520,10 @@ test('the tab remembers what it sent, across a reload', async ({ page }) => {
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 
-  // The form lets go as soon as the call is out, well before it is final, and
-  // the corner picks the walk up from there
+  // The form lets go as soon as the call is signed, well before it is final,
+  // and the corner picks the walk up from there
   const flight = page.locator('[data-sonner-toast][data-type="loading"]')
   await expect(flight).toContainText('Transfer')
-  await expect(page.getByText('Transfer sent')).toBeVisible()
   await expect(dialog).toHaveCount(0)
   await expect(page.getByText('Transfer confirmed')).toBeVisible()
   // Settled is the toast's to say, so the corner lets go of it
@@ -579,7 +622,7 @@ test('one signature pays several accounts at once', async ({ page }) => {
 
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Transfers sent')).toBeVisible()
+  await expect(page.getByText('All of it went through')).toBeVisible()
 
   // One call reached the chain, not two
   await page.getByRole('tab', { name: 'Activity' }).click()
@@ -630,7 +673,7 @@ test('a delegate link opens the delegation with the delegate filled in', async (
   await expect(page.getByText('Votes delegated')).toBeVisible()
 })
 
-test('a ticked group delegates from each of its accounts in turn', async ({ page }) => {
+test('a ticked group delegates from each of its accounts', async ({ page }) => {
   await createKey(page)
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Done' }).click()
@@ -670,7 +713,8 @@ test('a ticked group delegates from each of its accounts in turn', async ({ page
   await expect(dialog.getByText(/Estimated fee .* × 2/)).toBeVisible()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
-  await expect(page.getByText('Delegated from 2 accounts')).toBeVisible()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText('All of it went through')).toBeVisible()
 
   await page.getByRole('tab', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })

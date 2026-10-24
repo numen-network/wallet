@@ -1,8 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useChain } from '@/chain/provider'
 import { CACHES, useFeesEstimate, useRefresh, useSymbol, type Cache } from '@/chain/queries'
-import { useRefusalStore } from '@/chain/RefusalModal'
-import { ChainError, ShownError } from '@/chain/refusal'
+import { ChainError } from '@/chain/refusal'
 import type { Operation } from '@/chain/types'
 import { cn } from '@/lib/cn'
 import { formatAmount } from '@/lib/balance'
@@ -12,9 +11,9 @@ import { ModalFrame, ModalPage, type ModalPageProps, type ModalProps } from '@/u
 import { Field } from '@/ui/Field'
 import { FieldError, NOTE } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { toast, toastProblem, toastSettled, toastWorking } from '@/ui/Toast'
+import { useReopen, type Fields } from '@/ui/reopen'
 import { AddressField } from './AddressField'
-import { describe, SETTLED, WORKING } from './activity'
+import { useJobsStore, type Part } from './jobs'
 import { useCallsStore } from './calls'
 import { otherSignatories } from './multisig'
 import { useSessionStore } from './session'
@@ -132,6 +131,7 @@ export function useCall(onClose?: () => void) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const launch = useLaunch()
 
   return {
     password,
@@ -145,24 +145,68 @@ export function useCall(onClose?: () => void) {
       return false
     },
     /**
-     * Sends one call and sees it through, closing the dialog once it is out.
-     * Returns false, which is what a form hands back to stay open until the
-     * chain has answered.
+     * Sends what the form came to and closes the dialog once it is signed,
+     * leaving the rest to a notice in the corner. Returns false, which is what
+     * a form hands back to stay open while it signs.
      */
-    run(sending: Promise<unknown>, done = 'Sent') {
+    run(sending: Sending | Sending[], options: LaunchOptions = {}) {
       setError('')
       setBusy(true)
-      sending
-        .then(() => {
-          toast(done)
-          onClose?.()
-        })
-        .catch((problem: unknown) => {
-          setError(problem instanceof Error ? problem.message : 'The chain refused it')
-        })
+      launch([sending].flat(), options)
+        .then(() => onClose?.())
+        .catch((problem: unknown) => setError(problem instanceof Error ? problem.message : String(problem)))
         .finally(() => setBusy(false))
       return false
     },
+  }
+}
+
+/** A call on its way, which settles once it is signed. */
+export type Sending = Promise<Part>
+
+export interface LaunchOptions {
+  /** Runs once anything is signed, such as dropping a draft the form no longer needs. */
+  sent?: () => void
+  /** What to change in the form when it comes back on the calls that failed. */
+  again?: (failed: Part[]) => Fields
+}
+
+/** A call that never got as far as a signature, and which one it was. */
+export class Unsent extends Error {
+  readonly part: Part
+
+  constructor(message: string, part: Omit<Part, 'error'>) {
+    super(message)
+    this.name = 'Unsent'
+    this.part = { ...part, error: message }
+  }
+}
+
+/**
+ * Hands whatever got signed to a notice of its own, which follows it on chain
+ * and can bring the dialog back if any of it fails. Throws when nothing was
+ * signed at all, since then the form is still the place to put it right.
+ */
+export function useLaunch() {
+  const start = useJobsStore((state) => state.start)
+  const scope = useReopen()
+
+  return async (sending: Sending[], { sent, again }: LaunchOptions = {}) => {
+    // Read now, since the dialog is gone by the time anything fails
+    const fields = scope?.snapshot()
+    const settled = await Promise.allSettled(sending)
+    const parts = settled.map((result) => {
+      if (result.status === 'fulfilled') return result.value
+      if (result.reason instanceof Unsent) return result.reason.part
+      throw result.reason
+    })
+    if (parts.every((part) => part.error)) throw new Error(parts[0]?.error ?? 'Nothing was sent')
+
+    sent?.()
+    start({
+      parts,
+      retry: scope ? (failed) => scope.reopen({ ...fields, ...again?.(failed) }) : undefined,
+    })
   }
 }
 
@@ -319,10 +363,10 @@ function staleFor(operation: Operation): Cache[] {
 }
 
 /**
- * Signs, submits, and writes the walk into this tab's log. It resolves once the
- * call is out on the network, which is where a dialog has no more to say, and
- * follows the rest on its own. Waiting for finality behind a frozen form is a
- * minute of nothing on a chain that takes ten seconds a block.
+ * Signs, submits, and writes the walk into this tab's log. It settles once the
+ * call is signed, which is where a dialog has no more to say, and the log
+ * follows the rest. Waiting for finality behind a frozen form is a minute of
+ * nothing on a chain that takes ten seconds a block.
  */
 export function useSubmit(account: Account) {
   const send = useSend()
@@ -332,29 +376,29 @@ export function useSubmit(account: Account) {
 /** useSubmit for a dialog that signs as several accounts, named at each send. */
 export function useSend() {
   const { repository } = useChain()
-  const symbol = useSymbol()
   const record = useSessionStore((state) => state.record)
   const encode = useSessionStore((state) => state.encode)
   const remember = useCallsStore((state) => state.remember)
   const advance = useSessionStore((state) => state.advance)
   const fail = useSessionStore((state) => state.fail)
-  const raise = useRefusalStore((state) => state.raise)
   const refresh = useRefresh()
 
-  return (account: Account, operation: Operation, password: string) =>
-    new Promise<void>((resolve, reject) => {
+  return (account: Account, operation: Operation, password: string): Sending =>
+    new Promise((resolve, reject) => {
+      const part = { address: account.address, operation }
+      const refuse = (problem: unknown, fallback: string) =>
+        reject(new Unsent(problem instanceof Error ? problem.message : fallback, part))
+
       let signing: WalletAccount
       try {
         signing = signerFor(account, password)
       } catch (problem) {
-        reject(problem instanceof Error ? problem : new Error('That account could not be opened'))
+        refuse(problem, 'That account could not be opened')
         return
       }
 
       const id = record(account.address, operation)
-      const { title } = describe(operation, symbol)
-      toastWorking(id, title, WORKING.signed)
-      let out = false
+      let signed = false
 
       // What the log shows in place of a hand written line per kind of call
       void repository
@@ -375,31 +419,17 @@ export function useSend() {
       repository
         .submit(signing, operation, (progress) => {
           advance(id, progress.stage, progress.hash)
-          toastWorking(id, title, WORKING[progress.stage])
-          if (progress.stage === 'broadcast') {
-            out = true
-            resolve()
+          if (progress.stage === 'signed' && !signed) {
+            signed = true
+            resolve({ ...part, submission: id })
           }
         })
-        .then(() => {
-          toastSettled(id)
-          // What a screen reads is only wrong once the chain has agreed
-          refresh(staleFor(operation))
-          toast(SETTLED[operation.kind])
-        })
+        // What a screen reads is only wrong once the chain has agreed
+        .then(() => refresh(staleFor(operation)))
         .catch((problem: unknown) => {
           const message = problem instanceof Error ? problem.message : 'The chain refused it'
-          toastSettled(id)
-          fail(id, message)
-          // A toast is gone before a refusal like this can be read, let alone acted on
-          if (problem instanceof ChainError) {
-            raise({ message, detail: problem.detail })
-            if (!out) reject(new ShownError())
-            return
-          }
-
-          if (out) toastProblem(message)
-          else reject(problem instanceof Error ? problem : new Error(message))
+          fail(id, message, problem instanceof ChainError ? problem.detail : undefined)
+          if (!signed) refuse(problem, message)
         })
     })
 }

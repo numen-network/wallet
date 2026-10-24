@@ -66,10 +66,7 @@ export function SendMany({
       return call.refuse('The rows come to more than this account can send, fee included')
     }
 
-    return call.run(
-      submit(batched(calls), call.password).then(sent),
-      `${rows.length === 1 ? 'Transfer' : 'Transfers'} sent`,
-    )
+    return call.run(submit(batched(calls), call.password), { sent })
   }
 
   return (

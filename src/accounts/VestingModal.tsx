@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useFacts, useHead, useSymbol, useVesting } from '@/chain/queries'
 import type { AccountBalance, Operation } from '@/chain/types'
 import {
@@ -23,6 +23,7 @@ import { Empty } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { useDraft } from '@/ui/draft'
+import { useField } from '@/ui/reopen'
 import { AddressField } from './AddressField'
 import { AmountField } from './AmountField'
 import { CallPage, SignerField, useCall, useSigning } from './Authorize'
@@ -81,7 +82,7 @@ function Release({
   onClose,
 }: VestingModalProps & { tabs: ReactNode }) {
   const symbol = useSymbol()
-  const [target, setTarget] = useState(account.address)
+  const [target, setTarget] = useField('target', account.address)
   const { data: vesting = UNVESTED } = useVesting(target)
   const { data: facts } = useFacts()
   const head = useHead()
@@ -190,10 +191,10 @@ function Grant({
   const symbol = useSymbol()
   const { data: facts } = useFacts()
   const head = useHead()
-  const [to, setTo] = useState('')
-  const [amount, setAmount] = useState('')
-  const [days, setDays] = useState('')
-  const [start, setStart] = useState('')
+  const [to, setTo] = useField('to', '')
+  const [amount, setAmount] = useField('amount', '')
+  const [days, setDays] = useField('days', '')
+  const [start, setStart] = useField('start', '')
   const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)

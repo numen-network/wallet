@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import {
   feePaidTo,
@@ -18,6 +17,7 @@ import { Card } from '@/components/ui/card'
 import { FieldTitle, NOTE } from '@/components/ui/field'
 import { CROSS, MarkDisc, TICK } from '@/ui/JudgementBadge'
 import { Select } from '@/ui/Select'
+import { useField } from '@/ui/reopen'
 import { AddressField } from './AddressField'
 import { AmountField } from './AmountField'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
@@ -47,8 +47,8 @@ export function JudgeModal({
 }) {
   const symbol = useSymbol()
   const { data: registrars } = useRegistrars()
-  const [to, setTo] = useState('')
-  const [verdict, setVerdict] = useState<Ruling>('Reasonable')
+  const [to, setTo] = useField('to', '')
+  const [verdict, setVerdict] = useField<Ruling>('verdict', 'Reasonable')
   const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
@@ -176,7 +176,7 @@ export function SetFeeModal({
 }) {
   const symbol = useSymbol()
   const { data: registrars } = useRegistrars()
-  const [fee, setFee] = useState('')
+  const [fee, setFee] = useField('fee', '')
   const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)

@@ -210,5 +210,7 @@ test('a proxied account spends through the key it named', async ({ page }) => {
   await send.getByLabel('Account password').fill(PASSWORD)
   await send.getByRole('button', { name: 'Sign and send' }).click()
 
-  await expect(page.getByText('Transfer sent')).toBeVisible()
+  // Signed by the named key, so the dialog lets go and the corner follows the call
+  await expect(send).toHaveCount(0)
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Transfer' })).toBeVisible()
 })

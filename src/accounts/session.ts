@@ -27,6 +27,8 @@ export interface Submission {
   call?: { name: string; args: CallArg[] }
   /** What the chain refused it for, once it has refused it. */
   error?: string
+  /** The refusal as the chain put it, where it said more than the reading of it. */
+  detail?: string | undefined
   at: number
 }
 
@@ -35,7 +37,7 @@ interface SessionState {
   record: (address: string, operation: Operation) => string
   encode: (id: string, call: { name: string; args: CallArg[] }) => void
   advance: (id: string, stage: TxStage, hash: string) => void
-  fail: (id: string, error: string) => void
+  fail: (id: string, error: string, detail?: string) => void
   forAccount: (address: string) => Submission[]
 }
 
@@ -81,7 +83,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
     advance: (id, stage, hash) => patch(id, { stage, hash }),
 
-    fail: (id, error) => patch(id, { error }),
+    fail: (id, error, detail) => patch(id, { error, detail }),
 
     forAccount: (address) => get().submissions.filter((entry) => entry.address === address),
   }

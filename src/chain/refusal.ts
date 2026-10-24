@@ -49,14 +49,3 @@ export class ChainError extends Error {
     this.detail = detail
   }
 }
-
-/**
- * A problem the wallet has already put on screen. The message is empty so that
- * the form under the dialog does not print the same thing a second time.
- */
-export class ShownError extends Error {
-  constructor() {
-    super('')
-    this.name = 'ShownError'
-  }
-}

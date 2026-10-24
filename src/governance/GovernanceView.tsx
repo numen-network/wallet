@@ -27,6 +27,7 @@ import type { AccountBalance } from '@/chain/types'
 import { cn } from '@/lib/cn'
 import { Empty } from '@/components/ui/empty'
 import { ArrowUpRight, Coins, Plus, LockOpen, Vote } from 'lucide-react'
+import { FormScope, useDialog } from '@/ui/reopen'
 import { Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
@@ -101,7 +102,8 @@ export function GovernanceView({
   const head = useHead()
   const [tab, setTab] = useState<Tab>('referenda')
   const [sort, setSort] = useState<Sort>('state')
-  const [modal, setModal] = useState<Modal | null>(null)
+  const dialog = useDialog<Modal>()
+  const { modal, close, open: setModal } = dialog
 
   const signers = voters(accounts)
   const canSign = signers !== null
@@ -116,7 +118,6 @@ export function GovernanceView({
   const ready = booked.filter((spend) => spendState(spend, head?.number ?? 0) === 'ready')
   // One tab over both, since a deposit is a deposit whatever is holding it
   const owed = [...(settled ?? []), ...(preimages ?? [])]
-  const close = () => setModal(null)
 
   const counts: Record<Tab, number> = {
     referenda: running.length,
@@ -305,81 +306,83 @@ export function GovernanceView({
         </TabPanel>
       </main>
 
-      {signers && modal?.kind === 'vote' && (
-        <VoteModal
-          referendum={modal.referendum}
-          accounts={signers}
-          balances={balances}
-          onClose={close}
-        />
-      )}
+      <FormScope key={dialog.scope.key} seed={dialog.scope.seed} reopen={dialog.scope.reopen}>
+        {signers && modal?.kind === 'vote' && (
+          <VoteModal
+            referendum={modal.referendum}
+            accounts={signers}
+            balances={balances}
+            onClose={close}
+          />
+        )}
 
-      {signers && modal?.kind === 'removeVote' && (
-        <RemoveVoteModal referendum={modal.referendum} accounts={signers} onClose={close} />
-      )}
+        {signers && modal?.kind === 'removeVote' && (
+          <RemoveVoteModal referendum={modal.referendum} accounts={signers} onClose={close} />
+        )}
 
-      {signers && modal?.kind === 'deposit' && (
-        <DepositModal referendum={modal.referendum} accounts={signers} onClose={close} />
-      )}
+        {signers && modal?.kind === 'deposit' && (
+          <DepositModal referendum={modal.referendum} accounts={signers} onClose={close} />
+        )}
 
-      {signers && modal?.kind === 'editText' && (
-        <EditTextModal
-          referendum={modal.referendum}
-          preimages={preimages ?? []}
-          accounts={signers}
-          onClose={close}
-        />
-      )}
+        {signers && modal?.kind === 'editText' && (
+          <EditTextModal
+            referendum={modal.referendum}
+            preimages={preimages ?? []}
+            accounts={signers}
+            onClose={close}
+          />
+        )}
 
-      {signers && modal?.kind === 'refund' && (
-        <RefundModal
-          poll={modal.poll}
-          held={modal.held}
-          kind={modal.call}
-          accounts={signers}
-          onClose={close}
-        />
-      )}
+        {signers && modal?.kind === 'refund' && (
+          <RefundModal
+            poll={modal.poll}
+            held={modal.held}
+            kind={modal.call}
+            accounts={signers}
+            onClose={close}
+          />
+        )}
 
-      {signers && modal?.kind === 'bounty' && (
-        <BountyModal job={modal.job} accounts={signers} onClose={close} />
-      )}
+        {signers && modal?.kind === 'bounty' && (
+          <BountyModal job={modal.job} accounts={signers} onClose={close} />
+        )}
 
-      {signers && modal?.kind === 'proposeBounty' && (
-        <ProposeBountyModal accounts={signers} onClose={close} />
-      )}
+        {signers && modal?.kind === 'proposeBounty' && (
+          <ProposeBountyModal accounts={signers} onClose={close} />
+        )}
 
-      {signers && modal?.kind === 'preimage' && (
-        <PreimageModal preimage={modal.preimage} accounts={signers} onClose={close} />
-      )}
+        {signers && modal?.kind === 'preimage' && (
+          <PreimageModal preimage={modal.preimage} accounts={signers} onClose={close} />
+        )}
 
-      {signers && modal?.kind === 'payout' && (
-        <PayoutModal spend={modal.spend} accounts={signers} onClose={close} />
-      )}
+        {signers && modal?.kind === 'payout' && (
+          <PayoutModal spend={modal.spend} accounts={signers} onClose={close} />
+        )}
 
-      {signers && modal?.kind === 'voteAll' && (
-        <VoteManyModal
-          referenda={running}
-          accounts={signers}
-          balances={balances}
-          onClose={close}
-        />
-      )}
+        {signers && modal?.kind === 'voteAll' && (
+          <VoteManyModal
+            referenda={running}
+            accounts={signers}
+            balances={balances}
+            onClose={close}
+          />
+        )}
 
-      {signers && modal?.kind === 'claimAll' && (
-        <ClaimAllModal spends={ready} accounts={signers} onClose={close} />
-      )}
+        {signers && modal?.kind === 'claimAll' && (
+          <ClaimAllModal spends={ready} accounts={signers} onClose={close} />
+        )}
 
-      {signers && modal?.kind === 'returnAll' && (
-        <ReturnAllModal
-          settled={settled ?? []}
-          preimages={preimages ?? []}
-          accounts={signers}
-          onClose={close}
-        />
-      )}
+        {signers && modal?.kind === 'returnAll' && (
+          <ReturnAllModal
+            settled={settled ?? []}
+            preimages={preimages ?? []}
+            accounts={signers}
+            onClose={close}
+          />
+        )}
 
-      {signers && modal?.kind === 'propose' && <ProposeModal accounts={signers} onClose={close} />}
+        {signers && modal?.kind === 'propose' && <ProposeModal accounts={signers} onClose={close} />}
+      </FormScope>
     </Tabs>
   )
 }

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { CallModal, SignerField, useCall } from '@/accounts/Authorize'
 import {
   dumpBytes,
@@ -38,6 +37,7 @@ import { Figure } from '@/ui/Figure'
 import { Field, INSIDE } from '@/ui/Field'
 import { Select } from '@/ui/Select'
 import { DateField, stamp } from '@/ui/DateField'
+import { useField } from '@/ui/reopen'
 import { CAPTION, NOTE } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { useVoter, VoterField, type Voters } from './Voter'
@@ -230,8 +230,8 @@ export function ProposeModal({
   const propose = (id: number, proposed: Motion) =>
     call.run(
       voter
-        .submit({ kind: 'propose', track: id, motion: proposed, title, description }, call.password)
-        .then(sent),
+        .submit({ kind: 'propose', track: id, motion: proposed, title, description }, call.password),
+      { sent },
     )
 
   const form = () => {
@@ -483,8 +483,8 @@ export function EditTextModal({
 }) {
   const symbol = useSymbol()
   const { data: facts } = useFacts()
-  const [title, setTitle] = useState(referendum.title ?? '')
-  const [description, setDescription] = useState(referendum.description ?? '')
+  const [title, setTitle] = useField('title', referendum.title ?? '')
+  const [description, setDescription] = useField('description', referendum.description ?? '')
   const call = useCall(onClose)
 
   // set_metadata answers only to whoever opened it, so there is nobody to pick
@@ -664,7 +664,7 @@ export function RefundModal({
   onClose: () => void
 }) {
   const symbol = useSymbol()
-  const [address, setAddress] = useState(accounts[0].address)
+  const [address, setAddress] = useField('address', accounts[0].address)
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
@@ -712,7 +712,7 @@ export function PayoutModal({
   onClose: () => void
 }) {
   const symbol = useSymbol()
-  const [address, setAddress] = useState(accounts[0].address)
+  const [address, setAddress] = useField('address', accounts[0].address)
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
@@ -760,7 +760,7 @@ export function DepositModal({
 }) {
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
-  const [address, setAddress] = useState(accounts[0].address)
+  const [address, setAddress] = useField('address', accounts[0].address)
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)

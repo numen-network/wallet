@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { byteLength, SUB_NAME_MAX_BYTES, type Sub } from '@/chain/identity'
 import { useFacts, useStanding, useSubs, useSymbol } from '@/chain/queries'
 import { isSubstrateAddress, shorten, toNumenAddress } from '@/lib/address'
@@ -10,6 +9,7 @@ import { LEDE } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
 import { Input } from '@/components/ui/input'
 import { toastProblem } from '@/ui/Toast'
+import { useField } from '@/ui/reopen'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 import { AddressField } from './AddressField'
@@ -36,9 +36,9 @@ export function SubsModal({
   const symbol = useSymbol()
   const { data: held } = useSubs(account.address)
   const { data: standing } = useStanding(account.address)
-  const [edited, setEdited] = useState<Sub[] | null>(null)
-  const [address, setAddress] = useState('')
-  const [name, setName] = useState('')
+  const [edited, setEdited] = useField<Sub[] | null>('edited', null)
+  const [address, setAddress] = useField('address', '')
+  const [name, setName] = useField('name', '')
   const call = useCall(onClose)
 
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)

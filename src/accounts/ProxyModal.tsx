@@ -1,5 +1,4 @@
 import { AddressField } from './AddressField'
-import { useState } from 'react'
 import { useFacts, useProxies, useSymbol } from '@/chain/queries'
 import { PROXY_TYPES, type Proxy, type ProxyType } from '@/chain/types'
 import { cn } from '@/lib/cn'
@@ -9,6 +8,7 @@ import { NOTE } from '@/components/ui/field'
 import { Empty } from '@/components/ui/empty'
 import { Field, INSIDE } from '@/ui/Field'
 import { Select } from '@/ui/Select'
+import { useField } from '@/ui/reopen'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
 
@@ -37,8 +37,8 @@ export function AddProxyModal({
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const { data: held } = useProxies(account.address)
   const { data: facts } = useFacts()
-  const [delegate, setDelegate] = useState('')
-  const [type, setType] = useState<ProxyType>('Governance')
+  const [delegate, setDelegate] = useField('delegate', '')
+  const [type, setType] = useField<ProxyType>('type', 'Governance')
   const call = useCall(onClose)
   // Naming yourself as your own proxy is a call that does nothing
   const others = accounts.filter((entry) => entry.address !== account.address)
@@ -58,7 +58,7 @@ export function AddProxyModal({
     }
 
     const proxy: Proxy = { delegate: target, type }
-    return call.run(submit({ kind: 'addProxy', proxy }, call.password), 'Proxy sent')
+    return call.run(submit({ kind: 'addProxy', proxy }, call.password))
   }
 
   return (
@@ -118,7 +118,7 @@ export function RemoveProxyModal({
 }) {
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
   const { data: held, isPending } = useProxies(account.address)
-  const [chosen, setChosen] = useState('')
+  const [chosen, setChosen] = useField('chosen', '')
   const call = useCall(onClose)
 
   const proxies = held ?? []

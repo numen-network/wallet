@@ -160,7 +160,7 @@ function EditIdentity({ account, signers, tabs, draft, patch, sent, onClose }: I
     const [long] = overlong(current)
     if (long) return call.refuse(`${LABELS[long]} is longer than ${MAX_BYTES[long]} bytes`)
 
-    return call.run(submit(operation, call.password).then(sent), 'Identity sent')
+    return call.run(submit(operation, call.password), { sent })
   }
 
   const line = (field: IdentityField) => (

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useSeeded } from './reopen'
 
 /**
  * What a dialog has had typed into it, held for as long as the tab is open. A
@@ -33,7 +34,7 @@ export function useDraft<T extends object>(key: string, empty: T) {
   const held = useDraftStore((state) => state.drafts[key]) as T | undefined
   const put = useDraftStore((state) => state.put)
   const drop = useDraftStore((state) => state.drop)
-  const draft = held ?? empty
+  const draft = useSeeded(`draft:${key}`, held) ?? empty
 
   return [
     draft,

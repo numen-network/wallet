@@ -296,7 +296,7 @@ function Keys({ account, signers, tabs, onClose }: ValidatorModalProps & { tabs:
     if (!pasted) return call.refuse('Paste the keys the node answered with')
     if (!proven) return call.refuse('Paste the proof the node answered with')
 
-    return call.run(submit({ kind: 'setKeys', keys, proof }, call.password).then(drop))
+    return call.run(submit({ kind: 'setKeys', keys, proof }, call.password), { sent: drop })
   }
 
   return (

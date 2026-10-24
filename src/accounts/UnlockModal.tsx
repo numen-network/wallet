@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment } from 'react'
 import {
   lockAfter,
   releaseOf,
@@ -18,6 +18,7 @@ import { cn } from '@/lib/cn'
 import { Empty } from '@/components/ui/empty'
 import { Item, ItemGroup, ItemSeparator } from '@/components/ui/item'
 import { LEDE } from '@/ui/Modal'
+import { useField } from '@/ui/reopen'
 import { AddressField } from './AddressField'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import type { Account } from './types'
@@ -55,7 +56,7 @@ export function UnlockModal({
   signers: Account[]
   onClose: () => void
 }) {
-  const [target, setTarget] = useState(account.address)
+  const [target, setTarget] = useField('target', account.address)
   const own = target === account.address
   const symbol = useSymbol()
   const { data: tracks } = useTracks()

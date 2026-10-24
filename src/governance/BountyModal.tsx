@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { AmountField } from '@/accounts/AmountField'
 import { CallModal, useCall } from '@/accounts/Authorize'
 import type { Bounty, ChildBounty } from '@/chain/bounties'
@@ -8,6 +7,7 @@ import { resolveAddress } from '@/lib/address'
 import { amountOrZero, amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { LEDE } from '@/ui/Modal'
 import { Field } from '@/ui/Field'
+import { useField } from '@/ui/reopen'
 import { Input } from '@/components/ui/input'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { AddressField } from '@/accounts/AddressField'
@@ -89,12 +89,12 @@ export function BountyModal({
   const target = 'child' in job ? job.child : job.bounty
   const bounty = 'child' in job ? job.child.parent : job.bounty.index
 
-  const [address, setAddress] = useState(target.curator ?? accounts[0].address)
-  const [beneficiary, setBeneficiary] = useState('')
-  const [amount, setAmount] = useState('')
-  const [description, setDescription] = useState('')
-  const [curator, setCurator] = useState('')
-  const [fee, setFee] = useState('')
+  const [address, setAddress] = useField('address', target.curator ?? accounts[0].address)
+  const [beneficiary, setBeneficiary] = useField('beneficiary', '')
+  const [amount, setAmount] = useField('amount', '')
+  const [description, setDescription] = useField('description', '')
+  const [curator, setCurator] = useField('curator', '')
+  const [fee, setFee] = useField('fee', '')
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
@@ -229,9 +229,9 @@ export function ProposeBountyModal({
   accounts: Voters
   onClose: () => void
 }) {
-  const [address, setAddress] = useState(accounts[0].address)
-  const [description, setDescription] = useState('')
-  const [amount, setAmount] = useState('')
+  const [address, setAddress] = useField('address', accounts[0].address)
+  const [description, setDescription] = useField('description', '')
+  const [amount, setAmount] = useField('amount', '')
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)

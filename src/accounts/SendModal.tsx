@@ -9,6 +9,7 @@ import { ModalFrame } from '@/ui/Modal'
 import { Field as Choice, FieldError, FieldLabel } from '@/components/ui/field'
 import { useDraft } from '@/ui/draft'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
+import { useField } from '@/ui/reopen'
 import { AddressField } from './AddressField'
 import { AmountField } from './AmountField'
 import { CallPage, SignerField, useCall, useSigning } from './Authorize'
@@ -83,9 +84,9 @@ function SendOne({
   onClose,
 }: SendModalProps & { tabs: ReactNode }) {
   const symbol = useSymbol()
-  const [to, setTo] = useState('')
-  const [amount, setAmount] = useState('')
-  const [everything, setEverything] = useState(false)
+  const [to, setTo] = useField('to', '')
+  const [amount, setAmount] = useField('amount', '')
+  const [everything, setEverything] = useField('everything', false)
   const everythingId = useId()
   const call = useCall(onClose)
   const [toError, setToError] = useState('')
@@ -143,7 +144,7 @@ function SendOne({
 
     if (!operation) return false
 
-    return call.run(submit(operation, call.password), 'Transfer sent')
+    return call.run(submit(operation, call.password))
   }
 
   return (

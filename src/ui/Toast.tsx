@@ -13,10 +13,18 @@ export function toast(text: string): void {
   sonner(text)
 }
 
-/** Something went wrong, so it stays long enough to read twice. */
+/** Something went wrong, so it stays until somebody has read it and clicks it away. */
 export function toastProblem(text: string): void {
-  sonner.error(text, { duration: 8_000 })
+  const id = `problem-${(problems += 1)}`
+  sonner.error(
+    <button type="button" className={PRESS} onClick={() => sonner.dismiss(id)}>
+      {text}
+    </button>,
+    { id, duration: Infinity },
+  )
 }
+
+let problems = 0
 
 /**
  * A call on its way, named so that two of them in the air stay apart. It sits
@@ -33,10 +41,29 @@ export function toastWorking(key: string, what: string, stage: string): void {
   })
 }
 
+/**
+ * Calls that went wrong, in the corner the walk was in. It stays until clicked,
+ * since what failed has to be read before it can be put right.
+ */
+export function toastFailed(key: string, what: string, why: string, onOpen: () => void): void {
+  sonner.error(
+    <button type="button" className={PRESS} onClick={onOpen}>
+      <span className="block">{what}</span>
+      <span className="block text-[11.5px] font-medium opacity-85">{why}</span>
+    </button>,
+    // The walk's stage would otherwise linger underneath, since an update keeps
+    // whatever it does not replace
+    { id: key, position: 'top-right', duration: Infinity, description: null },
+  )
+}
+
 /** The call is over, whichever way it went. */
 export function toastSettled(key: string): void {
   sonner.dismiss(key)
 }
+
+/** A notice that answers a click covers the whole of it. */
+const PRESS = 'w-full cursor-pointer px-4 py-2.5 text-left'
 
 /**
  * Shape only. Colour belongs to the kinds below, since two utilities setting
@@ -52,7 +79,7 @@ export function toastSettled(key: string): void {
  * keeps it clear of both edges.
  */
 const TOAST =
-  'flex w-fit max-w-[calc(100vw-2rem)] inset-x-0 mx-auto items-center gap-2 rounded-md px-4 py-2.5 text-[13.5px] font-semibold shadow-lift'
+  'flex w-fit max-w-[calc(100vw-2rem)] inset-x-0 mx-auto items-center gap-2 rounded-md text-[13.5px] font-semibold shadow-lift'
 
 export function ToastHost({ header }: { header: HTMLElement | null }) {
   // Clear of the header, which is where a working notice would otherwise land
@@ -68,7 +95,8 @@ export function ToastHost({ header }: { header: HTMLElement | null }) {
       // On a phone Sonner keeps the list as wide as the screen, so a side
       // offset only pushes it partly off screen
       mobileOffset={{ top, left: 0, right: 0 }}
-      icons={{ loading: <Spinner className="mt-[3px] size-3.5 text-primary" /> }}
+      // An error notice is all button, so an icon would sit outside what takes the click
+      icons={{ loading: <Spinner className="mt-[3px] size-3.5 text-primary" />, error: null }}
       // Its own styles are dropped rather than overridden, so nothing depends
       // on which stylesheet the browser happened to read last
       toastOptions={{
@@ -82,13 +110,14 @@ export function ToastHost({ header }: { header: HTMLElement | null }) {
           // What the call is stays put in bold, what it is doing changes under
           // it, so the notice does not rewrite itself on every stage
           description: 'text-[11.5px] font-medium text-muted-foreground',
-          default: 'bg-foreground text-background',
-          error: 'bg-destructive text-destructive-foreground',
+          default: 'bg-foreground px-4 py-2.5 text-background',
+          // Its padding belongs to the button inside, so the whole of it takes a click
+          error: 'min-w-[188px] bg-destructive text-destructive-foreground',
           // Still going, so it reads as part of the page rather than a verdict.
           // A width of its own keeps the box still while the words underneath
           // it change length
           loading:
-            'min-w-[188px] items-start gap-2.5 rounded-lg border border-border bg-card text-foreground',
+            'min-w-[188px] items-start gap-2.5 rounded-lg border border-border bg-card px-4 py-2.5 text-foreground',
         },
       }}
     />

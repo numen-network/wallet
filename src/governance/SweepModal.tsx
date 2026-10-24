@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { CallModal, useCall } from '@/accounts/Authorize'
 import { refundsSubmission, type NotedPreimage, type Settled, type Spend } from '@/chain/governance'
 import { useSymbol } from '@/chain/queries'
@@ -6,6 +5,7 @@ import { batched, type Operation } from '@/chain/types'
 import { formatAmount } from '@/lib/balance'
 import { plural } from '@/lib/plural'
 import { LEDE } from '@/ui/Modal'
+import { useField } from '@/ui/reopen'
 import { useVoter, VoterField, type Voters } from './Voter'
 
 /**
@@ -37,7 +37,7 @@ function Sweep({
   onClose: () => void
 }) {
   const symbol = useSymbol()
-  const [address, setAddress] = useState(accounts[0].address)
+  const [address, setAddress] = useField('address', accounts[0].address)
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)

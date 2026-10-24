@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import logo from '@/assets/logo.svg'
 import { usingMock } from '@/chain'
 import { EndpointModal } from '@/chain/EndpointModal'
-import { RefusalModal } from '@/chain/RefusalModal'
 import { useChain } from '@/chain/provider'
 import { useBalances, useFacts, useHead, useReach } from '@/chain/queries'
 import { quality, type Quality } from '@/chain/reach'
@@ -28,6 +27,7 @@ import {
   SignalZero,
 } from 'lucide-react'
 import { ConfirmModal, PromptModal } from '@/ui/PromptModal'
+import { FormScope, useDialog } from '@/ui/reopen'
 import { Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
@@ -38,6 +38,7 @@ import { AccountBoard } from '@/accounts/AccountBoard'
 import { AddAccountModal } from '@/accounts/AddAccountModal'
 import { FromJsonModal } from '@/accounts/FromJsonModal'
 import { ActivityView } from '@/accounts/ActivityView'
+import { JobsHost } from '@/accounts/Jobs'
 import { BackupModal } from '@/accounts/BackupModal'
 import { DelegateModal, UndelegateModal } from '@/accounts/DelegateModal'
 import { DeriveModal } from '@/accounts/DeriveModal'
@@ -245,7 +246,8 @@ function linkedDelegation(): Modal | null {
 export function App() {
   const { accounts, byAddress, groups, connectExtension } = useAccounts()
   const store = useAccountsStore()
-  const [modal, setModal] = useState<Modal | null>(linkedDelegation)
+  const dialog = useDialog<Modal>(linkedDelegation)
+  const { modal, close, open: setModal } = dialog
   const [view, setView] = useState<View>('accounts')
   const [header, setHeader] = useState<HTMLElement | null>(null)
 
@@ -272,7 +274,6 @@ export function App() {
   const targetGroup =
     modal && 'id' in modal ? store.layout.groups.find((group) => group.id === modal.id) : undefined
 
-  const close = () => setModal(null)
   const delegators = voters(accounts)
 
   // Taken off the address bar once read, so a reload does not ask again
@@ -412,246 +413,248 @@ export function App() {
 
       <Footer />
 
-      {modal?.kind === 'add' && (
-        <AddAccountModal connectExtension={connectExtension} onClose={close} />
-      )}
+      <FormScope key={dialog.scope.key} seed={dialog.scope.seed} reopen={dialog.scope.reopen}>
+        {modal?.kind === 'add' && (
+          <AddAccountModal connectExtension={connectExtension} onClose={close} />
+        )}
 
-      {modal?.kind === 'fromJson' && <FromJsonModal onClose={close} />}
+        {modal?.kind === 'fromJson' && <FromJsonModal onClose={close} />}
 
-      {modal?.kind === 'multisig' && <MultisigModal accounts={accounts} onClose={close} />}
+        {modal?.kind === 'multisig' && <MultisigModal accounts={accounts} onClose={close} />}
 
-      {modal?.kind === 'proxied' && <ProxiedModal accounts={accounts} onClose={close} />}
+        {modal?.kind === 'proxied' && <ProxiedModal accounts={accounts} onClose={close} />}
 
-      {modal?.kind === 'send' && selected && (
-        <SendModal
-          account={selected}
-          accounts={accounts}
-          balance={balances[selected.address]}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'send' && selected && (
+          <SendModal
+            account={selected}
+            accounts={accounts}
+            balance={balances[selected.address]}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
 
-      {modal?.kind === 'pending' && selected && (
-        <PendingModal
-          account={selected}
-          accounts={accounts}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'pending' && selected && (
+          <PendingModal
+            account={selected}
+            accounts={accounts}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'subs' && selected && (
-        <SubsModal
-          account={selected}
-          accounts={accounts}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'subs' && selected && (
+          <SubsModal
+            account={selected}
+            accounts={accounts}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'quitSub' && selected && (
-        <QuitSubModal account={selected} signers={signers} onClose={close} />
-      )}
+        {modal?.kind === 'quitSub' && selected && (
+          <QuitSubModal account={selected} signers={signers} onClose={close} />
+        )}
 
-      {modal?.kind === 'sign' && (
-        <SignModal accounts={accounts} initial={modal.address} onClose={close} />
-      )}
+        {modal?.kind === 'sign' && (
+          <SignModal accounts={accounts} initial={modal.address} onClose={close} />
+        )}
 
-      {modal?.kind === 'vesting' && selected && (
-        <VestingModal
-          account={selected}
-          accounts={accounts}
-          signers={signers}
-          balance={balances[selected.address]}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'vesting' && selected && (
+          <VestingModal
+            account={selected}
+            accounts={accounts}
+            signers={signers}
+            balance={balances[selected.address]}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'judge' && selected && (
-        <JudgeModal
-          account={selected}
-          accounts={accounts}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'judge' && selected && (
+          <JudgeModal
+            account={selected}
+            accounts={accounts}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'setFee' && selected && (
-        <SetFeeModal
-          account={selected}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'setFee' && selected && (
+          <SetFeeModal
+            account={selected}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'metaMaskSend' && selected?.evmAddress && (
-        <MetaMaskSendModal
-          source={selected.evmAddress}
-          accounts={accounts}
-          initial={modal.holding}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'metaMaskSend' && selected?.evmAddress && (
+          <MetaMaskSendModal
+            source={selected.evmAddress}
+            accounts={accounts}
+            initial={modal.holding}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'tokenBalances' && selected?.evmAddress && (
-        <TokenBalancesModal
-          account={selected}
-          source={selected.evmAddress}
-          onSend={(holding) =>
-            setModal({ kind: 'metaMaskSend', address: selected.address, holding })
-          }
-          onReceive={(token) => setModal({ kind: 'receive', address: selected.address, token })}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'tokenBalances' && selected?.evmAddress && (
+          <TokenBalancesModal
+            account={selected}
+            source={selected.evmAddress}
+            onSend={(holding) =>
+              setModal({ kind: 'metaMaskSend', address: selected.address, holding })
+            }
+            onReceive={(token) => setModal({ kind: 'receive', address: selected.address, token })}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'receive' && selected && (
-        <ReceiveModal account={selected} token={modal.token} onClose={close} />
-      )}
+        {modal?.kind === 'receive' && selected && (
+          <ReceiveModal account={selected} token={modal.token} onClose={close} />
+        )}
 
-      {modal?.kind === 'renameAccount' && selected && (
-        <PromptModal
-          title="Rename this account"
-          label="Name"
-          initial={selected.name}
-          submitLabel="Save"
-          onClose={close}
-          onSubmit={(name) => store.renameAccount(selected.address, name)}
-        />
-      )}
+        {modal?.kind === 'renameAccount' && selected && (
+          <PromptModal
+            title="Rename this account"
+            label="Name"
+            initial={selected.name}
+            submitLabel="Save"
+            onClose={close}
+            onSubmit={(name) => store.renameAccount(selected.address, name)}
+          />
+        )}
 
-      {modal?.kind === 'changePassword' && selected && (
-        <PasswordModal account={selected} onClose={close} />
-      )}
+        {modal?.kind === 'changePassword' && selected && (
+          <PasswordModal account={selected} onClose={close} />
+        )}
 
-      {modal?.kind === 'backup' && selected && (
-        <BackupModal account={selected} onClose={close} />
-      )}
+        {modal?.kind === 'backup' && selected && (
+          <BackupModal account={selected} onClose={close} />
+        )}
 
-      {modal?.kind === 'identity' && selected && (
-        <IdentityModal
-          account={selected}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'identity' && selected && (
+          <IdentityModal
+            account={selected}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'judgement' && selected && (
-        <JudgementModal
-          account={selected}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'judgement' && selected && (
+          <JudgementModal
+            account={selected}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'clearIdentity' && selected && (
-        <ClearIdentityModal
-          account={selected}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'clearIdentity' && selected && (
+          <ClearIdentityModal
+            account={selected}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'derive' && selected && (
-        <DeriveModal account={selected} onClose={close} />
-      )}
+        {modal?.kind === 'derive' && selected && (
+          <DeriveModal account={selected} onClose={close} />
+        )}
 
-      {modal?.kind === 'delegate' && delegators && (
-        <DelegateModal
-          delegators={delegators}
-          accounts={accounts}
-          balances={balances}
-          from={modal.address ?? delegators[0].address}
-          to={modal.to ?? ''}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'delegate' && delegators && (
+          <DelegateModal
+            delegators={delegators}
+            accounts={accounts}
+            balances={balances}
+            from={modal.address ?? delegators[0].address}
+            to={modal.to ?? ''}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'undelegate' && selected && (
-        <UndelegateModal
-          account={selected}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'undelegate' && selected && (
+          <UndelegateModal
+            account={selected}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'addProxy' && selected && (
-        <AddProxyModal
-          account={selected}
-          accounts={accounts}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'addProxy' && selected && (
+          <AddProxyModal
+            account={selected}
+            accounts={accounts}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'removeProxy' && selected && (
-        <RemoveProxyModal
-          account={selected}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'removeProxy' && selected && (
+          <RemoveProxyModal
+            account={selected}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'unlock' && selected && (
-        <UnlockModal
-          account={selected}
-          accounts={accounts}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'unlock' && selected && (
+          <UnlockModal
+            account={selected}
+            accounts={accounts}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'validator' && selected && (
-        <ValidatorModal
-          account={selected}
-          balance={balances[selected.address]}
-          signers={signers}
-          onClose={close}
-        />
-      )}
+        {modal?.kind === 'validator' && selected && (
+          <ValidatorModal
+            account={selected}
+            balance={balances[selected.address]}
+            signers={signers}
+            onClose={close}
+          />
+        )}
 
-      {modal?.kind === 'endpoint' && <EndpointModal onClose={close} />}
+        {modal?.kind === 'endpoint' && <EndpointModal onClose={close} />}
 
-      {modal?.kind === 'forget' && selected && (
-        <ForgetModal account={selected} onClose={close} />
-      )}
+        {modal?.kind === 'forget' && selected && (
+          <ForgetModal account={selected} onClose={close} />
+        )}
 
-      {modal?.kind === 'newGroup' && (
-        <PromptModal
-          title="New group"
-          label="Name"
-          submitLabel="Create"
-          onClose={close}
-          onSubmit={(name) => store.addGroup(name)}
-        />
-      )}
+        {modal?.kind === 'newGroup' && (
+          <PromptModal
+            title="New group"
+            label="Name"
+            submitLabel="Create"
+            onClose={close}
+            onSubmit={(name) => store.addGroup(name)}
+          />
+        )}
 
-      {modal?.kind === 'renameGroup' && targetGroup && (
-        <PromptModal
-          title="Rename group"
-          label="Name"
-          initial={targetGroup.name}
-          submitLabel="Save"
-          onClose={close}
-          onSubmit={(name) => store.renameGroup(targetGroup.id, name)}
-        />
-      )}
+        {modal?.kind === 'renameGroup' && targetGroup && (
+          <PromptModal
+            title="Rename group"
+            label="Name"
+            initial={targetGroup.name}
+            submitLabel="Save"
+            onClose={close}
+            onSubmit={(name) => store.renameGroup(targetGroup.id, name)}
+          />
+        )}
 
-      {modal?.kind === 'deleteGroup' && targetGroup && !isSystemGroup(targetGroup) && (
-        <ConfirmModal
-          title="Delete group"
-          submitLabel="Delete"
-          onClose={close}
-          onConfirm={() => deleteGroup(targetGroup.id)}
-        >
-          {plural(targetGroup.accounts.length, 'account')} will move to{' '}
-          {store.layout.groups.find((group) => group.id === UNGROUPED_ID)?.name}.
-        </ConfirmModal>
-      )}
+        {modal?.kind === 'deleteGroup' && targetGroup && !isSystemGroup(targetGroup) && (
+          <ConfirmModal
+            title="Delete group"
+            submitLabel="Delete"
+            onClose={close}
+            onConfirm={() => deleteGroup(targetGroup.id)}
+          >
+            {plural(targetGroup.accounts.length, 'account')} will move to{' '}
+            {store.layout.groups.find((group) => group.id === UNGROUPED_ID)?.name}.
+          </ConfirmModal>
+        )}
+      </FormScope>
 
-      <RefusalModal />
+      <JobsHost accounts={accounts} />
       <ToastHost header={header} />
     </Tabs>
   )

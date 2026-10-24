@@ -31,8 +31,7 @@ import { Facts, type Fact } from '@/ui/Facts'
 import { Trash2 } from 'lucide-react'
 import { FieldError, NOTE } from '@/components/ui/field'
 import { Item, ItemActions, ItemContent, ItemGroup } from '@/components/ui/item'
-import { toast } from '@/ui/Toast'
-import { CallPage, SignerField, useSigning } from './Authorize'
+import { CallPage, SignerField, useLaunch, useSigning } from './Authorize'
 import type { IdentityFormProps } from './IdentityModal'
 import { IdentityLine } from './IdentityLine'
 
@@ -78,6 +77,7 @@ export function VerifyIdentity({
   const { data: facts } = useFacts()
   const registration = standing?.own ?? null
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
+  const launch = useLaunch()
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState<Provider | 'signing' | null>(null)
   // A channel that will not prove answers in its own row, the signature
@@ -222,9 +222,7 @@ export function VerifyIdentity({
     setError('')
     setBusy('signing')
     try {
-      await submit(operation, password)
-      toast('Identity sent')
-      sent()
+      await launch([submit(operation, password)], { sent })
       onClose()
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : 'The identity was refused')

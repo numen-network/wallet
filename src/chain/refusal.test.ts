@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ChainError, refusalMessage, ShownError } from './refusal'
+import { ChainError, refusalMessage } from './refusal'
 
 const invalid = (reason: string) => ({ type: 'Invalid', value: { type: reason } })
 const unknown = (reason: string) => ({ type: 'Unknown', value: { type: reason } })
@@ -65,15 +65,6 @@ describe('ChainError', () => {
 
     expect(error.message).toBe('This account cannot pay the fee')
     expect(error.detail).toBe(raw)
-    expect(error).toBeInstanceOf(Error)
-  })
-})
-
-describe('ShownError', () => {
-  it('carries no message, so a form under the dialog prints nothing', () => {
-    const error = new ShownError()
-
-    expect(error.message).toBe('')
     expect(error).toBeInstanceOf(Error)
   })
 })

@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react'
+import { Fragment, useId } from 'react'
 import { AmountField } from '@/accounts/AmountField'
 import { CallModal, useCall } from '@/accounts/Authorize'
 import { ConvictionField } from '@/accounts/ConvictionField'
@@ -19,6 +19,7 @@ import { Field as Row, FieldLabel, FieldLegend, FieldSet } from '@/components/ui
 import { Check, X, Minus } from 'lucide-react'
 import { LEDE } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
+import { useField } from '@/ui/reopen'
 import { useVoter, VoterField, type Voters } from './Voter'
 
 
@@ -46,11 +47,11 @@ interface VoteProps {
 export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps) {
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
-  const [address, setAddress] = useState(accounts[0].address)
-  const [side, setSide] = useState<Side>('aye')
+  const [address, setAddress] = useField('address', accounts[0].address)
+  const [side, setSide] = useField<Side>('side', 'aye')
   const sideId = useId()
-  const [conviction, setConviction] = useState<Conviction>('Locked1x')
-  const [amount, setAmount] = useState('')
+  const [conviction, setConviction] = useField<Conviction>('conviction', 'Locked1x')
+  const [amount, setAmount] = useField('amount', '')
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
@@ -130,7 +131,7 @@ export function RemoveVoteModal({
   accounts: Voters
   onClose: () => void
 }) {
-  const [address, setAddress] = useState(accounts[0].address)
+  const [address, setAddress] = useField('address', accounts[0].address)
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)
@@ -207,10 +208,10 @@ export function VoteManyModal({
 }) {
   const symbol = useSymbol()
   const { data: tracks } = useTracks()
-  const [address, setAddress] = useState(accounts[0].address)
-  const [conviction, setConviction] = useState<Conviction>('Locked1x')
-  const [amount, setAmount] = useState('')
-  const [sides, setSides] = useState<Record<number, Side>>({})
+  const [address, setAddress] = useField('address', accounts[0].address)
+  const [conviction, setConviction] = useField<Conviction>('conviction', 'Locked1x')
+  const [amount, setAmount] = useField('amount', '')
+  const [sides, setSides] = useField<Record<number, Side>>('sides', {})
   const call = useCall(onClose)
 
   const voter = useVoter(accounts, address)

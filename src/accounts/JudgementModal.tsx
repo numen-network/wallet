@@ -1,10 +1,10 @@
-import { useState } from 'react'
 import type { Operation } from '@/chain/types'
 import { useAskableRegistrars, useStanding } from '@/chain/queries'
 import { CHANNELS, isChecked, LABELS, pendingWith } from '@/chain/identity'
 import { cn } from '@/lib/cn'
 import { NOTE } from '@/components/ui/field'
 import { LEDE } from '@/ui/Modal'
+import { useField } from '@/ui/reopen'
 import { CallModal, SignerField, useCall, useSigning } from './Authorize'
 import { RegistrarField } from './RegistrarField'
 import type { Account } from './types'
@@ -27,7 +27,7 @@ export function JudgementModal({
   const registration = standing?.own ?? null
   const askable = useAskableRegistrars()
   const { signer, bench, choose, wrap, submit, needsPassword } = useSigning(account, signers)
-  const [chosen, setChosen] = useState<number | null>(null)
+  const [chosen, setChosen] = useField<number | null>('chosen', null)
   const call = useCall(onClose)
 
   const pending = pendingWith(registration ?? null)
