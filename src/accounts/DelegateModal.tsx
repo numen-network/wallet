@@ -1,6 +1,14 @@
 import { useId, type ReactNode } from 'react'
-import { useFeesEstimate, useSplit, useSymbol, useTracks, useVotingFor } from '@/chain/queries'
-import { batched, totalOf, type AccountBalance, type Conviction, type Operation } from '@/chain/types'
+import { useFees, useSplits, useSymbol, useTracks, useVotingFor, type Charge } from '@/chain/queries'
+import {
+  batched,
+  totalOf,
+  type AccountBalance,
+  type Conviction,
+  type Delegation,
+  type Operation,
+  type TrackVoting,
+} from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { cn } from '@/lib/cn'
@@ -9,7 +17,7 @@ import { Field as Row, FieldLabel, FieldSet } from '@/components/ui/field'
 import { LEDE, ModalFrame } from '@/ui/Modal'
 import { useField } from '@/ui/reopen'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
-import { useVoter, VoterField, type Voters } from '@/governance/Voter'
+import { useVoter, VoterField, type Voter, type Voters } from '@/governance/Voter'
 import { AccountsList, TICK_BOX, TickHead } from './AccountsList'
 import { AddressField } from './AddressField'
 import { AmountField } from './AmountField'
@@ -106,28 +114,89 @@ interface PageProps extends DelegateProps {
   setTerms: (patch: Partial<Terms>) => void
 }
 
-const delegating = (tracks: number[], terms: Terms, target: string, planck: bigint) =>
-  batched(
-    tracks.map((track) => ({
-      kind: 'delegate' as const,
-      delegation: { track, to: target, conviction: terms.conviction, amount: planck },
-    })),
-  )
-
 const heldBy = (balances: Record<string, AccountBalance>, account: Account) => {
   const balance = balances[account.address]
   return balance ? totalOf(balance) : 0n
 }
 
+const same = (one: Delegation, other: Delegation) =>
+  one.to === other.to && one.conviction === other.conviction && one.amount === other.amount
+
 /**
- * The tracks a transaction at a time, as the chain splits their calls. Each
- * call on a track weighs as much as the most votes the pallet allows, so a few
- * fill a transaction. Undefined while the chain is still weighing them.
+ * The calls that bring one account to these terms, a group a track, from what
+ * it already has on each. A group runs in turn, so it has to land in one
+ * transaction. A delegation that already says the same is left alone, one that
+ * says something else is taken back first, since the chain refuses a second.
+ * Votes on referenda that are over are cleared off the record first. A
+ * referendum still counting a vote keeps the delegation off that track, since
+ * taking the vote back would change its tally.
  */
-function useTrackParts(tracks: number[], call: (track: number) => Operation) {
-  const { data } = useSplit(tracks.map(call))
+export function planOf(
+  tracks: number[],
+  terms: Pick<Terms, 'conviction'>,
+  to: string,
+  amount: bigint,
+  has: TrackVoting[],
+): Operation[][] {
+  const groups = tracks.map((track): Operation[] => {
+    const now = has.find((entry) => entry.track === track)
+    const wanted: Delegation = { track, to, conviction: terms.conviction, amount }
+    const delegate: Operation = { kind: 'delegate', delegation: wanted }
+
+    if (!now) return [delegate]
+    if (now.kind === 'delegating') {
+      return same(now.delegation, wanted) ? [] : [{ kind: 'undelegate', track }, delegate]
+    }
+    if (now.ongoing.length > 0) return []
+    return [...now.ended.map((poll): Operation => ({ kind: 'removeVote', track, poll })), delegate]
+  })
+  return groups.filter((group) => group.length > 0)
+}
+
+/**
+ * Each account's calls in transactions the chain takes. Undefined until what
+ * the accounts already have is read and their calls are weighed.
+ */
+function usePlans(accounts: Account[], plan: (account: Account, has: TrackVoting[]) => Operation[][]) {
+  const has = useVotingFor(accounts.map((account) => account.address))
+  const plans = has && accounts.map((account) => plan(account, has[account.address] ?? []))
+  const parts = useSplits(plans ?? [])
+  if (!plans || !parts) return undefined
+  return parts.map((split) => split.map(batched))
+}
+
+/** Who pays for each part, which is the signatory where one signs for the account. */
+function chargesOf(accounts: Account[], plans: Operation[][], voter: Voter): Charge[][] {
+  return plans.map((parts, at) => {
+    const account = accounts[at]!
+    return parts.map((part) =>
+      account === voter.account
+        ? { from: voter.signer.address, operation: voter.wrap(part) }
+        : { from: account.address, operation: part },
+    )
+  })
+}
+
+/**
+ * What each account can put behind a delegation. The chain takes the fee
+ * before the call runs, and the lock leaves nothing for the next part's fee,
+ * so an account paying its own keeps twice its fees back. Twice covers a fee
+ * that rises between the quote and the block. Undefined until they are priced.
+ */
+function useLockable(accounts: Account[], charges: Charge[][] | undefined, held: (account: Account) => bigint) {
+  const fees = useFees(charges?.flat() ?? [])
+  if (!charges || !fees) return undefined
   let at = 0
-  return data?.map((part) => tracks.slice(at, (at += part.length)))
+  return accounts.map((account, index) => {
+    const mine = charges[index]!
+    const priced = fees.slice(at, (at += mine.length))
+    const own = mine.reduce(
+      (sum, charge, place) => (charge.from === account.address ? sum + priced[place]! : sum),
+      0n,
+    )
+    const left = held(account) - 2n * own
+    return left > 0n ? left : 0n
+  })
 }
 
 /** The tracks the failed calls were on, which is all a retry has to send again. */
@@ -205,8 +274,9 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
   const [amount, setAmount] = useField('amount', '')
   const call = useCall(onClose)
   const held = heldBy(balances, voter.account)
-  const probe = (tracks: number[]) => delegating(tracks, terms, voter.account.address, held)
-  const parts = useTrackParts(terms.tracks, (track) => probe([track]))
+  const target = resolveAddress(terms.to) ?? voter.account.address
+  const planck = amountProblem(amount) ? held : parseAmount(amount)
+  const parts = usePlans([voter.account], (_, has) => planOf(terms.tracks, terms, target, planck, has))?.[0]
 
   const form = () => {
     const checked = checkTerms(terms, [voter.account])
@@ -214,12 +284,12 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
 
     const problem = amountProblem(amount)
     if (problem) return call.refuse(problem)
-    const planck = parseAmount(amount)
     if (planck > held) return call.refuse('Enter an amount within what this account holds')
     if (!parts) return false
+    if (parts.length === 0) return call.refuse('Nothing to send for the tracks picked')
 
     return call.run(
-      parts.map((part) => voter.submit(delegating(part, terms, checked.target, planck), call.password)),
+      parts.map((part) => voter.submit(part, call.password)),
       { again: (failed) => ({ terms: { ...terms, tracks: tracksOf(failed) } }) },
     )
   }
@@ -234,7 +304,7 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
-      operation={(parts ?? [terms.tracks]).map((part) => voter.wrap(probe(part)))}
+      operation={parts && parts.length > 0 ? parts.map(voter.wrap) : null}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}
@@ -253,9 +323,9 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
 }
 
 /**
- * Each account delegates all it holds under the one password, every signature
- * made at once and sent together, so one account the chain turns down holds up
- * none of the others.
+ * Each account delegates all it holds less its fees, under the one password,
+ * every signature made at once and sent together, so one account the chain
+ * turns down holds up none of the others.
  */
 function DelegateMany({ delegators, accounts, balances, from, onClose, tabs, terms, setTerms }: PageProps) {
   const [addresses, setAddresses] = useField('picked', () => [
@@ -267,18 +337,19 @@ function DelegateMany({ delegators, accounts, balances, from, onClose, tabs, ter
   const send = useSend()
   const call = useCall(onClose)
   const many = picked.length > 1
-  const held = heldBy(balances, voter.account)
-  const probe = (tracks: number[]) => delegating(tracks, terms, voter.account.address, held)
-  const parts = useTrackParts(terms.tracks, (track) => probe([track]))
-  const priced = (parts ?? [terms.tracks]).map((part) => voter.wrap(probe(part)))
-  const fee = useFeesEstimate(voter.signer.address, priced)
-  // The chain takes the fee before the call runs, and the lock leaves nothing for
-  // the next part's fee, so an account paying its own keeps twice its fees back
-  const lockable = (account: Account) => {
-    const own = account === voter.account && voter.signer !== account ? 0n : 2n * (fee ?? 0n)
-    const left = heldBy(balances, account) - own
-    return left > 0n ? left : 0n
-  }
+  const target = resolveAddress(terms.to) ?? voter.account.address
+  // Priced on all of it first, since what each can lock is what is left after its fees
+  const probe = usePlans(picked, (account, has) =>
+    planOf(terms.tracks, terms, target, heldBy(balances, account), has),
+  )
+  const lockable = useLockable(picked, probe && chargesOf(picked, probe, voter), (account) =>
+    heldBy(balances, account),
+  )
+  const plans = usePlans(picked, (account, has) => {
+    const amount = lockable?.[picked.indexOf(account)] ?? 0n
+    return amount > 0n ? planOf(terms.tracks, terms, target, amount, has) : []
+  })
+  const ready = lockable && plans
 
   // The lone pick may be a multisig or a proxied account, which signs through somebody
   const submitAs = (account: Account, operation: Operation) =>
@@ -286,17 +357,18 @@ function DelegateMany({ delegators, accounts, balances, from, onClose, tabs, ter
       ? voter.submit(operation, call.password)
       : send(account, operation, call.password)
 
+  const charges = ready && chargesOf(picked, ready, voter).flat()
+
   const form = () => {
     const checked = checkTerms(terms, picked)
     if ('problem' in checked) return call.refuse(checked.problem)
-    if (!parts) return false
+    if (!ready) return false
+    if (ready.every((parts) => parts.length === 0)) {
+      return call.refuse('Nothing to send for the tracks picked')
+    }
 
     return call.run(
-      picked.flatMap((account) =>
-        parts.map((part) =>
-          submitAs(account, delegating(part, terms, checked.target, lockable(account))),
-        ),
-      ),
+      ready.flatMap((parts, at) => parts.map((part) => submitAs(picked[at]!, part))),
       {
         again: (failed) => ({
           picked: [...new Set(failed.map(actorOf))],
@@ -311,13 +383,13 @@ function DelegateMany({ delegators, accounts, balances, from, onClose, tabs, ter
       title="Delegate votes"
       submitLabel="Sign and send"
       busy={call.busy}
-      disabled={(terms.tracks.length > 0 && !parts) || fee === undefined}
+      disabled={terms.tracks.length > 0 && !ready}
       aside={tabs}
       from={voter.signer.address}
       needsPassword={many ? picked.some(needsPassword) : voter.needsPassword}
-      times={picked.length}
       {...(many && { note: 'Unlocks each account for its signatures' })}
-      operation={priced}
+      operation={null}
+      {...(charges && charges.length > 0 && { charges })}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}
@@ -364,17 +436,17 @@ export function UndelegateModal({
   const call = useCall(onClose)
   const has = useVotingFor([account.address])?.[account.address]
   const delegated = has?.flatMap((entry) => (entry.kind === 'delegating' ? [entry.track] : []))
-  const ending = (tracks: number[]) =>
-    batched(tracks.map((track) => ({ kind: 'undelegate' as const, track })))
-  const taking = chosen.filter((track) => delegated?.includes(track))
-  const parts = useTrackParts(taking, (track) => ending([track]))
+  const ending = chosen
+    .filter((track) => delegated?.includes(track))
+    .map((track): Operation => ({ kind: 'undelegate', track }))
+  const parts = useSplits([ending.map((call) => [call])])?.[0]?.map(batched)
 
   const form = () => {
-    if (taking.length === 0) return call.refuse('Pick at least one track')
+    if (ending.length === 0) return call.refuse('Pick at least one track')
     if (!parts) return false
 
     return call.run(
-      parts.map((part) => submit(ending(part), call.password)),
+      parts.map((part) => submit(part, call.password)),
       { again: (failed) => ({ tracks: tracksOf(failed) }) },
     )
   }
@@ -384,10 +456,10 @@ export function UndelegateModal({
       title="Take a delegation back"
       submitLabel="Sign and send"
       busy={call.busy}
-      disabled={!delegated || delegated.length === 0 || (taking.length > 0 && !parts)}
+      disabled={!delegated || delegated.length === 0 || (ending.length > 0 && !parts)}
       from={signer.address}
       needsPassword={needsPassword}
-      operation={taking.length > 0 ? (parts ?? [taking]).map((part) => wrap(ending(part))) : null}
+      operation={parts && parts.length > 0 ? parts.map(wrap) : null}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}

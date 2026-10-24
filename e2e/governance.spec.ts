@@ -209,6 +209,33 @@ test('a vote lands', async ({ page }) => {
   await expect(page.getByText('Vote counted')).toBeVisible()
 })
 
+test('a delegation keeps off a track with a referendum still counting its vote', async ({ page }) => {
+  await createKey(page)
+  await governance(page)
+
+  // Referendum 1 runs on Medium spender
+  await referendum(page, 1).getByRole('button', { name: 'Vote' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Amount').fill('1000')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Vote counted')).toBeVisible()
+
+  await tab(page, 'Accounts')
+  const vault = page.locator('article').filter({ hasText: 'Vault' })
+  await vault.getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Delegate votes' }).click()
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
+  await dialog.getByRole('checkbox', { name: 'Medium spender' }).check()
+
+  await fillAddress(page, dialog, 'Delegate to', BENEFICIARY)
+  await dialog.getByPlaceholder('0.0').fill('100')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  // Only Small spender went out, so it is one delegation rather than a batch
+  await expect(page.getByText('Votes delegated')).toBeVisible()
+})
+
 /**
  * A multisig holds a balance and so holds a say, and the only thing standing
  * between it and a vote is somebody wrapping the call. The second picker is

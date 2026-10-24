@@ -1607,7 +1607,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       return (await build(operation)).getEstimatedFees(from)
     },
 
-    async split(calls: Operation[]): Promise<Operation[][]> {
+    async split(groups: Operation[][]): Promise<Operation[][]> {
       const { base_extrinsic: base, max_extrinsic: most } = (
         await api.constants.System.BlockWeights()
       ).per_class.normal
@@ -1627,7 +1627,7 @@ export function createPapiRepository(network: Network): ChainRepository {
         )
       }
 
-      return packed(calls, fits)
+      return (await packed(groups, (part) => fits(part.flat()))).map((part) => part.flat())
     },
 
     submit(

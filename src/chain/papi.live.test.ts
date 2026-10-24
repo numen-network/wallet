@@ -719,9 +719,25 @@ describe('governance', () => {
       delegation: { track, to: alice.address, conviction: 'Locked1x', amount: UNIT },
     }))
 
-    const parts = await repository.split(calls)
+    const parts = await repository.split(calls.map((call) => [call]))
     expect(parts.length).toBeGreaterThan(1)
     expect(parts.flat()).toEqual(calls)
+  })
+
+  it('keeps taking a delegation back and making it again in one transaction', async () => {
+    const tracks = (await repository.tracks()).map((track) => track.id)
+    const groups: Operation[][] = tracks.map((track) => [
+      { kind: 'undelegate', track },
+      { kind: 'delegate', delegation: { track, to: alice.address, conviction: 'Locked1x', amount: UNIT } },
+    ])
+
+    const parts = await repository.split(groups)
+    expect(parts.length).toBeGreaterThan(1)
+    for (const part of parts) {
+      expect(part.length % 2).toBe(0)
+      expect(groups.some((group) => part[0] === group[0])).toBe(true)
+    }
+    expect(parts.flat()).toEqual(groups.flat())
   })
 })
 
@@ -941,10 +957,12 @@ describe('delegation on every track', () => {
   it('lands each part the chain splits it into, both ways', { timeout: 300_000 }, async () => {
     const tracks = (await fresh.tracks()).map((track) => track.id)
     const delegating = await fresh.split(
-      tracks.map((track) => ({
-        kind: 'delegate',
-        delegation: { track, to: alice.address, conviction: 'Locked1x', amount: UNIT },
-      })),
+      tracks.map((track) => [
+        {
+          kind: 'delegate',
+          delegation: { track, to: alice.address, conviction: 'Locked1x', amount: UNIT },
+        },
+      ]),
     )
     expect(delegating.length).toBeGreaterThan(1)
     for (const part of delegating) await put(batched(part), ferdie)
@@ -956,7 +974,7 @@ describe('delegation on every track', () => {
       delegation: { to: alice.address, conviction: 'Locked1x', amount: UNIT },
     })
 
-    const ending = await fresh.split(tracks.map((track) => ({ kind: 'undelegate', track })))
+    const ending = await fresh.split(tracks.map((track) => [{ kind: 'undelegate', track }]))
     for (const part of ending) await put(batched(part), ferdie)
     expect(await fresh.votingFor(ferdie.address)).toEqual([])
   })

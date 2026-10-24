@@ -400,17 +400,23 @@ export function useReadKeys(hex: string) {
 }
 
 /**
- * The calls as the chain takes them, a transaction a part. Weight follows the
- * call and not its arguments, so it holds until the runtime changes.
+ * Each list of call groups as the chain takes it, a transaction a part. Weight
+ * follows the call and not its arguments, so it holds until the runtime
+ * changes. Undefined until every list is weighed.
  */
-export function useSplit(calls: Operation[]) {
+export function useSplits(lists: Operation[][][]) {
   const { repository, network } = useChain()
 
-  return useQuery({
-    queryKey: ['split', network.id, JSON.stringify(calls, replaceBigInt)],
-    queryFn: () => repository.split(calls),
-    enabled: calls.length > 0,
-    staleTime: Infinity,
+  return useQueries({
+    queries: lists.map((groups) => ({
+      queryKey: ['split', network.id, JSON.stringify(groups, replaceBigInt)],
+      queryFn: () => repository.split(groups),
+      staleTime: Infinity,
+    })),
+    combine: (results) =>
+      results.every((result) => result.data !== undefined)
+        ? results.map((result) => result.data!)
+        : undefined,
   })
 }
 
@@ -426,19 +432,30 @@ export function useFeeEstimate(from: string | undefined, operation: Operation | 
   })
 }
 
-/** What a run of calls from one account comes to, once every one is priced. */
-export function useFeesEstimate(from: string, operations: Operation[]) {
+/** Who pays for what, which a dialog signing as several accounts has more than one of. */
+export interface Charge {
+  from: string
+  operation: Operation
+}
+
+/** What each charge comes to, in the same order. Undefined until every one is priced. */
+export function useFees(charges: Charge[]) {
   const { repository, network } = useChain()
 
   return useQueries({
-    queries: operations.map((operation) => ({
+    queries: charges.map(({ from, operation }) => ({
       queryKey: ['fee', network.id, from, JSON.stringify(operation, replaceBigInt)],
       queryFn: () => repository.estimateFee(from, operation),
       staleTime: 30_000,
     })),
     combine: (results) =>
       results.every((result) => result.data !== undefined)
-        ? results.reduce((sum, result) => sum + result.data!, 0n)
+        ? results.map((result) => result.data!)
         : undefined,
   })
+}
+
+/** What a run of calls comes to, once every one is priced. */
+export function useFeesEstimate(charges: Charge[]) {
+  return useFees(charges)?.reduce((sum, fee) => sum + fee, 0n)
 }

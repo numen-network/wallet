@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useChain } from '@/chain/provider'
-import { CACHES, useFeesEstimate, useRefresh, useSymbol, type Cache } from '@/chain/queries'
+import { CACHES, useFeesEstimate, useRefresh, useSymbol, type Cache, type Charge } from '@/chain/queries'
 import { ChainError } from '@/chain/refusal'
 import type { Operation } from '@/chain/types'
 import { cn } from '@/lib/cn'
@@ -62,8 +62,11 @@ interface CallProps {
   /** What this particular password is about to unlock. */
   note?: string
   error: string
-  /** How many accounts make the call, each paying a fee of its own. */
-  times?: number
+  /**
+   * What each of several accounts pays, for a dialog that signs as all of
+   * them. The fee is the lot, in place of `from` and `operation`.
+   */
+  charges?: Charge[]
 }
 
 /**
@@ -88,10 +91,13 @@ export function CallPage({
   onPassword,
   note = 'Unlocks this account for one signature',
   error,
-  times = 1,
+  charges,
   children,
   ...page
 }: CallProps & Omit<ModalPageProps, 'footer' | 'fee'>) {
+  const priced =
+    charges ?? (operation && [operation].flat().map((call) => ({ from, operation: call })))
+
   return (
     <ModalPage
       {...page}
@@ -101,7 +107,7 @@ export function CallPage({
           <FieldError>{error}</FieldError>
         </>
       }
-      fee={operation && <FeeLine from={from} operations={[operation].flat()} times={times} />}
+      fee={priced && <FeeLine charges={priced} />}
     >
       {children}
     </ModalPage>
@@ -109,15 +115,16 @@ export function CallPage({
 }
 
 /** What the chain would charge for this call, as the form has it so far. */
-function FeeLine({ from, operations, times }: { from: string; operations: Operation[]; times: number }) {
+function FeeLine({ charges }: { charges: Charge[] }) {
   const symbol = useSymbol()
-  const fee = useFeesEstimate(from, operations)
+  const fee = useFeesEstimate(charges)
+  const accounts = new Set(charges.map((charge) => charge.from)).size
 
   return (
     <p className="text-[11.5px] text-muted-foreground">
       {fee === undefined
         ? 'Estimating fee…'
-        : `Estimated fee ${formatAmount(fee, { precision: 6 })} ${symbol}${times > 1 ? ` × ${times}` : ''}`}
+        : `Estimated fee ${formatAmount(fee, { precision: 6 })} ${symbol}${accounts > 1 ? ` for ${accounts} accounts` : ''}`}
     </p>
   )
 }

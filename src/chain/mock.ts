@@ -1594,11 +1594,10 @@ export function createMockRepository(): ChainRepository {
       return FEE
     },
 
-    async split(calls: Operation[]): Promise<Operation[][]> {
-      return packed(
-        calls,
-        (part) => part.reduce((sum, call) => sum + (WEIGHT[call.kind] ?? 0), 0) <= MAX_EXTRINSIC,
-      )
+    async split(groups: Operation[][]): Promise<Operation[][]> {
+      const weight = (calls: Operation[]) => calls.reduce((sum, call) => sum + (WEIGHT[call.kind] ?? 0), 0)
+      const parts = await packed(groups, (part) => weight(part.flat()) <= MAX_EXTRINSIC)
+      return parts.map((part) => part.flat())
     },
 
     async submit(

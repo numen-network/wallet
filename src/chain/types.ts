@@ -339,16 +339,16 @@ export function batched(calls: Operation[]): Operation {
   return first && calls.length === 1 ? first : { kind: 'batch', calls }
 }
 
-/** The calls in order, in as few parts as `fits` lets through. A lone call always stands. */
-export async function packed(
-  calls: Operation[],
-  fits: (part: Operation[]) => boolean | Promise<boolean>,
-): Promise<Operation[][]> {
-  const parts: Operation[][] = []
-  for (const call of calls) {
+/** The items in order, in as few parts as `fits` lets through. A lone item always stands. */
+export async function packed<T>(
+  items: T[],
+  fits: (part: T[]) => boolean | Promise<boolean>,
+): Promise<T[][]> {
+  const parts: T[][] = []
+  for (const item of items) {
     const last = parts.at(-1)
-    if (last && (await fits([...last, call]))) last.push(call)
-    else parts.push([call])
+    if (last && (await fits([...last, item]))) last.push(item)
+    else parts.push([item])
   }
   return parts
 }
@@ -485,10 +485,13 @@ export interface ChainRepository {
   subscribeBalance(address: string, onBalance: (balance: AccountBalance) => void): Unsubscribe
   estimateFee(from: string, operation: Operation): Promise<bigint>
   /**
-   * The calls in as few transactions as the chain takes, in order. A batch
+   * Packs the groups of calls into as few transactions as the chain takes, in
+   * order and each group whole, and returns each transaction's calls. A batch
    * heavier than one transaction may be is refused before it reaches a block.
+   * Transactions sent together land in nonce order, not the order they were
+   * built in, so calls that must run in turn share a group.
    */
-  split(calls: Operation[]): Promise<Operation[][]>
+  split(groups: Operation[][]): Promise<Operation[][]>
   /** Who may already act for this account, which is chain state, not a guess. */
   proxies(address: string): Promise<Proxy[]>
   /** Who the chain says this address is, its own record and the parent it hangs off. */

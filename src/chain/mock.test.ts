@@ -74,3 +74,28 @@ describe('delegations on the mock chain', () => {
     expect(await chain.votingFor(A)).toEqual([])
   })
 })
+
+describe('votes in the way of a delegation on the mock chain', () => {
+  const BOB = 'nu5sKtuEZG5GH9emAghk9MTdVPBJbieEsSD8Z6UKkA45afKcv'
+  const bob = { address: BOB } as WalletAccount
+
+  it('clears votes on referenda that are over and then delegates', async () => {
+    const chain = createMockRepository()
+    // Bob's seeded votes on track 31 are on referenda 9 and 10, both over
+    expect(await chain.votingFor(BOB)).toContainEqual({ track: 31, kind: 'voting', ongoing: [], ended: [9, 10] })
+
+    const delegation = { track: 31, to: A, conviction: 'Locked1x' as const, amount: UNIT }
+    const sent = chain.submit(bob, {
+      kind: 'batch',
+      calls: [
+        { kind: 'removeVote', track: 31, poll: 9 },
+        { kind: 'removeVote', track: 31, poll: 10 },
+        { kind: 'delegate', delegation },
+      ],
+    })
+    await vi.advanceTimersByTimeAsync(750)
+    await sent
+
+    expect(await chain.votingFor(BOB)).toContainEqual({ track: 31, kind: 'delegating', delegation })
+  })
+})

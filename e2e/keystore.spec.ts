@@ -402,6 +402,21 @@ test('delegating votes on a track, then taking them back', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Votes delegated')).toBeVisible()
 
+  // The same delegation again has nothing to send
+  await menu('Delegate votes')
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
+  await fillAddress(page, dialog, 'Delegate to', DESTINATION)
+  await dialog.getByPlaceholder('0.0').fill('100')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(dialog.getByText('Nothing to send for the tracks picked')).toBeVisible()
+
+  // A different amount takes the old one back and delegates again, in one go
+  await dialog.getByPlaceholder('0.0').fill('200')
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText('All of it went through')).toBeVisible()
+
   await menu('Take a delegation back')
   await expect(dialog.getByRole('checkbox', { name: 'Medium spender' })).toBeDisabled()
   await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
@@ -753,8 +768,8 @@ test('a ticked group delegates from each of its accounts', async ({ page }) => {
   await tracks.getByRole('button', { name: 'Select all' }).click()
 
   // Nine track calls outweigh one transaction, so each account sends two, and
-  // the fee is what both of them cost one account
-  await expect(dialog.getByText(/Estimated fee .* × 2/)).toBeVisible()
+  // the fee is all four of them
+  await expect(dialog.getByText(/Estimated fee .* for 2 accounts/)).toBeVisible()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(dialog).toHaveCount(0)

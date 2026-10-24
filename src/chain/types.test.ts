@@ -107,7 +107,19 @@ describe('packing calls into transactions', () => {
   // 1.300 s a transaction may take, six weigh 1.385 s
   it('puts five track calls in a transaction against the mock chain', async () => {
     const calls = [0, 1, 2, 3, 4, 5, 6, 7, 8].map(undelegate)
-    const parts = await createMockRepository().split(calls)
+    const parts = await createMockRepository().split(calls.map((call) => [call]))
     expect(parts.map((part) => part.length)).toEqual([5, 4])
+  })
+
+  // Sent together, transactions land in nonce order rather than build order,
+  // so a call that has to follow another cannot be left in the next one
+  it('keeps a group of calls in one transaction', async () => {
+    const pair = (track: number): Operation[] => [
+      undelegate(track),
+      { kind: 'delegate', delegation: { track, to: 'nu', conviction: 'Locked1x', amount: 1n } },
+    ]
+    const parts = await createMockRepository().split([0, 1, 2, 3, 4].map(pair))
+    // Two pairs weigh 0.922 s, a third would take it past 1.3 s
+    expect(parts).toEqual([[...pair(0), ...pair(1)], [...pair(2), ...pair(3)], pair(4)])
   })
 })
