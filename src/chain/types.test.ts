@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { UNIT } from './config'
-import { lockedOf, totalOf, transferableOf } from './types'
+import { createMockRepository } from './mock'
+import { lockedOf, packed, totalOf, transferableOf, type Operation } from './types'
 
 /**
  * The two computed figures, worked out the way the explorer reads them back.
@@ -85,5 +86,28 @@ describe('the whole of a balance', () => {
       transferable: 0n,
     }
     expect(totalOf(balance)).toBe(100n * UNIT)
+  })
+})
+
+const undelegate = (track: number): Operation => ({ kind: 'undelegate', track })
+
+describe('packing calls into transactions', () => {
+  it('fills each part before starting the next, in order', async () => {
+    const calls = [0, 1, 2, 3, 4].map(undelegate)
+    const parts = await packed(calls, (part) => part.length <= 2)
+    expect(parts).toEqual([[calls[0], calls[1]], [calls[2], calls[3]], [calls[4]]])
+  })
+
+  it('lets a lone call stand even when it fits nowhere', async () => {
+    const calls = [0, 1].map(undelegate)
+    expect(await packed(calls, () => false)).toEqual([[calls[0]], [calls[1]]])
+  })
+
+  // Measured on testnet and mainnet. Five delegations weigh 1.154 s of the
+  // 1.300 s a transaction may take, six weigh 1.385 s
+  it('puts five track calls in a transaction against the mock chain', async () => {
+    const calls = [0, 1, 2, 3, 4, 5, 6, 7, 8].map(undelegate)
+    const parts = await createMockRepository().split(calls)
+    expect(parts.map((part) => part.length)).toEqual([5, 4])
   })
 })

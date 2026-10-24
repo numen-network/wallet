@@ -30,6 +30,7 @@ import { dumpBytes, metadataDump, remarkBytes, type Motion } from './governance'
 import { depositFor, EMPTY_IDENTITY, isQualified, labelOf } from './identity'
 import { createPapiRepository } from './papi'
 import {
+  batched,
   lockedOf,
   transferableOf,
   type AccountBalance,
@@ -701,6 +702,20 @@ describe('governance', () => {
       expect(await repository.estimateFee(alice.address, call)).toBeGreaterThan(0n)
     }
   })
+
+  // Each call weighs as much as the most votes the pallet allows, so nine of
+  // them outweigh what one transaction may carry
+  it('splits a delegation on every track across transactions the chain takes', async () => {
+    const tracks = (await repository.tracks()).map((track) => track.id)
+    const calls: Operation[] = tracks.map((track) => ({
+      kind: 'delegate',
+      delegation: { track, to: alice.address, conviction: 'Locked1x', amount: UNIT },
+    }))
+
+    const parts = await repository.split(calls)
+    expect(parts.length).toBeGreaterThan(1)
+    expect(parts.flat()).toEqual(calls)
+  })
 })
 
 /**
@@ -897,6 +912,38 @@ describe('what the chain hands back once there is something to read', () => {
     // Nobody asked the parent, and the list it signed is one shorter for it
     expect((await fresh.standingOf(dave.address)).sub).toBeNull()
     expect((await fresh.subsOf(alice.address)).list).toEqual([])
+  })
+})
+
+/**
+ * Every track in one go outweighs a transaction, so the chain takes it in parts.
+ * Ferdie does it because nobody else here votes as him, and a vote on a track
+ * would refuse the delegation.
+ */
+describe('delegation on every track', () => {
+  const fresh = createPapiRepository({ ...NETWORKS.local, rpc: RPC })
+  const put = sender(fresh)
+  const pair = new Keyring({ type: 'sr25519' }).addFromUri('//Ferdie')
+  const ferdie: WalletAccount = {
+    address: toNumenAddress(pair.address),
+    label: 'Ferdie',
+    source: 'keystore',
+    signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+  }
+
+  it('lands each part the chain splits it into, both ways', { timeout: 300_000 }, async () => {
+    const tracks = (await fresh.tracks()).map((track) => track.id)
+    const delegating = await fresh.split(
+      tracks.map((track) => ({
+        kind: 'delegate',
+        delegation: { track, to: alice.address, conviction: 'Locked1x', amount: UNIT },
+      })),
+    )
+    expect(delegating.length).toBeGreaterThan(1)
+    for (const part of delegating) await put(batched(part), ferdie)
+
+    const ending = await fresh.split(tracks.map((track) => ({ kind: 'undelegate', track })))
+    for (const part of ending) await put(batched(part), ferdie)
   })
 })
 

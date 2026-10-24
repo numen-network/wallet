@@ -1,7 +1,7 @@
 import { AddressField } from './AddressField'
-import { useId, useState } from 'react'
-import { useSymbol, useTracks } from '@/chain/queries'
-import { batched, totalOf, type AccountBalance, type Conviction } from '@/chain/types'
+import { useId, useRef, useState } from 'react'
+import { useSplit, useSymbol, useTracks } from '@/chain/queries'
+import { batched, totalOf, type AccountBalance, type Conviction, type Operation } from '@/chain/types'
 import { resolveAddress } from '@/lib/address'
 import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -68,6 +68,34 @@ export function TrackField({
 }
 
 /**
+ * The tracks a transaction at a time, as the chain splits their calls. Each
+ * call on a track weighs as much as the most votes the pallet allows, so a few
+ * fill a transaction. What each account has already sent is remembered, since
+ * the chain refuses a track twice and a retry has to send only the rest.
+ */
+function useTrackParts(tracks: number[], call: (track: number) => Operation) {
+  const { data } = useSplit(tracks.map(call))
+  const sent = useRef(new Map<string, number[]>()).current
+  let at = 0
+  const parts = data?.map((part) => tracks.slice(at, (at += part.length)))
+
+  return {
+    /** Undefined while the chain is still weighing them. */
+    parts,
+    async send(account: Account, submit: (tracks: number[]) => Promise<void>) {
+      if (!parts) throw new Error('The chain has not weighed these calls yet')
+      for (const part of parts) {
+        const done = sent.get(account.address) ?? []
+        const left = part.filter((track) => !done.includes(track))
+        if (left.length === 0) continue
+        await submit(left)
+        sent.set(account.address, [...done, ...left])
+      }
+    },
+  }
+}
+
+/**
  * Votes are delegated one track at a time, and the balance behind them stays
  * locked for as long as the conviction says after the delegation ends.
  */
@@ -94,13 +122,14 @@ export function DelegateModal({
 
   const held = balance ? totalOf(balance) : 0n
 
-  const delegating = (target: string, planck: bigint) =>
+  const delegating = (tracks: number[], target: string, planck: bigint) =>
     batched(
-      chosen.map((track) => ({
+      tracks.map((track) => ({
         kind: 'delegate' as const,
         delegation: { track, to: target, conviction, amount: planck },
       })),
     )
+  const parts = useTrackParts(chosen, (track) => delegating([track], account.address, held))
 
   const form = () => {
     const target = resolveAddress(to)
@@ -113,7 +142,10 @@ export function DelegateModal({
 
     if (chosen.length === 0) return call.refuse('Pick at least one track')
 
-    return call.run(submit(delegating(target, planck), call.password), 'Delegation sent')
+    return call.run(
+      parts.send(account, (part) => submit(delegating(part, target, planck), call.password)),
+      'Delegation sent',
+    )
   }
 
   return (
@@ -121,10 +153,13 @@ export function DelegateModal({
       title="Delegate votes"
       submitLabel="Sign and send"
       busy={call.busy}
+      disabled={chosen.length > 0 && !parts.parts}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={voter.signer.address}
       needsPassword={needsPassword}
-      operation={wrap(delegating(account.address, held))}
+      operation={(parts.parts ?? [chosen]).map((part) =>
+        wrap(delegating(part, account.address, held)),
+      )}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}
@@ -154,7 +189,7 @@ export function DelegateModal({
   )
 }
 
-/** Ends the delegation on one track. The lock outlives it by the conviction. */
+/** Ends the delegation on the tracks ticked. The lock outlives it by the conviction. */
 export function UndelegateModal({
   account,
   signers,
@@ -168,12 +203,14 @@ export function UndelegateModal({
   const [chosen, setChosen] = useState<number[]>([])
   const call = useCall(onClose)
 
-  const ending = batched(chosen.map((track) => ({ kind: 'undelegate' as const, track })))
+  const ending = (tracks: number[]) =>
+    batched(tracks.map((track) => ({ kind: 'undelegate' as const, track })))
+  const parts = useTrackParts(chosen, (track) => ending([track]))
 
   const form = () => {
     if (chosen.length === 0) return call.refuse('Pick at least one track')
 
-    return call.run(submit(ending, call.password))
+    return call.run(parts.send(account, (part) => submit(ending(part), call.password)))
   }
 
   return (
@@ -181,9 +218,10 @@ export function UndelegateModal({
       title="Take a delegation back"
       submitLabel="Sign and send"
       busy={call.busy}
+      disabled={chosen.length > 0 && !parts.parts}
       from={signer.address}
       needsPassword={needsPassword}
-      operation={wrap(ending)}
+      operation={(parts.parts ?? [chosen]).map((part) => wrap(ending(part)))}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}

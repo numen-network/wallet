@@ -70,6 +70,8 @@ import type { Bounty, BountyState, ChildBounty, ChildState } from './bounties'
 import type { SessionKeys, ValidatorRecord, ValidatorSet } from './validator'
 import type { Vesting } from './vesting'
 import {
+  batched,
+  packed,
   transferableOf,
   type AccountBalance,
   type ChainFacts,
@@ -1573,6 +1575,29 @@ export function createPapiRepository(network: Network): ChainRepository {
 
     async estimateFee(from: string, operation: Operation): Promise<bigint> {
       return (await build(operation)).getEstimatedFees(from)
+    },
+
+    async split(calls: Operation[]): Promise<Operation[][]> {
+      const { base_extrinsic: base, max_extrinsic: most } = (
+        await api.constants.System.BlockWeights()
+      ).per_class.normal
+      if (!most) throw new Error('This runtime sets no weight limit for a transaction')
+
+      // Asked of the chain whole, since a batch weighs more than its calls
+      const fits = async (part: Operation[]) => {
+        const tx = await build(batched(part))
+        const encoded = await tx.getEncodedData()
+        const { weight } = await api.apis.TransactionPaymentCallApi.query_call_info(
+          asCall(tx.decodedCall),
+          encoded.length,
+        )
+        return (
+          base.ref_time + weight.ref_time <= most.ref_time &&
+          base.proof_size + weight.proof_size <= most.proof_size
+        )
+      }
+
+      return packed(calls, fits)
     },
 
     submit(

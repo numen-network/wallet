@@ -44,6 +44,7 @@ import {
 } from './validator'
 import { lockedAt, stillLocked, type Vesting, type VestingSchedule } from './vesting'
 import {
+  packed,
   transferableOf,
   type AccountBalance,
   type ChainFacts,
@@ -113,6 +114,16 @@ function seedTokenBalance(token: string, holder: string, decimals: number): bigi
 }
 
 const FEE = 6_400_000_000_000_000n
+
+/**
+ * Milliseconds of block time, measured against the runtime with
+ * query_call_info, for the calls heavy enough to fill a transaction. Each one
+ * is weighed as if the account had voted the most the pallet allows.
+ */
+const WEIGHT: Partial<Record<Operation['kind'], number>> = { delegate: 231, undelegate: 230 }
+
+/** The most one transaction may weigh, from System.BlockWeights. */
+const MAX_EXTRINSIC = 1300
 
 /** Base plus the per byte rate on a metadata dump of the length below. */
 const PREIMAGE_DEPOSIT = 5n * UNIT + 214n * UNIT / 100n
@@ -1557,6 +1568,13 @@ export function createMockRepository(): ChainRepository {
 
     async estimateFee() {
       return FEE
+    },
+
+    async split(calls: Operation[]): Promise<Operation[][]> {
+      return packed(
+        calls,
+        (part) => part.reduce((sum, call) => sum + (WEIGHT[call.kind] ?? 0), 0) <= MAX_EXTRINSIC,
+      )
     },
 
     async submit(

@@ -323,6 +323,20 @@ export function batched(calls: Operation[]): Operation {
   return first && calls.length === 1 ? first : { kind: 'batch', calls }
 }
 
+/** The calls in order, in as few parts as `fits` lets through. A lone call always stands. */
+export async function packed(
+  calls: Operation[],
+  fits: (part: Operation[]) => boolean | Promise<boolean>,
+): Promise<Operation[][]> {
+  const parts: Operation[][] = []
+  for (const call of calls) {
+    const last = parts.at(-1)
+    if (last && (await fits([...last, call]))) last.push(call)
+    else parts.push([call])
+  }
+  return parts
+}
+
 /**
  * How far a submitted call has got. Finality is the only state that settles it,
  * the ones before are what a person watches while they wait.
@@ -454,6 +468,11 @@ export interface ChainRepository {
   subscribeHead(onHead: (head: ChainHead) => void): Unsubscribe
   subscribeBalance(address: string, onBalance: (balance: AccountBalance) => void): Unsubscribe
   estimateFee(from: string, operation: Operation): Promise<bigint>
+  /**
+   * The calls in as few transactions as the chain takes, in order. A batch
+   * heavier than one transaction may be is refused before it reaches a block.
+   */
+  split(calls: Operation[]): Promise<Operation[][]>
   /** Who may already act for this account, which is chain state, not a guess. */
   proxies(address: string): Promise<Proxy[]>
   /** Who the chain says this address is, its own record and the parent it hangs off. */

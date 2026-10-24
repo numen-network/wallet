@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useChain } from '@/chain/provider'
-import { CACHES, useFeeEstimate, useRefresh, useSymbol, type Cache } from '@/chain/queries'
+import { CACHES, useFeesEstimate, useRefresh, useSymbol, type Cache } from '@/chain/queries'
 import { useRefusalStore } from '@/chain/RefusalModal'
 import { ChainError, ShownError } from '@/chain/refusal'
 import type { Operation } from '@/chain/types'
@@ -53,8 +53,11 @@ interface CallProps {
   /** Whoever puts their name to it, which is who pays the fee. */
   from: string
   needsPassword: boolean
-  /** Null while the form has nothing worth quoting a fee on. */
-  operation: Operation | null
+  /**
+   * Null while the form has nothing worth quoting a fee on. Several where the
+   * chain takes it in more than one transaction, and the fee is all of them.
+   */
+  operation: Operation | Operation[] | null
   password: string
   onPassword: (password: string) => void
   /** What this particular password is about to unlock. */
@@ -96,7 +99,7 @@ export function CallPage({
           <FieldError>{error}</FieldError>
         </>
       }
-      fee={operation && <FeeLine from={from} operation={operation} />}
+      fee={operation && <FeeLine from={from} operations={[operation].flat()} />}
     >
       {children}
     </ModalPage>
@@ -104,9 +107,9 @@ export function CallPage({
 }
 
 /** What the chain would charge for this call, as the form has it so far. */
-function FeeLine({ from, operation }: { from: string; operation: Operation }) {
+function FeeLine({ from, operations }: { from: string; operations: Operation[] }) {
   const symbol = useSymbol()
-  const { data: fee } = useFeeEstimate(from, operation)
+  const fee = useFeesEstimate(from, operations)
 
   return (
     <p className="text-[11.5px] text-muted-foreground">

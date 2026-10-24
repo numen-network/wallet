@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useChain } from './provider'
 import { replaceBigInt } from '@/lib/json'
@@ -378,6 +378,21 @@ export function useReadKeys(hex: string) {
   })
 }
 
+/**
+ * The calls as the chain takes them, a transaction a part. Weight follows the
+ * call and not its arguments, so it holds until the runtime changes.
+ */
+export function useSplit(calls: Operation[]) {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['split', network.id, JSON.stringify(calls, replaceBigInt)],
+    queryFn: () => repository.split(calls),
+    enabled: calls.length > 0,
+    staleTime: Infinity,
+  })
+}
+
 /** What the chain would charge this account for that call, as filled in so far. */
 export function useFeeEstimate(from: string | undefined, operation: Operation | null) {
   const { repository, network } = useChain()
@@ -387,5 +402,22 @@ export function useFeeEstimate(from: string | undefined, operation: Operation | 
     queryFn: () => repository.estimateFee(from!, operation!),
     enabled: Boolean(from) && operation !== null,
     staleTime: 30_000,
+  })
+}
+
+/** What a run of calls from one account comes to, once every one is priced. */
+export function useFeesEstimate(from: string, operations: Operation[]) {
+  const { repository, network } = useChain()
+
+  return useQueries({
+    queries: operations.map((operation) => ({
+      queryKey: ['fee', network.id, from, JSON.stringify(operation, replaceBigInt)],
+      queryFn: () => repository.estimateFee(from, operation),
+      staleTime: 30_000,
+    })),
+    combine: (results) =>
+      results.every((result) => result.data !== undefined)
+        ? results.reduce((sum, result) => sum + result.data!, 0n)
+        : undefined,
   })
 }
