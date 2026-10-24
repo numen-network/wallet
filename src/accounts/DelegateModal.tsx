@@ -277,6 +277,11 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
   const target = resolveAddress(terms.to) ?? voter.account.address
   const planck = amountProblem(amount) ? held : parseAmount(amount)
   const parts = usePlans([voter.account], (_, has) => planOf(terms.tracks, terms, target, planck, has))?.[0]
+  const lockable = useLockable(
+    [voter.account],
+    parts && chargesOf([voter.account], [parts], voter),
+    () => held,
+  )?.[0]
 
   const form = () => {
     const checked = checkTerms(terms, [voter.account])
@@ -284,8 +289,8 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
 
     const problem = amountProblem(amount)
     if (problem) return call.refuse(problem)
-    if (planck > held) return call.refuse('Enter an amount within what this account holds')
-    if (!parts) return false
+    if (!parts || lockable === undefined) return false
+    if (planck > lockable) return call.refuse('Enter an amount that leaves room for the fees')
     if (parts.length === 0) return call.refuse('Nothing to send for the tracks picked')
 
     return call.run(
@@ -299,7 +304,7 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
       title="Delegate votes"
       submitLabel="Sign and send"
       busy={call.busy}
-      disabled={terms.tracks.length > 0 && !parts}
+      disabled={terms.tracks.length > 0 && (!parts || lockable === undefined)}
       aside={tabs}
       footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={voter.signer.address}
