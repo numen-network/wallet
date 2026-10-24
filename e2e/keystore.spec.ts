@@ -630,6 +630,53 @@ test('a delegate link opens the delegation with the delegate filled in', async (
   await expect(page.getByText('Votes delegated')).toBeVisible()
 })
 
+test('a ticked group delegates from each of its accounts in turn', async ({ page }) => {
+  await createKey(page)
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Done' }).click()
+
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
+  const adding = page.getByRole('dialog')
+  await adding.getByRole('radio', { name: 'New account' }).check()
+  await adding.getByLabel('Name').fill('Spare')
+  await adding.getByLabel('Password', { exact: true }).fill(PASSWORD)
+  await adding.getByLabel('Repeat password').fill(PASSWORD)
+  await adding.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Done' }).click()
+
+  await page.goto(`/?delegate=${DESTINATION}`)
+  const dialog = page.getByRole('dialog', { name: 'Delegate votes' })
+  await dialog.getByRole('tab', { name: 'Multiple' }).click()
+
+  const delegating = dialog.getByRole('group', { name: 'Delegating as' })
+  await delegating.getByRole('checkbox', { name: 'Ungrouped' }).click()
+  await expect(delegating.getByRole('checkbox', { name: 'Spare' })).toBeChecked()
+  // Clearing keeps the account the dialog opened on, since a delegation needs one
+  await delegating.getByRole('button', { name: 'Clear all' }).click()
+  await expect(delegating.getByRole('checkbox', { name: 'Spare' })).not.toBeChecked()
+  await expect(delegating.getByRole('checkbox', { name: 'Vault' })).toBeChecked()
+  await delegating.getByRole('button', { name: 'Select all' }).click()
+
+  const tracks = dialog.getByRole('group', { name: 'Tracks' })
+  await tracks.getByRole('button', { name: 'Select all' }).click()
+  await expect(tracks.getByRole('checkbox', { checked: false })).toHaveCount(0)
+  await tracks.getByRole('button', { name: 'Clear all' }).click()
+  await expect(tracks.getByRole('checkbox', { checked: true })).toHaveCount(0)
+  await tracks.getByRole('button', { name: 'Select all' }).click()
+
+  // Nine track calls outweigh one transaction, so each account sends two, and
+  // the fee is what both of them cost one account
+  await expect(dialog.getByText(/Estimated fee .* × 2/)).toBeVisible()
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Delegated from 2 accounts')).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Activity' }).click()
+  const sent = page.getByRole('region', { name: 'Sent from this tab' })
+  await expect(sent.locator('article')).toHaveCount(4)
+})
+
 async function watchTheCorner({ page }: { page: Page }) {
   await createKey(page)
   await page.getByRole('checkbox').check()

@@ -63,6 +63,8 @@ interface CallProps {
   /** What this particular password is about to unlock. */
   note?: string
   error: string
+  /** How many accounts make the call, each paying a fee of its own. */
+  times?: number
 }
 
 /**
@@ -87,6 +89,7 @@ export function CallPage({
   onPassword,
   note = 'Unlocks this account for one signature',
   error,
+  times = 1,
   children,
   ...page
 }: CallProps & Omit<ModalPageProps, 'footer' | 'fee'>) {
@@ -99,7 +102,7 @@ export function CallPage({
           <FieldError>{error}</FieldError>
         </>
       }
-      fee={operation && <FeeLine from={from} operations={[operation].flat()} />}
+      fee={operation && <FeeLine from={from} operations={[operation].flat()} times={times} />}
     >
       {children}
     </ModalPage>
@@ -107,7 +110,7 @@ export function CallPage({
 }
 
 /** What the chain would charge for this call, as the form has it so far. */
-function FeeLine({ from, operations }: { from: string; operations: Operation[] }) {
+function FeeLine({ from, operations, times }: { from: string; operations: Operation[]; times: number }) {
   const symbol = useSymbol()
   const fee = useFeesEstimate(from, operations)
 
@@ -115,7 +118,7 @@ function FeeLine({ from, operations }: { from: string; operations: Operation[] }
     <p className="text-[11.5px] text-muted-foreground">
       {fee === undefined
         ? 'Estimating fee…'
-        : `Estimated fee ${formatAmount(fee, { precision: 6 })} ${symbol}`}
+        : `Estimated fee ${formatAmount(fee, { precision: 6 })} ${symbol}${times > 1 ? ` × ${times}` : ''}`}
     </p>
   )
 }
@@ -322,6 +325,12 @@ function staleFor(operation: Operation): Cache[] {
  * minute of nothing on a chain that takes ten seconds a block.
  */
 export function useSubmit(account: Account) {
+  const send = useSend()
+  return (operation: Operation, password: string) => send(account, operation, password)
+}
+
+/** useSubmit for a dialog that signs as several accounts, named at each send. */
+export function useSend() {
   const { repository } = useChain()
   const symbol = useSymbol()
   const record = useSessionStore((state) => state.record)
@@ -332,7 +341,7 @@ export function useSubmit(account: Account) {
   const raise = useRefusalStore((state) => state.raise)
   const refresh = useRefresh()
 
-  return (operation: Operation, password: string) =>
+  return (account: Account, operation: Operation, password: string) =>
     new Promise<void>((resolve, reject) => {
       let signing: WalletAccount
       try {

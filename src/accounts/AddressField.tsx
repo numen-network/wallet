@@ -49,7 +49,7 @@ function Chain({ address, shown }: { address: string; shown: string }) {
 }
 
 /** The board's own filing, so a long list reads the way the accounts page does. */
-function filed<T extends Pickable>(choices: readonly T[], groups: { name: string; accounts: string[] }[]) {
+export function filed<T extends Pickable>(choices: readonly T[], groups: { name: string; accounts: string[] }[]) {
   // The group carries the order the board draws, so the walk is over the group
   // rather than over the choices. Filtering the choices instead files every
   // entry under the right heading in the order they happened to be collected

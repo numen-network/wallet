@@ -9,6 +9,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@/components/ui/input-group'
+import { cn } from '@/lib/cn'
 import { Field } from '@/ui/Field'
 
 /**
@@ -23,6 +24,7 @@ export function AmountField({
   max,
   aside,
   disabled = false,
+  readOnly = false,
   labelled = true,
   unit,
 }: {
@@ -33,6 +35,8 @@ export function AmountField({
   max?: bigint | undefined
   aside?: ReactNode
   disabled?: boolean
+  /** For an amount the form decides, said in words where the figure would go. */
+  readOnly?: boolean
   /** Off in a table, where the column heading has already said it once. */
   labelled?: boolean
   /** A token's ticker and decimals, for an amount that is not the chain's own coin. */
@@ -44,8 +48,9 @@ export function AmountField({
   const box = (
     <InputGroup>
       <InputGroupInput
-        className="font-mono"
+        className={cn(!readOnly && 'font-mono')}
         value={value}
+        readOnly={readOnly}
         inputMode="decimal"
         placeholder="0.0"
         autoComplete="off"
