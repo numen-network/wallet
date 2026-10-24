@@ -114,7 +114,7 @@ test('registering and asking a registrar is one signature', async ({ page }) => 
   await expect(card(page).getByRole('img', { name: /being paid to check/ })).toBeVisible()
 
   // One call reached the chain, not two
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.getByText('Set identity')).toHaveCount(1)
 })
@@ -467,7 +467,7 @@ test('verifying puts an identity on chain in one call', async ({ page }) => {
   await expect(card(page).getByRole('img', { name: /Checked by a registrar/ })).toBeVisible()
 
   // One call, rather than a registration followed by a payment
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.getByText('Set identity')).toHaveCount(1)
 })
@@ -535,7 +535,7 @@ test('two sign ins ride one signature and each pays its price', async ({ page })
   await expect(manual.getByLabel('Discord', { exact: true })).toHaveValue('vaultkeeper')
   await page.mouse.click(20, 400)
 
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.getByText('Set identity')).toHaveCount(1)
 })

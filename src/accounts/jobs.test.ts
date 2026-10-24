@@ -21,6 +21,7 @@ describe('progressOf', () => {
   it('waits on the slowest part still going', () => {
     const job: Job = {
       id: 'job',
+      at: 0,
       parts: [
         { address: ALICE, operation: ending, submission: 'a' },
         { address: ALICE, operation: ending, submission: 'b' },
@@ -36,6 +37,7 @@ describe('progressOf', () => {
   it('counts a refusal as over and keeps what the chain said', () => {
     const job: Job = {
       id: 'job',
+      at: 0,
       parts: [
         { address: ALICE, operation: ending, submission: 'a' },
         { address: ALICE, operation: ending, submission: 'b' },
@@ -54,6 +56,7 @@ describe('progressOf', () => {
   it('takes a part that was never signed as failed from the start', () => {
     const job: Job = {
       id: 'job',
+      at: 0,
       parts: [
         { address: ALICE, operation: ending, submission: 'a' },
         { address: BOB, operation: ending, error: 'Wrong password' },

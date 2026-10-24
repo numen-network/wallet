@@ -189,6 +189,7 @@ export class Unsent extends Error {
  */
 export function useLaunch() {
   const start = useJobsStore((state) => state.start)
+  const finish = useJobsStore((state) => state.finish)
   const scope = useReopen()
 
   return async (sending: Sending[], { sent, again }: LaunchOptions = {}) => {
@@ -203,10 +204,12 @@ export function useLaunch() {
     if (parts.every((part) => part.error)) throw new Error(parts[0]?.error ?? 'Nothing was sent')
 
     sent?.()
-    start({
+    const id = start({
       parts,
-      retry: scope ? (failed) => scope.reopen({ ...fields, ...again?.(failed) }) : undefined,
+      retry: scope ? (failed) => scope.reopen({ ...fields, ...again?.(failed) }, id) : undefined,
     })
+    // The failure this dialog was reopened for is settled once its retry is out
+    if (scope?.retrying) finish(scope.retrying)
   }
 }
 

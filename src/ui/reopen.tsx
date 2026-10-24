@@ -6,10 +6,16 @@ import { createContext, useContext, useRef, useState, type ReactNode } from 'rea
  */
 export type Fields = Record<string, unknown>
 
-interface Scope {
+/** A dialog brought back, and what it was brought back for. */
+interface Reopening {
   seed: Fields
+  /** What the dialog was reopened to retry, settled once it sends. */
+  retrying?: string | undefined
+}
+
+interface Scope extends Reopening {
   values: Fields
-  reopen: (seed: Fields) => void
+  reopen: (seed: Fields, retrying: string) => void
 }
 
 const ScopeContext = createContext<Scope | null>(null)
@@ -22,33 +28,37 @@ const ScopeContext = createContext<Scope | null>(null)
 export function useDialog<M>(initial: M | null | (() => M | null) = null) {
   const [state, setState] = useState(() => ({
     modal: initial instanceof Function ? initial() : initial,
-    seed: {} as Fields,
+    reopening: { seed: {} } as Reopening,
     key: 0,
   }))
-  const open = (modal: M | null, seed: Fields = {}) =>
-    setState((was) => ({ modal, seed, key: was.key + 1 }))
-  const { modal, seed, key } = state
+  const open = (modal: M | null, reopening: Reopening = { seed: {} }) =>
+    setState((was) => ({ modal, reopening, key: was.key + 1 }))
+  const { modal, reopening, key } = state
 
   return {
     modal,
-    open,
+    open: (modal: M | null) => open(modal),
     close: () => open(null),
-    scope: { key, seed, reopen: (fields: Fields) => open(modal, fields) },
+    scope: {
+      key,
+      ...reopening,
+      reopen: (seed: Fields, retrying: string) => open(modal, { seed, retrying }),
+    },
   }
 }
 
 /** Wraps whatever dialog a page renders, so its fields can be read back. */
 export function FormScope({
   seed,
+  retrying,
   reopen,
   children,
-}: {
-  seed: Fields
-  reopen: (seed: Fields) => void
+}: Reopening & {
+  reopen: Scope['reopen']
   children: ReactNode
 }) {
   const values = useRef<Fields>({}).current
-  return <ScopeContext value={{ seed, values, reopen }}>{children}</ScopeContext>
+  return <ScopeContext value={{ seed, retrying, values, reopen }}>{children}</ScopeContext>
 }
 
 /** useState for a dialog's field, under a name unique within the dialog. */
@@ -83,5 +93,6 @@ export function useReopen() {
   return {
     snapshot: (): Fields => ({ ...scope.values }),
     reopen: scope.reopen,
+    retrying: scope.retrying,
   }
 }

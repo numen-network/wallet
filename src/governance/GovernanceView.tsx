@@ -306,7 +306,12 @@ export function GovernanceView({
         </TabPanel>
       </main>
 
-      <FormScope key={dialog.scope.key} seed={dialog.scope.seed} reopen={dialog.scope.reopen}>
+      <FormScope
+        key={dialog.scope.key}
+        seed={dialog.scope.seed}
+        retrying={dialog.scope.retrying}
+        reopen={dialog.scope.reopen}
+      >
         {signers && modal?.kind === 'vote' && (
           <VoteModal
             referendum={modal.referendum}

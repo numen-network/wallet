@@ -21,6 +21,8 @@ export interface Part {
 
 export interface Job {
   id: string
+  /** When it was sent, in ms. */
+  at: number
   parts: Part[]
   /** Opens the dialog again on what failed. Missing where the dialog cannot be brought back. */
   retry?: ((failed: Part[]) => void) | undefined
@@ -62,25 +64,34 @@ export function progressOf(job: Job, submissions: Submission[]): Progress {
 
 interface JobsState {
   jobs: Job[]
-  /** The job whose failures are on screen. */
-  shown: string | null
-  start: (job: Omit<Job, 'id'>) => void
-  show: (id: string | null) => void
+  /** Whether the activity sidebar is open. */
+  sidebar: boolean
+  /** Jobs whose failure is already in the sidebar, so the corner lets go of them. */
+  seen: string[]
+  start: (job: Omit<Job, 'id' | 'at'>) => string
   finish: (id: string) => void
+  setSidebar: (open: boolean) => void
+  see: (ids: string[]) => void
 }
 
 let counter = 0
 
 export const useJobsStore = create<JobsState>((set) => ({
   jobs: [],
-  shown: null,
-  start: (job) => set((state) => ({ jobs: [...state.jobs, { ...job, id: `job-${(counter += 1)}` }] })),
-  show: (shown) => set({ shown }),
+  sidebar: false,
+  seen: [],
+  start: (job) => {
+    const id = `job-${(counter += 1)}`
+    set((state) => ({ jobs: [...state.jobs, { ...job, id, at: Date.now() }] }))
+    return id
+  },
   finish: (id) =>
     set((state) => ({
       jobs: state.jobs.filter((job) => job.id !== id),
-      shown: state.shown === id ? null : state.shown,
+      seen: state.seen.filter((entry) => entry !== id),
     })),
+  setSidebar: (sidebar) => set({ sidebar }),
+  see: (ids) => set((state) => ({ seen: [...new Set([...state.seen, ...ids])] })),
 }))
 
 /** The call a proxy or a multisig carries, which is what the dialog was filling in. */

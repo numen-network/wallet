@@ -282,7 +282,7 @@ test('says which pallet refused a call and what for', async ({ page }) => {
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   // Named rather than left as a loose red line, so it reads as what it is
   await expect(sent.getByRole('term').filter({ hasText: 'refused' })).toBeVisible()
@@ -442,15 +442,70 @@ test('a failed part brings the dialog back on what failed', async ({ page }) => 
   await expect(failed).toContainText('1 of 2 failed')
   await failed.getByRole('button').click()
 
-  const why = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Edit and retry' }) })
-  await expect(why.getByText(/NotDelegating/)).toBeVisible()
-  await why.getByRole('button', { name: 'Edit and retry' }).click()
+  // The sidebar takes the failure over from the corner
+  const sidebar = page.getByRole('dialog', { name: 'Activity' })
+  const waiting = sidebar.getByRole('region', { name: 'Needs attention' })
+  await expect(waiting.getByText(/NotDelegating/)).toBeVisible()
   await expect(failed).toHaveCount(0)
 
+  // Walking away from a retry leaves the failure where it was
+  await waiting.getByRole('button', { name: 'Edit and retry' }).click()
   const again = page.getByRole('dialog', { name: 'Take a delegation back' })
   await expect(again.getByRole('checkbox', { checked: true })).toHaveCount(late.length)
   for (const track of late) await expect(again.getByRole('checkbox', { name: track })).toBeChecked()
   await expect(again.getByLabel('Account password')).toHaveValue('')
+  await again.getByRole('button', { name: 'Cancel' }).click()
+  await expect(waiting.getByText(/NotDelegating/)).toBeVisible()
+
+  // So does closing the sidebar, the way any panel here closes
+  await page.mouse.click(40, 400)
+  await expect(sidebar).toHaveCount(0)
+  await page.getByRole('button', { name: 'Activity' }).click()
+  await expect(waiting.getByText(/NotDelegating/)).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  // Once those tracks are delegated, the retry goes through and the failure with it
+  await menu('Delegate votes')
+  for (const track of late) await dialog.getByRole('checkbox', { name: track }).check()
+  await fillAddress(page, dialog, 'Delegate to', DESTINATION)
+  await dialog.getByPlaceholder('0.0').fill('100')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(dialog).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Activity' }).click()
+  await waiting.getByRole('button', { name: 'Edit and retry' }).click()
+  await again.getByLabel('Account password').fill(PASSWORD)
+  await again.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(again).toHaveCount(0)
+  await expect(waiting).toHaveCount(0)
+  await expect(page.getByText('All of it went through').first()).toBeVisible()
+})
+
+test('a failure stays in the sidebar until it is dismissed', async ({ page }) => {
+  await createKey(page)
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Done' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await card(page).getByRole('button', { name: 'Account menu' }).click()
+  await page.getByRole('menuitem', { name: 'Take a delegation back' }).click()
+  await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+
+  await page.getByRole('button', { name: 'Activity' }).click()
+  const sidebar = page.getByRole('dialog', { name: 'Activity' })
+  const waiting = sidebar.getByRole('region', { name: 'Needs attention' })
+  await expect(waiting.getByText(/NotDelegating/)).toBeVisible()
+  // Seen in the sidebar, so the corner has nothing left to point at
+  await expect(page.locator('[data-sonner-toast][data-type="error"]')).toHaveCount(0)
+
+  await waiting.getByRole('button', { name: 'Dismiss' }).click()
+  await expect(waiting).toHaveCount(0)
+  // The log keeps what happened either way
+  const sent = sidebar.getByRole('region', { name: 'Sent from this tab' })
+  await expect(sent.getByRole('term').filter({ hasText: 'refused' })).toBeVisible()
 })
 
 test('sending the full balance closes the account out', async ({ page }) => {
@@ -509,9 +564,9 @@ test('the tab remembers what it sent, across a reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click()
 
   // Nothing sent yet, so the page that lists it says so
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   await expect(page.getByText('Nothing sent yet')).toBeVisible()
-  await page.getByRole('tab', { name: 'Accounts' }).click()
+  await page.keyboard.press('Escape')
 
   await card(page).getByRole('button', { name: 'Send' }).click()
   const dialog = page.getByRole('dialog')
@@ -530,7 +585,7 @@ test('the tab remembers what it sent, across a reload', async ({ page }) => {
   await expect(flight).toHaveCount(0)
 
   await page.reload()
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.getByText('Transfer', { exact: true })).toBeVisible()
   await expect(sent.getByText('final')).toBeVisible()
@@ -568,7 +623,7 @@ test('one page carries what every account sent, not one account at a time', asyn
   await send('Vault', '1')
   await send('Spare', '2')
 
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.locator('article')).toHaveCount(2)
   // Each one names the account that signed it and says which address that is,
@@ -625,7 +680,7 @@ test('one signature pays several accounts at once', async ({ page }) => {
   await expect(page.getByText('All of it went through')).toBeVisible()
 
   // One call reached the chain, not two
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.locator('article')).toHaveCount(1)
 })
@@ -649,7 +704,7 @@ test('one delegation covers every track it is ticked for', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 
   await expect(page.getByText('All of it went through')).toBeVisible()
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.locator('article')).toHaveCount(1)
 })
@@ -716,7 +771,7 @@ test('a ticked group delegates from each of its accounts', async ({ page }) => {
   await expect(dialog).toHaveCount(0)
   await expect(page.getByText('All of it went through')).toBeVisible()
 
-  await page.getByRole('tab', { name: 'Activity' }).click()
+  await page.getByRole('button', { name: 'Activity' }).click()
   const sent = page.getByRole('region', { name: 'Sent from this tab' })
   await expect(sent.locator('article')).toHaveCount(4)
 })

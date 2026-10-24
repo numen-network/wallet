@@ -17,6 +17,7 @@ import { CAPTION } from '@/components/ui/field'
 import { Footer } from '@/ui/Footer'
 import WalletMetamask from '@web3icons/react/icons/wallets/WalletMetamask'
 import {
+  History,
   type LucideIcon,
   Plus,
   RefreshCw,
@@ -37,8 +38,10 @@ import { ToastHost, toast, toastProblem } from '@/ui/Toast'
 import { AccountBoard } from '@/accounts/AccountBoard'
 import { AddAccountModal } from '@/accounts/AddAccountModal'
 import { FromJsonModal } from '@/accounts/FromJsonModal'
-import { ActivityView } from '@/accounts/ActivityView'
+import { ActivitySheet } from '@/accounts/ActivitySheet'
 import { JobsHost } from '@/accounts/Jobs'
+import { progressOf, useJobsStore } from '@/accounts/jobs'
+import { useSessionStore } from '@/accounts/session'
 import { BackupModal } from '@/accounts/BackupModal'
 import { DelegateModal, UndelegateModal } from '@/accounts/DelegateModal'
 import { DeriveModal } from '@/accounts/DeriveModal'
@@ -183,6 +186,33 @@ function EndpointPicker({ onAdd }: { onAdd: () => void }) {
  * The EVM side of Numen is MetaMask's job. One click hands it the network so
  * the wallet never has to carry a second signing stack.
  */
+/** Opens the activity sidebar, counting the failures still waiting there. */
+function ActivityButton() {
+  const jobs = useJobsStore((state) => state.jobs)
+  const setSidebar = useJobsStore((state) => state.setSidebar)
+  const submissions = useSessionStore((state) => state.submissions)
+  const failing = jobs.filter((job) => progressOf(job, submissions).failed.length > 0).length
+
+  return (
+    <span className="relative">
+      <ToolButton
+        icon={<History className="size-4" />}
+        label="Activity"
+        narrow
+        onClick={() => setSidebar(true)}
+      />
+      {failing > 0 && (
+        <span
+          aria-hidden
+          className="absolute -top-1 -right-1 grid size-[18px] place-items-center rounded-full bg-destructive text-[10.5px] font-bold text-destructive-foreground"
+        >
+          {failing}
+        </span>
+      )}
+    </span>
+  )
+}
+
 function MetaMaskButton() {
   const { network } = useChain()
   const { data: facts } = useFacts()
@@ -202,16 +232,15 @@ function MetaMaskButton() {
   return <ToolButton icon={<WalletMetamask className="size-5" />} label="Add to MetaMask" onClick={add} />
 }
 
-type View = 'accounts' | 'governance' | 'activity'
+type View = 'accounts' | 'governance'
 
 /**
- * Three pages is not enough to be worth a router, and a wallet that puts its
+ * Two pages is not enough to be worth a router, and a wallet that puts its
  * address in the URL is a wallet that leaks which account somebody holds.
  */
 const VIEWS: TabOption<View>[] = [
   { id: 'accounts', label: 'Accounts' },
   { id: 'governance', label: 'Governance' },
-  { id: 'activity', label: 'Activity' },
 ]
 
 function Stat({ label, planck, lead = false }: { label: string; planck: bigint; lead?: boolean }) {
@@ -310,6 +339,7 @@ export function App() {
           <span className="flex-1" />
 
           <TabBar options={VIEWS} />
+          <ActivityButton />
           <MetaMaskButton />
         </div>
       </header>
@@ -328,10 +358,6 @@ export function App() {
         <>
           <TabPanel value="governance">
             <GovernanceView accounts={accounts} balances={balances} />
-          </TabPanel>
-
-          <TabPanel value="activity">
-            <ActivityView accounts={accounts} />
           </TabPanel>
 
           <TabPanel value="accounts">
@@ -413,7 +439,12 @@ export function App() {
 
       <Footer />
 
-      <FormScope key={dialog.scope.key} seed={dialog.scope.seed} reopen={dialog.scope.reopen}>
+      <FormScope
+        key={dialog.scope.key}
+        seed={dialog.scope.seed}
+        retrying={dialog.scope.retrying}
+        reopen={dialog.scope.reopen}
+      >
         {modal?.kind === 'add' && (
           <AddAccountModal connectExtension={connectExtension} onClose={close} />
         )}
@@ -654,7 +685,8 @@ export function App() {
         )}
       </FormScope>
 
-      <JobsHost accounts={accounts} />
+      <JobsHost />
+      <ActivitySheet accounts={accounts} />
       <ToastHost header={header} />
     </Tabs>
   )
