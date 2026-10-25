@@ -10,6 +10,8 @@ const PASSWORD = 'correct horse battery'
 const OTHER_PASSWORD = 'another horse battery'
 const DESTINATION = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 const SECOND = 'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg'
+/** The genesis hash the mock chain answers with. */
+const GENESIS = `0x${'11'.repeat(32)}`
 
 const card = (page: Page) => page.locator('article').filter({ hasText: 'Vault' })
 
@@ -718,18 +720,29 @@ test('a delegate link opens the delegation with the delegate filled in', async (
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Done' }).click()
 
-  await page.goto(`/?delegate=${DESTINATION}`)
+  await page.goto(`/?delegate=${DESTINATION}&genesis=${GENESIS}`)
 
   const dialog = page.getByRole('dialog', { name: 'Delegate votes' })
   await expectAddress(dialog, 'Delegating as', 'Vault')
   await expectAddress(dialog, 'Delegate to', /nu3oNks.*Co98/)
-  await expect(page).not.toHaveURL(/delegate=/)
+  await expect(page).not.toHaveURL(/delegate=|genesis=/)
 
   await dialog.getByRole('checkbox', { name: 'Small spender' }).check()
   await dialog.getByPlaceholder('0.0').fill('100')
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Votes delegated')).toBeVisible()
+})
+
+test('a delegate link that names no chain opens nothing', async ({ page }) => {
+  await createKey(page)
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Done' }).click()
+
+  await page.goto(`/?delegate=${DESTINATION}`)
+
+  await expect(page.getByText("That link doesn't name this chain")).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
 test('a ticked group delegates from each of its accounts', async ({ page }) => {
@@ -747,7 +760,7 @@ test('a ticked group delegates from each of its accounts', async ({ page }) => {
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Done' }).click()
 
-  await page.goto(`/?delegate=${DESTINATION}`)
+  await page.goto(`/?delegate=${DESTINATION}&genesis=${GENESIS}`)
   const dialog = page.getByRole('dialog', { name: 'Delegate votes' })
   await dialog.getByRole('tab', { name: 'Multiple' }).click()
 

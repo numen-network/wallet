@@ -9,6 +9,8 @@ import { expectAddress, fillAddress, pickAddress } from './address'
 const PASSWORD = 'correct horse battery'
 const BENEFICIARY = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 const BOB = 'nu5sKtuEZG5GH9emAghk9MTdVPBJbieEsSD8Z6UKkA45afKcv'
+/** The genesis hash the mock chain answers with. */
+const GENESIS = `0x${'11'.repeat(32)}`
 
 /** A date box takes yyyy-MM-dd, and the form only accepts days still ahead. */
 const inDays = (days: number) => {
@@ -212,15 +214,15 @@ test('a vote lands', async ({ page }) => {
 test('a vote link opens the ballot on the referendum it names', async ({ page }) => {
   await createKey(page)
 
-  await page.goto('/?vote=2')
+  await page.goto(`/?vote=2&genesis=${GENESIS}`)
 
   await expect(page.getByRole('dialog', { name: 'Vote on referendum 2' })).toBeVisible()
-  await expect(page).not.toHaveURL(/vote=/)
+  await expect(page).not.toHaveURL(/vote=|genesis=/)
 })
 
 test('a vote link opens its ballot once, however often the page comes back', async ({ page }) => {
   await createKey(page)
-  await page.goto('/?vote=2')
+  await page.goto(`/?vote=2&genesis=${GENESIS}`)
 
   const dialog = page.getByRole('dialog', { name: 'Vote on referendum 2' })
   await dialog.getByRole('button', { name: 'Cancel' }).click()
@@ -235,9 +237,18 @@ test('a vote link opens its ballot once, however often the page comes back', asy
 test('a vote link to a referendum that is not running says so', async ({ page }) => {
   await createKey(page)
 
-  await page.goto('/?vote=9')
+  await page.goto(`/?vote=9&genesis=${GENESIS}`)
 
   await expect(page.getByText('Referendum #9 is not running')).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+test('a vote link from another chain opens no ballot', async ({ page }) => {
+  await createKey(page)
+
+  await page.goto(`/?vote=2&genesis=0x${'22'.repeat(32)}`)
+
+  await expect(page.getByText("That link doesn't name this chain")).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 

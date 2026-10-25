@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import logo from '@/assets/logo.svg'
 import { usingMock } from '@/chain'
 import { EndpointModal } from '@/chain/EndpointModal'
@@ -8,6 +8,7 @@ import { quality, type Quality } from '@/chain/reach'
 import { lockedOf, totalOf, type Token } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
 import { formatAmount } from '@/lib/balance'
+import { LINK_PARAMS, readLink } from '@/lib/link'
 import { plural } from '@/lib/plural'
 import { cn } from '@/lib/cn'
 import { Badge } from '@/components/ui/badge'
@@ -264,29 +265,14 @@ function Stat({ label, planck, lead = false }: { label: string; planck: bigint; 
   )
 }
 
-const DELEGATE_PARAM = 'delegate'
-
-/** A `?delegate=` link opens the delegation dialog with the delegate filled in. */
-function linkedDelegation(): Modal | null {
-  const to = new URLSearchParams(location.search).get(DELEGATE_PARAM)
-  return to === null ? null : { kind: 'delegate', to }
-}
-
-const VOTE_PARAM = 'vote'
-
-/** A `?vote=` link opens the ballot on the referendum it names. */
-function linkedVote(): number | null {
-  const poll = new URLSearchParams(location.search).get(VOTE_PARAM)
-  return poll !== null && /^\d+$/.test(poll) ? Number(poll) : null
-}
-
 export function App() {
   const { accounts, byAddress, groups, connectExtension } = useAccounts()
   const store = useAccountsStore()
-  const dialog = useDialog<Modal>(linkedDelegation)
+  const dialog = useDialog<Modal>()
   const { modal, close, open: setModal } = dialog
-  const [vote, setVote] = useState(linkedVote)
-  const [view, setView] = useState<View>(vote === null ? 'accounts' : 'governance')
+  const [link] = useState(() => readLink(location.search))
+  const [vote, setVote] = useState<number | null>(null)
+  const [view, setView] = useState<View>(link?.target.kind === 'vote' ? 'governance' : 'accounts')
   const [header, setHeader] = useState<HTMLElement | null>(null)
 
   const addresses = useMemo(() => accounts.map((account) => account.address), [accounts])
@@ -317,9 +303,23 @@ export function App() {
   // Taken off the address bar once read, so a reload does not ask again
   useEffect(() => {
     const url = new URL(location.href)
-    for (const param of [DELEGATE_PARAM, VOTE_PARAM]) url.searchParams.delete(param)
+    for (const param of LINK_PARAMS) url.searchParams.delete(param)
     history.replaceState(history.state, '', url)
   }, [])
+
+  // Every link waits for the genesis hash, and opens nothing on another chain
+  const pending = useRef(link)
+  useEffect(() => {
+    const opened = pending.current
+    if (!opened || !facts.data) return
+    pending.current = null
+    if (opened.genesis !== facts.data.genesis) {
+      toastProblem("That link doesn't name this chain")
+      return
+    }
+    if (opened.target.kind === 'delegate') setModal({ kind: 'delegate', to: opened.target.to })
+    else setVote(opened.target.poll)
+  }, [facts.data])
 
   const deleteGroup = (id: string) => {
     store.removeGroup(id)

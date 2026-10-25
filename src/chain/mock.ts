@@ -139,6 +139,7 @@ const FACTS: ChainFacts = {
   ss58Prefix: SS58_PREFIX,
   decimals: DECIMALS,
   symbol: 'tNUMN',
+  genesis: `0x${'11'.repeat(32)}`,
   evmChainId: 320262,
   balancesErc20: '0x0000000000000000000000000000000000000802',
   existentialDeposit: UNIT / 1_000_000n,

@@ -433,6 +433,8 @@ export interface ChainFacts {
   decimals: number
   /** Ticker the chain names its coin. Follows every amount the UI shows. */
   symbol: string
+  /** Hash of block zero, which names the chain whichever endpoint serves it. */
+  genesis: string
   /** Chain id the EVM side answers with. MetaMask signs against it. */
   evmChainId: number
   /** EVM address of the native balance ERC20 facade. A withdrawal is a call to it. */

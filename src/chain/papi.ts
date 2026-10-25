@@ -629,7 +629,8 @@ export function createPapiRepository(network: Network): ChainRepository {
     // the chain, so those two are settings rather than answers. Checking them
     // here turns a chain that disagrees into a refusal rather than into
     // addresses nobody can use and amounts off by orders of magnitude.
-    const { tokenDecimals, tokenSymbol } = (await client.getChainSpecData()).properties as {
+    const { genesisHash, properties } = await client.getChainSpecData()
+    const { tokenDecimals, tokenSymbol } = properties as {
       tokenDecimals?: number
       tokenSymbol?: string
     }
@@ -647,6 +648,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       ss58Prefix,
       decimals: tokenDecimals,
       symbol: tokenSymbol,
+      genesis: genesisHash,
       evmChainId: Number(evmChainId),
       balancesErc20,
       existentialDeposit,
