@@ -8,7 +8,7 @@ import {
 import { Field } from '@/ui/Field'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { MarkdownField } from '@/ui/MarkdownField'
 
 /**
  * One field of an identity, with the only rule the chain has about it. Kept out
@@ -30,18 +30,30 @@ export function IdentityLine({
   const max = MAX_BYTES[field]
   const box = { value, placeholder: PLACEHOLDERS[field], autoComplete: 'off' }
 
+  const error = bytes > max && (
+    <FieldError>
+      {bytes} bytes, {max} is the most the chain holds
+    </FieldError>
+  )
+
+  if (field === 'bio') {
+    return (
+      <MarkdownField
+        label={LABELS[field]}
+        value={value}
+        rows={4}
+        placeholder={PLACEHOLDERS[field]}
+        onChange={onChange}
+      >
+        {error}
+      </MarkdownField>
+    )
+  }
+
   return (
     <Field label={LABELS[field]}>
-      {field === 'bio' ? (
-        <Textarea {...box} rows={4} onChange={(event) => onChange(event.target.value)} />
-      ) : (
-        <Input {...box} spellCheck={false} onChange={(event) => onChange(event.target.value)} />
-      )}
-      {bytes > max && (
-        <FieldError>
-          {bytes} bytes, {max} is the most the chain holds
-        </FieldError>
-      )}
+      <Input {...box} spellCheck={false} onChange={(event) => onChange(event.target.value)} />
+      {error}
     </Field>
   )
 }

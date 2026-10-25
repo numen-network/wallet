@@ -14,6 +14,7 @@ import {
   type Track,
 } from '@/chain/governance'
 import { CardMark } from '@/ui/CardMark'
+import { Markdown } from '@/ui/Markdown'
 import { Beneficiary } from './Beneficiary'
 import { formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
@@ -153,8 +154,8 @@ export function ReferendumCard({
           and nothing here ever showed. The whole of it, since somebody is being
           asked to vote on it and a card is not worth hiding it for */}
       {referendum.description && (
-        <CardContent className="text-[13px] whitespace-pre-line text-muted-foreground">
-          {referendum.description}
+        <CardContent>
+          <Markdown text={referendum.description} />
         </CardContent>
       )}
 

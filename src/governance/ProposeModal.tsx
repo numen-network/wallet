@@ -40,6 +40,7 @@ import { DateField, stamp } from '@/ui/DateField'
 import { useField } from '@/ui/reopen'
 import { CAPTION, NOTE } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
+import { MarkdownField } from '@/ui/MarkdownField'
 import { useVoter, VoterField, type Voters } from './Voter'
 import { Plus, Trash2 } from 'lucide-react'
 import { AddressField } from '@/accounts/AddressField'
@@ -337,14 +338,14 @@ export function ProposeModal({
           />
         </Field>
 
-        <Field label="Description" aside={textCost}>
-          <Textarea
-            value={description}
-            rows={6}
-            placeholder="A short summary of the case"
-            onChange={(event) => patch({ description: event.target.value })}
-          />
-        </Field>
+        <MarkdownField
+          label="Description"
+          aside={textCost}
+          value={description}
+          rows={6}
+          placeholder="A short summary of the case"
+          onChange={(next) => patch({ description: next })}
+        />
 
         <VoterField
           accounts={accounts}
@@ -564,14 +565,14 @@ export function EditTextModal({
           />
         </Field>
 
-        <Field label="Description" aside={textCost}>
-          <Textarea
-            value={description}
-            rows={6}
-            placeholder="A short summary of the case"
-            onChange={(event) => setDescription(event.target.value)}
-          />
-        </Field>
+        <MarkdownField
+          label="Description"
+          aside={textCost}
+          value={description}
+          rows={6}
+          placeholder="A short summary of the case"
+          onChange={setDescription}
+        />
       </div>
 
       {/* No account to pick, the chain named one. Who signs for it is still open */}
