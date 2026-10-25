@@ -17,6 +17,7 @@ import {
   type TxCallData,
   type TypedApi,
 } from 'polkadot-api'
+import { getFakeTxCreator } from 'polkadot-api/tx-creator'
 import { getWsProvider } from 'polkadot-api/ws'
 import {
   balanceOfCall,
@@ -1604,7 +1605,7 @@ export function createPapiRepository(network: Network): ChainRepository {
     },
 
     async estimateFee(from: string, operation: Operation): Promise<bigint> {
-      return (await build(operation)).getEstimatedFees(from)
+      return (await build(operation)).getEstimatedFees(getFakeTxCreator(from))
     },
 
     async split(groups: Operation[][]): Promise<Operation[][]> {
@@ -1652,13 +1653,13 @@ export function createPapiRepository(network: Network): ChainRepository {
           .then(([tx, fromNode]) => {
             const nonce = Math.max(fromNode, (sentNonces.get(account.address) ?? -1) + 1)
             sentNonces.set(account.address, nonce)
-            return tx.signSubmitAndWatch(account.signer, { nonce }).subscribe({
+            return tx.createSubmitAndWatch(account.signer, { nonce }).subscribe({
               next(event) {
-                if (event.type === 'signed') onProgress?.({ stage: 'signed', hash: event.txHash })
+                if (event.type === 'created') onProgress?.({ stage: 'signed', hash: event.txHash })
                 if (event.type === 'broadcasted') {
                   onProgress?.({ stage: 'broadcast', hash: event.txHash })
                 }
-                if (event.type === 'txBestBlocksState' && event.found) {
+                if (event.type === 'inBestBlock') {
                   if (!event.ok) return fail(new Error(dispatchMessage(event.dispatchError)))
                   onProgress?.({ stage: 'inBlock', hash: event.txHash })
                 }

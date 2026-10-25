@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { Keyring } from '@polkadot/keyring'
 import { cryptoWaitReady } from '@polkadot/util-crypto'
 import { u8aToHex, u8aWrapBytes } from '@polkadot/util'
-import { getPolkadotSigner } from 'polkadot-api/signer'
+import { getTxCreator } from 'polkadot-api/tx-creator'
 import { toNumenAddress } from '@/lib/address'
 import type { WalletAccount } from './types'
 import { signMessage, verifyMessage } from './message'
@@ -21,7 +21,7 @@ beforeAll(async () => {
     address: toNumenAddress(pair.address),
     label: 'Alice',
     source: 'keystore',
-    signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+    signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
   }
   bob = toNumenAddress(ring.addFromUri(`${PHRASE}//Bob`).address)
 })

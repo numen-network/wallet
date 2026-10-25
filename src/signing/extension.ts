@@ -19,7 +19,7 @@ export const extensionBackend: SignerBackend = {
         address: account.address,
         label: account.name ?? account.address,
         source: 'extension' as const,
-        signer: account.polkadotSigner,
+        signer: account.txCreator,
       })),
     )
   },

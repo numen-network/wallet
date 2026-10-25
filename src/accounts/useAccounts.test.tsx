@@ -1,7 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cryptoWaitReady } from '@polkadot/util-crypto'
-import type { PolkadotSigner } from 'polkadot-api'
 import type { SignerBackend, WalletAccount } from '@/signing/types'
 import { newMnemonic } from '@/signing/vault'
 import { emptyLayout, UNGROUPED_ID } from './layout'
@@ -12,7 +11,7 @@ const ALICE_GENERIC = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
 const DEV_PHRASE = 'bottom drive obey lake curtain smoke basket hold race lonely fit walk'
 const ALICE_NUMEN = 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb'
 
-const signer = {} as PolkadotSigner
+const signer = {} as WalletAccount['signer']
 let injected: WalletAccount[] = []
 let backends: SignerBackend[] = []
 

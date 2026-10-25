@@ -1,4 +1,4 @@
-import type { PolkadotSigner } from 'polkadot-api'
+import type { InjectedPolkadotAccount } from 'polkadot-api/pjs-signer'
 
 export type SignerSource = 'extension' | 'keystore'
 
@@ -6,7 +6,7 @@ export interface WalletAccount {
   address: string
   label: string
   source: SignerSource
-  signer: PolkadotSigner
+  signer: InjectedPolkadotAccount['txCreator']
 }
 
 /**

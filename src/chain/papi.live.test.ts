@@ -21,7 +21,7 @@ import { hexToU8a, u8aToHex as toHex } from '@polkadot/util'
 import { blake2AsHex, cryptoWaitReady, encodeMultiAddress } from '@polkadot/util-crypto'
 import { numen } from '@polkadot-api/descriptors'
 import { Binary, createClient, Enum } from 'polkadot-api'
-import { getPolkadotSigner } from 'polkadot-api/signer'
+import { getTxCreator } from 'polkadot-api/tx-creator'
 import { getWsProvider } from 'polkadot-api/ws'
 import { publicKeyOf, toNumenAddress } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
@@ -85,9 +85,9 @@ const asPrime = (
     | ReturnType<typeof api.tx.Validator.set_stake_exempt>,
 ) =>
   new Promise<void>((resolve, reject) => {
-    const sub = tx.signSubmitAndWatch(alice.signer).subscribe({
+    const sub = tx.createSubmitAndWatch(alice.signer).subscribe({
       next(event) {
-        if (event.type === 'txBestBlocksState' && event.found) {
+        if (event.type === 'inBestBlock') {
           sub.unsubscribe()
           resolve()
         }
@@ -117,7 +117,7 @@ beforeAll(async () => {
     address: toNumenAddress(pair.address),
     label: 'Alice',
     source: 'keystore',
-    signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+    signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
   }
 
   if ((await repository.registrars()).length === 0) {
@@ -859,7 +859,7 @@ describe('what the chain hands back once there is something to read', () => {
       address: toNumenAddress(pair.address),
       label: 'Bob',
       source: 'keystore',
-      signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+      signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
     }
     const multisig = encodeMultiAddress([alice.address, bobAccount.address], 2, SS58_PREFIX)
     // Something only this run asks for, so an earlier one leaves nothing behind
@@ -923,7 +923,7 @@ describe('what the chain hands back once there is something to read', () => {
       address: toNumenAddress(pair.address),
       label: 'Dave',
       source: 'keystore',
-      signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+      signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
     }
 
     await put({ kind: 'registerIdentity', info, registrar: null })
@@ -951,7 +951,7 @@ describe('delegation on every track', () => {
     address: toNumenAddress(pair.address),
     label: 'Ferdie',
     source: 'keystore',
-    signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+    signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
   }
 
   it('lands each part the chain splits it into, both ways', { timeout: 300_000 }, async () => {
@@ -993,7 +993,7 @@ describe('validators', () => {
     address: toNumenAddress(pair.address),
     label: 'Bob',
     source: 'keystore',
-    signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+    signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
   }
 
   /** Keys the node generates and keeps, with a proof made out to the owner. */

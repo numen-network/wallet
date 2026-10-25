@@ -8,7 +8,7 @@ import {
   mnemonicValidate,
 } from '@polkadot/util-crypto'
 import { u8aToHex } from '@polkadot/util'
-import { getPolkadotSigner } from 'polkadot-api/signer'
+import { getTxCreator } from 'polkadot-api/tx-creator'
 import { SS58_PREFIX } from '@/chain/config'
 import { toNumenAddress } from '@/lib/address'
 import type { WalletAccount } from './types'
@@ -250,6 +250,6 @@ export function unlockKey(address: string, password: string): WalletAccount {
     address,
     label: nameOf(json),
     source: 'keystore',
-    signer: getPolkadotSigner(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+    signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
   }
 }
