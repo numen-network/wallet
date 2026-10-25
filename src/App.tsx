@@ -272,12 +272,21 @@ function linkedDelegation(): Modal | null {
   return to === null ? null : { kind: 'delegate', to }
 }
 
+const VOTE_PARAM = 'vote'
+
+/** A `?vote=` link opens the ballot on the referendum it names. */
+function linkedVote(): number | null {
+  const poll = new URLSearchParams(location.search).get(VOTE_PARAM)
+  return poll !== null && /^\d+$/.test(poll) ? Number(poll) : null
+}
+
 export function App() {
   const { accounts, byAddress, groups, connectExtension } = useAccounts()
   const store = useAccountsStore()
   const dialog = useDialog<Modal>(linkedDelegation)
   const { modal, close, open: setModal } = dialog
-  const [view, setView] = useState<View>('accounts')
+  const [vote, setVote] = useState(linkedVote)
+  const [view, setView] = useState<View>(vote === null ? 'accounts' : 'governance')
   const [header, setHeader] = useState<HTMLElement | null>(null)
 
   const addresses = useMemo(() => accounts.map((account) => account.address), [accounts])
@@ -308,7 +317,7 @@ export function App() {
   // Taken off the address bar once read, so a reload does not ask again
   useEffect(() => {
     const url = new URL(location.href)
-    url.searchParams.delete(DELEGATE_PARAM)
+    for (const param of [DELEGATE_PARAM, VOTE_PARAM]) url.searchParams.delete(param)
     history.replaceState(history.state, '', url)
   }, [])
 
@@ -357,7 +366,12 @@ export function App() {
       ) : (
         <>
           <TabPanel value="governance">
-            <GovernanceView accounts={accounts} balances={balances} />
+            <GovernanceView
+              accounts={accounts}
+              balances={balances}
+              vote={vote}
+              onVoteTaken={() => setVote(null)}
+            />
           </TabPanel>
 
           <TabPanel value="accounts">

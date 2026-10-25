@@ -209,6 +209,38 @@ test('a vote lands', async ({ page }) => {
   await expect(page.getByText('Vote counted')).toBeVisible()
 })
 
+test('a vote link opens the ballot on the referendum it names', async ({ page }) => {
+  await createKey(page)
+
+  await page.goto('/?vote=2')
+
+  await expect(page.getByRole('dialog', { name: 'Vote on referendum 2' })).toBeVisible()
+  await expect(page).not.toHaveURL(/vote=/)
+})
+
+test('a vote link opens its ballot once, however often the page comes back', async ({ page }) => {
+  await createKey(page)
+  await page.goto('/?vote=2')
+
+  const dialog = page.getByRole('dialog', { name: 'Vote on referendum 2' })
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  await page.getByRole('tab', { name: 'Accounts' }).click()
+  await governance(page)
+  await expect(referendum(page, 2)).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+test('a vote link to a referendum that is not running says so', async ({ page }) => {
+  await createKey(page)
+
+  await page.goto('/?vote=9')
+
+  await expect(page.getByText('Referendum #9 is not running')).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
 test('a delegation keeps off a track with a referendum still counting its vote', async ({ page }) => {
   await createKey(page)
   await governance(page)

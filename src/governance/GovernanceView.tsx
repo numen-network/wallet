@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { Account } from '@/accounts/types'
 import {
   spendState,
@@ -32,6 +32,7 @@ import { Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { Tip } from '@/ui/Tip'
+import { toastProblem } from '@/ui/Toast'
 import { ToolButton, ToolLink } from '@/ui/ToolButton'
 import { voters } from './Voter'
 import {
@@ -85,9 +86,14 @@ const SORT_OPTIONS = Object.entries(SORT_LABELS).map(([value, label]) => ({ valu
 export function GovernanceView({
   accounts,
   balances,
+  vote,
+  onVoteTaken,
 }: {
   accounts: Account[]
   balances: Record<string, AccountBalance>
+  /** The referendum a link asked to vote on, until this page takes it. */
+  vote: number | null
+  onVoteTaken: () => void
 }) {
   const { network } = useChain()
   const mine = accounts.map((account) => account.address)
@@ -104,6 +110,15 @@ export function GovernanceView({
   const [sort, setSort] = useState<Sort>('state')
   const dialog = useDialog<Modal>()
   const { modal, close, open: setModal } = dialog
+
+  // A link waits for the running referenda
+  useEffect(() => {
+    if (vote === null || !referenda) return
+    onVoteTaken()
+    const referendum = referenda.find((entry) => entry.index === vote)
+    if (referendum) setModal({ kind: 'vote', referendum })
+    else toastProblem(`Referendum #${vote} is not running`)
+  }, [vote, referenda])
 
   const signers = voters(accounts)
   const canSign = signers !== null
