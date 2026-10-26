@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { alive, minutesLeft, ownerMessage, provenFrom, type Checks } from './verify'
+import {
+  alive,
+  minutesLeft,
+  ownerMessage,
+  provenFrom,
+  runningOut,
+  SPARE_MINUTES,
+  type Checks,
+} from './verify'
 
 const NOW = 1_700_000_000_000
 const DAY = 24 * 60 * 60 * 1000
@@ -32,6 +40,21 @@ describe('minutesLeft', () => {
   it('floors at zero once it is gone', () => {
     expect(minutesLeft(NOW, NOW)).toBe(0)
     expect(minutesLeft(NOW - MINUTE, NOW)).toBe(0)
+  })
+})
+
+describe('runningOut', () => {
+  it('flags a sign in with no more than the spare minutes left', () => {
+    const closing: Checks = {
+      telegram: { handle: 'alice', expiresAt: NOW + SPARE_MINUTES * MINUTE },
+      discord: { handle: 'alice_dc', expiresAt: NOW + SPARE_MINUTES * MINUTE + 1 },
+    }
+    expect(runningOut(closing, ['telegram', 'discord'], NOW)).toEqual(['telegram'])
+  })
+
+  it('looks only at the channels it is asked about', () => {
+    expect(runningOut(checks, ['telegram'], NOW)).toEqual([])
+    expect(runningOut({}, ['telegram', 'discord'], NOW)).toEqual([])
   })
 })
 

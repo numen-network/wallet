@@ -20,6 +20,8 @@ import {
   minutesLeft,
   PROVIDER_NAMES,
   PROVIDERS,
+  runningOut,
+  SPARE_MINUTES,
   verify,
   VerifyError,
   type Provider,
@@ -112,6 +114,7 @@ export function VerifyIdentity({
     const check = checks[provider]
     return check !== undefined && check.handle !== carried[provider]
   })
+  const closing = runningOut(checks, fresh, now)
   const worn: Proven = {
     telegram: checks.telegram?.handle ?? (removed.telegram ? '' : (carried.telegram ?? '')),
     discord: checks.discord?.handle ?? (removed.discord ? '' : (carried.discord ?? '')),
@@ -259,6 +262,12 @@ export function VerifyIdentity({
       onClose={onClose}
       onSubmit={form}
     >
+      {asked && (
+        <p className="mb-3 text-[12.5px] text-destructive">
+          The last check hasn't been judged yet. Wait for its verdict before you change anything.
+          Whatever you sign until then never gets checked.
+        </p>
+      )}
       {loses.length > 0 && (
         <p className="mb-3 text-[12.5px] text-destructive">
           This replaces what is on chain now, so {list.format(loses.map((field) => LABELS[field]))}{' '}
@@ -340,6 +349,14 @@ export function VerifyIdentity({
           )
         })}
       </ItemGroup>
+      {closing.length > 0 && (
+        <p className="mt-3 text-[12.5px] text-destructive">
+          Your {list.format(closing.map((provider) => PROVIDER_NAMES[provider]))}{' '}
+          {closing.length === 1 ? 'sign in runs' : 'sign ins run'} out within {SPARE_MINUTES} min.
+          If the identity lands after that, it's rejected in a way an edit won't undo. Verify again
+          before you sign.
+        </p>
+      )}
 
       {registrar === undefined ? (
         <p className={cn('mt-3', NOTE)}>

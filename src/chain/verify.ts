@@ -50,6 +50,21 @@ export function alive(checks: Checks, now = Date.now()): Checks {
 export const minutesLeft = (expiresAt: number, now = Date.now()): number =>
   Math.max(0, Math.ceil((expiresAt - now) / 60_000))
 
+/** Minutes a sign in should have left at signing, so it outlasts the trip into a block. */
+export const SPARE_MINUTES = 10
+
+/** Which of `providers` hold a sign in too close to running out to sign with. */
+export function runningOut(
+  checks: Checks,
+  providers: readonly Provider[],
+  now = Date.now(),
+): Provider[] {
+  return providers.filter((provider) => {
+    const check = checks[provider]
+    return check !== undefined && minutesLeft(check.expiresAt, now) <= SPARE_MINUTES
+  })
+}
+
 export const provenFrom = (checks: Checks): Proven => ({
   telegram: checks.telegram?.handle ?? '',
   discord: checks.discord?.handle ?? '',
