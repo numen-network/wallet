@@ -71,13 +71,24 @@ const WINDOW = 'width=520,height=680,menubar=no,toolbar=no'
 /** How often to look at a window that will not tell us it was closed. */
 const WATCH_MS = 400
 
-export function verify(network: Network, provider: Provider, address: string): Promise<Verified> {
+/**
+ * What the wallet signs before a sign in opens, the shape the identity site
+ * checks. The provider and the time ride inside, so one signature opens one
+ * channel for a few minutes.
+ */
+export const ownerMessage = (address: string, provider: Provider, at: number): string =>
+  `numen-identity\n${address}\n${provider}\n${at}`
+
+export function verify(
+  network: Network,
+  provider: Provider,
+  address: string,
+  sign: (message: string) => Promise<string>,
+): Promise<Verified> {
   const origin = new URL(network.identitySite).origin
-  const popup = window.open(
-    `${origin}/verify?provider=${provider}&address=${address}`,
-    'numen-identity',
-    WINDOW,
-  )
+  // The window opens on the click itself. Signing may sit behind an extension
+  // prompt, and a window opened after that wait is one the browser blocks
+  const popup = window.open('', 'numen-identity', WINDOW)
   if (!popup) return Promise.reject(new VerifyError('The browser blocked the sign in window'))
 
   return new Promise<Verified>((resolve, reject) => {
@@ -107,5 +118,24 @@ export function verify(network: Network, provider: Provider, address: string): P
     }, WATCH_MS)
 
     window.addEventListener('message', read)
+
+    const at = Date.now()
+    Promise.resolve()
+      .then(() => sign(ownerMessage(address, provider, at)))
+      .then(
+        (sig) => {
+          if (popup.closed) return
+          const url = new URL(`${origin}/verify`)
+          url.searchParams.set('provider', provider)
+          url.searchParams.set('address', address)
+          url.searchParams.set('at', String(at))
+          url.searchParams.set('sig', sig)
+          popup.location.href = url.href
+        },
+        (problem: unknown) => {
+          stop(() => reject(problem))
+          popup.close()
+        },
+      )
   })
 }

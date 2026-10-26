@@ -26,14 +26,16 @@ import {
 } from '@/chain/verify'
 import { cn } from '@/lib/cn'
 import { formatAmount } from '@/lib/balance'
+import { signMessage } from '@/signing/message'
 import { Button } from '@/components/ui/button'
 import { Facts, type Fact } from '@/ui/Facts'
 import { Trash2 } from 'lucide-react'
 import { FieldError, NOTE } from '@/components/ui/field'
 import { Item, ItemActions, ItemContent, ItemGroup } from '@/components/ui/item'
-import { CallPage, SignerField, useLaunch, useSigning } from './Authorize'
+import { CallPage, SignerField, signerFor, useLaunch, useSigning } from './Authorize'
 import type { IdentityFormProps } from './IdentityModal'
 import { IdentityLine } from './IdentityLine'
+import { signsAlone } from './types'
 
 const list = new Intl.ListFormat('en', { type: 'conjunction' })
 
@@ -176,12 +178,16 @@ export function VerifyIdentity({
       : []),
   ]
 
+  const keyless = !signsAlone(account)
+
   const run = async (provider: Provider) => {
     setFailed((was) => ({ ...was, [provider]: undefined }))
     setError('')
     setBusy(provider)
     try {
-      const outcome = await verify(network, provider, account.address)
+      const outcome = await verify(network, provider, account.address, async (message) =>
+        signMessage(signerFor(account, password), message),
+      )
       const handle = outcome.proven[provider]
       if (!handle) throw new VerifyError('The site proved nothing for this channel')
       patch({
@@ -289,13 +295,15 @@ export function VerifyIdentity({
           const stood = carried[provider]
           const riding = worn[provider] !== ''
           const trouble = failed[provider]
-          const state = held
-            ? `Signed in as ${held.handle}, ${minutesLeft(held.expiresAt, now)} min left`
-            : draft.checks[provider]
-              ? 'The sign in expired'
-              : stood && removed[provider]
-                ? 'Comes off the record when you sign'
-                : 'Not signed in'
+          const state = keyless
+            ? "Signing in needs this address's own key, and this wallet holds none"
+            : held
+              ? `Signed in as ${held.handle}, ${minutesLeft(held.expiresAt, now)} min left`
+              : draft.checks[provider]
+                ? 'The sign in expired'
+                : stood && removed[provider]
+                  ? 'Comes off the record when you sign'
+                  : 'Not signed in'
           return (
             <Item key={provider} className="gap-3.5 p-0">
               {/* Half the row apiece, so the states line up in a column */}
@@ -303,7 +311,7 @@ export function VerifyIdentity({
                 type="button"
                 variant={riding ? 'outline' : 'default'}
                 className="w-1/2 shrink-0"
-                disabled={busy !== null}
+                disabled={busy !== null || keyless}
                 onClick={() => void run(provider)}
               >
                 {busy === provider ? `Waiting for ${name}…` : `Verify with ${name}`}

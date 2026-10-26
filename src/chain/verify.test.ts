@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { alive, minutesLeft, provenFrom, type Checks } from './verify'
+import { alive, minutesLeft, ownerMessage, provenFrom, type Checks } from './verify'
 
 const NOW = 1_700_000_000_000
 const DAY = 24 * 60 * 60 * 1000
@@ -32,6 +32,14 @@ describe('minutesLeft', () => {
   it('floors at zero once it is gone', () => {
     expect(minutesLeft(NOW, NOW)).toBe(0)
     expect(minutesLeft(NOW - MINUTE, NOW)).toBe(0)
+  })
+})
+
+describe('ownerMessage', () => {
+  it('binds the address, the channel and the moment, one per line', () => {
+    expect(ownerMessage('nuSomeAddress', 'telegram', NOW)).toBe(
+      `numen-identity\nnuSomeAddress\ntelegram\n${NOW}`,
+    )
   })
 })
 
