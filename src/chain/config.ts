@@ -86,6 +86,12 @@ export function defaultNetwork(): NetworkId {
   return HOSTS[location.hostname] ?? 'local'
 }
 
+/** The shipped network that uses this identity site, with the host serving it. */
+export function siteOf(identitySite: string): { id: NetworkId; host: string } | undefined {
+  const entry = Object.entries(HOSTS).find(([, id]) => NETWORKS[id].identitySite === identitySite)
+  return entry && { id: entry[1], host: entry[0] }
+}
+
 /** The page the explorer serves for one account, history and all. */
 export function explorerAccount(network: Network, address: string): string {
   return `${network.explorer}/account/${address}`

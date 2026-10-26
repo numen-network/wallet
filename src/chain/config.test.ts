@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { isEvmAddress } from '@/lib/address'
-import { defaultNetwork, explorerAccount, explorerToken, NETWORKS, TOKENS } from './config'
+import {
+  defaultNetwork,
+  explorerAccount,
+  explorerToken,
+  NETWORKS,
+  siteOf,
+  TOKENS,
+} from './config'
 
 const ALICE = 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb'
 
@@ -48,6 +55,23 @@ describe('the network a deployment opens on', () => {
 
     servedFrom('wallet-preview.pages.dev')
     expect(defaultNetwork()).toBe('local')
+  })
+})
+
+describe('the network behind an identity site', () => {
+  it('names the shipped network that uses it and the host serving it', () => {
+    expect(siteOf(NETWORKS.mainnet.identitySite)).toEqual({
+      id: 'mainnet',
+      host: 'wallet.numen-network.org',
+    })
+    expect(siteOf(NETWORKS.testnet.identitySite)).toEqual({
+      id: 'testnet',
+      host: 'testnet.wallet.numen-network.org',
+    })
+  })
+
+  it('names nothing for a site no shipped network uses', () => {
+    expect(siteOf('https://id.example.org')).toBeUndefined()
   })
 })
 

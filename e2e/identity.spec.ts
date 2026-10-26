@@ -609,6 +609,23 @@ test('the one click dialog asks nothing about registrars', async ({ page }) => {
   await expect(dialog.getByText('0.5000 tNUMN', { exact: true })).toBeVisible()
 })
 
+test('the dialog points to the site that checks the chosen network', async ({ page }) => {
+  // This server isn't a wallet host, so its own network is the local one
+  await page.addInitScript(() => localStorage.setItem('numen-wallet-network', 'mainnet'))
+  await createKey(page)
+  await openIdentity(page, 'Automatic')
+
+  const dialog = page.getByRole('dialog')
+  for (const provider of ['Telegram', 'Discord'] as const) {
+    await expect(dialog.getByRole('button', { name: `Verify with ${provider}` })).toBeDisabled()
+  }
+  await expect(
+    dialog.getByText(
+      'Sign ins here only work with the Numen Local endpoint. To verify on Numen Mainnet, go to wallet.numen-network.org',
+    ),
+  ).toBeVisible()
+})
+
 test('a channel row says whether it is checked and how long the sign in holds', async ({
   page,
 }) => {

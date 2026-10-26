@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IDENTITY_CHECK_FEE } from '@/chain/config'
+import { defaultNetwork, IDENTITY_CHECK_FEE, NETWORKS, siteOf, type NetworkId } from '@/chain/config'
 import {
   carriedBy,
   depositFor,
@@ -40,6 +40,12 @@ import { IdentityLine } from './IdentityLine'
 import { signsAlone } from './types'
 
 const list = new Intl.ListFormat('en', { type: 'conjunction' })
+
+const SITE_NAMES: Record<NetworkId, string> = {
+  mainnet: 'Numen Mainnet',
+  testnet: 'Numen Testnet',
+  local: 'Numen Local',
+}
 
 /** Half a minute, so a row never shows a minute that has already gone. */
 const TICK_MS = 30_000
@@ -102,7 +108,13 @@ export function VerifyIdentity({
   }
   const hasName = named(profile.display)
   const hasPicture = pictured(profile.avatar)
-  const checks = alive(draft.checks, now)
+  // The identity site only answers the wallet host of its network. Its
+  // sign ins only count on that network
+  const home = defaultNetwork()
+  const offsite =
+    new URL(network.identitySite).origin !== new URL(NETWORKS[home].identitySite).origin
+  const elsewhere = siteOf(network.identitySite)
+  const checks = offsite ? {} : alive(draft.checks, now)
   const loses = dropped(registration ?? null)
 
   const registrar = seatOf(registrars ?? [], network.registrar)
@@ -262,6 +274,18 @@ export function VerifyIdentity({
       onClose={onClose}
       onSubmit={form}
     >
+      {offsite && (
+        <p className="mb-3 text-[12.5px] text-destructive">
+          Sign ins here only work with the {SITE_NAMES[home]} endpoint.
+          {elsewhere && (
+            <>
+              {' '}
+              To verify on {SITE_NAMES[elsewhere.id]}, go to{' '}
+              <span className="whitespace-nowrap">{elsewhere.host}</span>
+            </>
+          )}
+        </p>
+      )}
       {asked && (
         <p className="mb-3 text-[12.5px] text-destructive">
           The last check hasn't been judged yet. Wait for its verdict before you change anything.
@@ -308,7 +332,7 @@ export function VerifyIdentity({
             ? "Signing in needs this address's own key, and this wallet holds none"
             : held
               ? `Signed in as ${held.handle}, ${minutesLeft(held.expiresAt, now)} min left`
-              : draft.checks[provider]
+              : !offsite && draft.checks[provider]
                 ? 'The sign in expired'
                 : stood && removed[provider]
                   ? 'Comes off the record when you sign'
@@ -320,7 +344,7 @@ export function VerifyIdentity({
                 type="button"
                 variant={riding ? 'outline' : 'default'}
                 className="w-1/2 shrink-0"
-                disabled={busy !== null || keyless}
+                disabled={busy !== null || keyless || offsite}
                 onClick={() => void run(provider)}
               >
                 {busy === provider ? `Waiting for ${name}…` : `Verify with ${name}`}
