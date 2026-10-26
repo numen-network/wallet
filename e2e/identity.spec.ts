@@ -11,26 +11,33 @@ const SUB = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 
 /**
  * VITE_CHAIN=mock has no identity site to open a window on, so this stands in
- * for the window. The reply comes back the way the site sends one, from the
- * site's own origin and naming the address it was asked about.
+ * for the window. The wallet opens it blank and points it at the site once the
+ * address is signed for. The reply comes back the way the site sends one, from
+ * the site's own origin and naming the address it was asked about.
  */
 test.beforeEach(({ page }) =>
   page.addInitScript(() => {
-    window.open = (url) => {
-      const asked = new URL(String(url))
-      const provider = asked.searchParams.get('provider')
-      const handle = (own: string) => (provider === own ? 'vaultkeeper' : '')
-      const reply = {
-        kind: 'numen-identity',
-        address: asked.searchParams.get('address'),
-        proven: { telegram: handle('telegram'), discord: handle('discord') },
-        expiresAt: Date.now() + 60 * 60 * 1000,
-      }
-      setTimeout(() => {
-        window.dispatchEvent(new MessageEvent('message', { data: reply, origin: asked.origin }))
-      })
-      return { close() {}, closed: false } as unknown as Window
-    }
+    window.open = () =>
+      ({
+        closed: false,
+        close() {},
+        location: {
+          set href(url: string) {
+            const asked = new URL(url)
+            const provider = asked.searchParams.get('provider')
+            const handle = (own: string) => (provider === own ? 'vaultkeeper' : '')
+            const reply = {
+              kind: 'numen-identity',
+              address: asked.searchParams.get('address'),
+              proven: { telegram: handle('telegram'), discord: handle('discord') },
+              expiresAt: Date.now() + 60 * 60 * 1000,
+            }
+            setTimeout(() => {
+              window.dispatchEvent(new MessageEvent('message', { data: reply, origin: asked.origin }))
+            })
+          },
+        },
+      }) as unknown as Window
   }),
 )
 
@@ -619,6 +626,7 @@ test('a channel row says whether it is checked and how long the sign in holds', 
   await expect(dialog.getByText('5.27 tNUMN', { exact: true })).toBeVisible()
 
   // A sign in is good for an hour, and only the channel it was for changes
+  await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
   await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper, 60 min left')
   await expect(channel(page, 'Telegram')).toContainText('Never checked')
@@ -638,13 +646,13 @@ test('the only boxes are the profile and the password', async ({ page }) => {
   await expect(dialog.getByLabel('Avatar', { exact: true })).toBeVisible()
   await expect(dialog.getByLabel('Bio', { exact: true })).toBeVisible()
 
-  // Signing in never touches the key, so no password stands in its way
-  const telegram = dialog.getByRole('button', { name: 'Verify with Telegram' })
-  await expect(telegram).toBeEnabled()
-  await telegram.click()
+  // Verifying signs for the address, so the password goes in first
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
   await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
 
   const sign = dialog.getByRole('button', { name: 'Sign and send' })
+  await dialog.getByLabel('Account password').fill('')
   await expect(sign).toBeDisabled()
   await dialog.getByLabel('Account password').fill(PASSWORD)
   // Both boxes gate the signature, a password without a name signs nothing
@@ -694,6 +702,7 @@ test('a sign in can be taken back before it is paid for', async ({ page }) => {
   await openIdentity(page, 'Automatic')
 
   const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
   await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
@@ -712,6 +721,7 @@ test('a checked channel can be taken off the record', async ({ page }) => {
   const dialog = page.getByRole('dialog')
   await expect(channel(page, 'Telegram')).toContainText('Checked on chain as vaultkeeper')
 
+  await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Discord' }).click()
   await expect(channel(page, 'Discord')).toContainText('Signed in as vaultkeeper')
 
@@ -720,7 +730,6 @@ test('a checked channel can be taken off the record', async ({ page }) => {
   await expect(channel(page, 'Telegram')).toContainText('Comes off the record when you sign')
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
 
-  await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 
   await openIdentity(page, 'Manual')
