@@ -78,6 +78,7 @@ import {
   type ChainFacts,
   type ChainHead,
   type ChainRepository,
+  type Holding,
   type Operation,
   type Pending,
   type Proxy,
@@ -240,6 +241,9 @@ const DEEP = 4
 /** How deep a proposal may nest batches before the walk gives up on it. */
 const PROPOSAL_DEPTH = 4
 
+/** Storage keys asked for at once, the most a node hands back in one page. */
+const PAGE = 1000
+
 /** Bytes, whether the codec handed them over raw or wrapped. */
 const asBytes = (value: unknown): Uint8Array | null => {
   if (value instanceof Uint8Array) return value
@@ -382,6 +386,31 @@ export function createPapiRepository(network: Network): ChainRepository {
   /** The node's EVM RPC, served over the same socket as everything else. */
   const ethCall = (to: string, data: string, at: string) =>
     client._request<string, [{ to: string; data: string }, string]>('eth_call', [{ to, data }, at])
+
+  const describe = async (address: string): Promise<Token> => {
+    const [name, symbol, decimals] = await Promise.all([
+      ethCall(address, NAME_CALL, 'latest'),
+      ethCall(address, SYMBOL_CALL, 'latest'),
+      ethCall(address, DECIMALS_CALL, 'latest'),
+    ])
+    return { ...readToken(address, { name, symbol, decimals }), icon: null }
+  }
+
+  /** Every address with code, read off the keys of EVM.AccountCodes without the code itself. */
+  const allContracts = async (): Promise<string[]> => {
+    const any = await api.query.EVM.AccountCodes.getKey(`0x${'00'.repeat(20)}`)
+    // The pallet and map hashes fill the first 32 bytes, the address part follows
+    const prefix = any.slice(0, 66)
+    const keys: string[] = []
+    for (;;) {
+      const page = await client._request<string[], [string, number, string | null]>(
+        'state_getKeysPaged',
+        [prefix, PAGE, keys.at(-1) ?? null],
+      )
+      keys.push(...page)
+      if (page.length < PAGE) return keys.map((key) => `0x${key.slice(-40)}`)
+    }
+  }
 
   /**
    * What one argument of a call says. The runtime's own metadata has already
@@ -1575,15 +1604,33 @@ export function createPapiRepository(network: Network): ChainRepository {
     async tokens(): Promise<Token[]> {
       const { evmChainId } = await chainFacts()
       return Promise.all(
-        (TOKENS[evmChainId] ?? []).map(async ({ address, icon }) => {
-          const [name, symbol, decimals] = await Promise.all([
-            ethCall(address, NAME_CALL, 'latest'),
-            ethCall(address, SYMBOL_CALL, 'latest'),
-            ethCall(address, DECIMALS_CALL, 'latest'),
-          ])
-          return { ...readToken(address, { name, symbol, decimals }), icon }
+        (TOKENS[evmChainId] ?? []).map(async ({ address, icon }) => ({
+          ...(await describe(address)),
+          icon,
+        })),
+      )
+    },
+
+    token: describe,
+
+    /**
+     * Asks every contract on chain for the holder's balance, so the cost grows
+     * with the contract count. Fine for tens, an indexer's job at thousands.
+     */
+    async discoverTokens(holder: string): Promise<Holding[]> {
+      const contracts = await allContracts()
+      const held = await Promise.all(
+        contracts.map(async (address) => {
+          const answer = await ethCall(address, balanceOfCall(holder), 'latest').catch(() => null)
+          // A contract without balanceOf reverts or answers with something other than one word
+          if (answer?.length !== 66) return []
+          const balance = readBalance(answer)
+          if (balance === 0n) return []
+          const token = await describe(address).catch(() => null)
+          return token ? [{ token, balance }] : []
         }),
       )
+      return held.flat()
     },
 
     /**

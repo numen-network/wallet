@@ -412,7 +412,14 @@ export interface Token {
   name: string
   symbol: string
   decimals: number
-  icon: string
+  /** Null for a contract the wallet doesn't list, which comes with no logo. */
+  icon: string | null
+}
+
+/** What an EVM address holds of one token. */
+export interface Holding {
+  token: Token
+  balance: bigint
 }
 
 /** One spender track, as the runtime publishes it. */
@@ -543,6 +550,10 @@ export interface ChainRepository {
   readKeys(hex: string): Promise<SessionKeys>
   /** The tokens the wallet shows on this chain, as their contracts describe them. */
   tokens(): Promise<Token[]>
+  /** One contract as it describes itself. Rejects when it isn't an ERC20. */
+  token(address: string): Promise<Token>
+  /** What an EVM address holds across every contract on chain, empty ones left out. */
+  discoverTokens(holder: string): Promise<Holding[]>
   /** What an EVM address holds of a token, read again on every finalized block. */
   subscribeTokenBalance(
     token: string,

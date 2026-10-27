@@ -22,9 +22,9 @@ export const UNIT = 10n ** BigInt(DECIMALS)
 export const IDENTITY_CHECK_FEE = 10n * UNIT
 
 /**
- * ERC20 contracts the wallet shows, keyed by the EVM chain id they live on.
- * The chain keeps no token list or logos, so this one names each contract and
- * its logo. Name, symbol and decimals come from each contract.
+ * ERC20 contracts the wallet lists, keyed by the EVM chain id they live on,
+ * each with the logo the chain doesn't keep. Name, symbol and decimals come
+ * from each contract. Any other contract is the user's to import.
  */
 export const TOKENS: Record<number, { address: string; icon: string }[]> = {
   32026: [{ address: '0xa1795b3c6f74866c7def1df390f9e2e403dca2e9', icon: wtmr }],

@@ -52,13 +52,48 @@ export function useTokenBalances(holder: string | null, tokens: string[]): Recor
   return balances
 }
 
-/** The tokens the wallet shows, read once, since neither the list nor the contracts change. */
-export function useTokenList() {
+/** The tokens the wallet lists, read once, since neither the list nor the contracts change. */
+export function useListedTokens() {
   const { repository, network } = useChain()
 
   return useQuery({
     queryKey: ['tokens', network.id],
     queryFn: () => repository.tokens(),
+    staleTime: Infinity,
+  })
+}
+
+/** Imported contracts as they describe themselves. Metadata never changes, so each is read once. */
+export function useImportedTokens(addresses: string[]) {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['importedTokens', network.id, addresses],
+    queryFn: () => Promise.all(addresses.map((address) => repository.token(address))),
+    staleTime: Infinity,
+  })
+}
+
+/** One contract's name, symbol and decimals. Errors when it isn't an ERC20. */
+export function useToken(address: string | null) {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['token', network.id, address],
+    queryFn: () => repository.token(address ?? ''),
+    enabled: address !== null,
+    staleTime: Infinity,
+    retry: false,
+  })
+}
+
+/** What the holder has across every contract on chain. Read on demand and kept for the session. */
+export function useDiscoveredTokens(holder: string) {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['discoveredTokens', network.id, holder],
+    queryFn: () => repository.discoverTokens(holder),
     staleTime: Infinity,
   })
 }

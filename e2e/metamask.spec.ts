@@ -254,6 +254,69 @@ test('says so when an EVM address holds none of the tokens', async ({ page }) =>
   await expect(dialog.getByText('Bare holds none of the tokens the wallet shows.')).toBeVisible()
 })
 
+/** On the mock chain but off its list, so it only shows once imported. */
+const GOLD = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0'
+
+test('imports a token the account holds that the wallet does not list', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  const dialog = await tokenBalances(page, 'Mirror')
+  await expect(dialog.getByText('Mock Gold')).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Import token' }).click()
+  await dialog.getByRole('button', { name: 'Import mGLD' }).click()
+  await expect(dialog.getByRole('button', { name: 'Import mGLD' })).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Done' }).click()
+
+  await expect(dialog.getByText('Mock Gold')).toBeVisible()
+  await expect(dialog.getByText('Imported')).toBeVisible()
+
+  await page.reload()
+  const again = await tokenBalances(page, 'Mirror')
+  await expect(again.getByText('Mock Gold')).toBeVisible()
+  await again.getByRole('button', { name: 'Remove mGLD' }).click()
+  await expect(again.getByText('Mock Gold')).toHaveCount(0)
+})
+
+test('imports a pasted contract and refuses what is no new token', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: BARE_MIRROR, evmAddress: BARE, name: 'Bare' }])
+
+  const dialog = await tokenBalances(page, 'Bare')
+  await dialog.getByRole('button', { name: 'Import token' }).click()
+  const box = dialog.getByPlaceholder('0x…')
+  const importIt = dialog.getByRole('button', { name: 'Import', exact: true })
+
+  await box.fill('0x12')
+  await expect(dialog.getByText('Enter a 0x contract address')).toBeVisible()
+  await box.fill(`0x${'ab'.repeat(20)}`)
+  await expect(dialog.getByText('No ERC20 at this address')).toBeVisible()
+  await box.fill(MUSD)
+  await expect(dialog.getByText('Already in the list')).toBeVisible()
+  await expect(importIt).toBeDisabled()
+
+  await box.fill(GOLD.toUpperCase().replace('0X', '0x'))
+  await expect(dialog.getByText('18 decimals')).toBeVisible()
+  await importIt.click()
+  await expect(box).toHaveValue('')
+  await dialog.getByRole('button', { name: 'Done' }).click()
+
+  await expect(dialog.getByText('Mock Gold')).toBeVisible()
+})
+
+test('treats a token the wallet lists as listed even after an import', async ({ page }) => {
+  await withMetaMask(page)
+  await page.evaluate((token) => {
+    localStorage.setItem('numen-wallet-tokens-v1', JSON.stringify({ local: [token] }))
+  }, MUSD)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  const dialog = await tokenBalances(page, 'Mirror')
+  await expect(dialog.getByText('Mock Dollar')).toBeVisible()
+  await expect(dialog.getByText('Imported')).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'Remove mUSD' })).toHaveCount(0)
+})
+
 test("opens Send with the row's token already picked", async ({ page }) => {
   await withMetaMask(page)
   await watching(page, [

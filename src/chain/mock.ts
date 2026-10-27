@@ -52,6 +52,7 @@ import {
   type CallArg,
   type ChainRepository,
   type Delegation,
+  type Holding,
   type Operation,
   type Pending,
   type Proxy,
@@ -108,6 +109,19 @@ const TOKENS: Token[] = [
     icon: wtmr,
   },
 ]
+
+/** On chain but off the list, so there is something for an import to find. */
+const UNLISTED: Token[] = [
+  {
+    address: '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0',
+    name: 'Mock Gold',
+    symbol: 'mGLD',
+    decimals: 18,
+    icon: null,
+  },
+]
+
+const CONTRACTS = [...TOKENS, ...UNLISTED]
 
 /** Derived like the native balance, so an address holds the same tokens on every load. */
 function seedTokenBalance(token: string, holder: string, decimals: number): bigint {
@@ -1585,8 +1599,21 @@ export function createMockRepository(): ChainRepository {
       return TOKENS.map((token) => ({ ...token }))
     },
 
+    async token(address: string): Promise<Token> {
+      const token = CONTRACTS.find((entry) => entry.address === address)
+      if (!token) throw new Error('No ERC20 at that address')
+      return { ...token, icon: null }
+    },
+
+    async discoverTokens(holder: string): Promise<Holding[]> {
+      return CONTRACTS.flatMap((token) => {
+        const balance = seedTokenBalance(token.address, holder, token.decimals)
+        return balance > 0n ? [{ token: { ...token, icon: null }, balance }] : []
+      })
+    },
+
     subscribeTokenBalance(token, holder, onBalance): Unsubscribe {
-      const decimals = TOKENS.find((entry) => entry.address === token)?.decimals ?? 0
+      const decimals = CONTRACTS.find((entry) => entry.address === token)?.decimals ?? 0
       onBalance(seedTokenBalance(token, holder, decimals))
       return () => {}
     },

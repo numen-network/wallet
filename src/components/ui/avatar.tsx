@@ -33,4 +33,20 @@ function AvatarImage({ className, ...props }: React.ComponentProps<typeof Avatar
   )
 }
 
-export { Avatar, AvatarImage }
+function AvatarFallback({
+  className,
+  ...props
+}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
+  return (
+    <AvatarPrimitive.Fallback
+      data-slot="avatar-fallback"
+      className={cn(
+        'flex size-full items-center justify-center rounded-full bg-card text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export { Avatar, AvatarFallback, AvatarImage }

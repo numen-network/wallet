@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import logo from '@/assets/logo.svg'
 import { useChain } from '@/chain/provider'
 import { useBalances, useFacts } from '@/chain/queries'
-import { totalOf } from '@/chain/types'
+import { totalOf, type Holding, type Token } from '@/chain/types'
 import {
   evmAccounts,
   metaMask,
@@ -17,22 +17,20 @@ import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Field, INSIDE } from '@/ui/Field'
 import { LEDE, Modal } from '@/ui/Modal'
 import { Select } from '@/ui/Select'
-import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { FieldError, NOTE } from '@/components/ui/field'
 import { toast, toastProblem } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { AmountField } from './AmountField'
-import { tokenAmount, useHoldings, type Holding } from './tokens'
+import { TokenMark } from './TokenMark'
+import { tokenAmount, useHoldings } from './tokens'
 import type { Account } from './types'
 
 /** The Token box's value for the coin, which no contract address can clash with. */
 const COIN = 'coin'
 
 /** Sized to the tick's column, so every row reads from the same left edge. */
-const mark = (icon: string) => (
-  <Avatar className="size-3.5">
-    <AvatarImage src={icon} alt="" />
-  </Avatar>
+const mark = (token: Pick<Token, 'icon' | 'symbol'>) => (
+  <TokenMark token={token} className="size-3.5 text-[6px]" />
 )
 
 const NONE: Holding[] = []
@@ -58,6 +56,7 @@ export function MetaMaskSendModal({
 }) {
   const { network } = useChain()
   const { data: facts } = useFacts()
+  const coin = { icon: logo, symbol: facts?.symbol ?? '' }
   // Until the chain answers, the holding the dialog opened with stands in for it
   const holdings = useHoldings(source) ?? (initial ? [initial] : NONE)
   const [held, setHeld] = useState<string[]>([])
@@ -186,20 +185,20 @@ export function MetaMaskSendModal({
             {
               value: COIN,
               label: facts?.symbol ?? '',
-              icon: mark(logo),
+              icon: mark(coin),
               detail: formatAmount(there, { precision: 4 }),
             },
             ...holdings.map((holding) => ({
               value: holding.token.address,
               label: `${holding.token.symbol}, ${holding.token.name}`,
-              icon: mark(holding.token.icon),
+              icon: mark(holding.token),
               detail: tokenAmount(holding),
             })),
           ]}
           label="Token"
           className={INSIDE}
         >
-          {mark(token?.token.icon ?? logo)}
+          {mark(token?.token ?? coin)}
         </Select>
       </Field>
 
