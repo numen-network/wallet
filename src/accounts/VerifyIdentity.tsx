@@ -31,8 +31,9 @@ import { formatAmount } from '@/lib/balance'
 import { signMessage } from '@/signing/message'
 import { Button } from '@/components/ui/button'
 import { Facts, type Fact } from '@/ui/Facts'
-import { Trash2 } from 'lucide-react'
-import { FieldError, NOTE } from '@/components/ui/field'
+import { Tip } from '@/ui/Tip'
+import { Info, Trash2 } from 'lucide-react'
+import { CAPTION, FieldError, NOTE } from '@/components/ui/field'
 import { Item, ItemActions, ItemContent, ItemGroup } from '@/components/ui/item'
 import { CallPage, SignerField, signerFor, useLaunch, useSigning } from './Authorize'
 import type { IdentityFormProps } from './IdentityModal'
@@ -49,6 +50,8 @@ const SITE_NAMES: Record<NetworkId, string> = {
 
 /** Half a minute, so a row never shows a minute that has already gone. */
 const TICK_MS = 30_000
+
+const DEADLINE = 'Your sign-in lasts an hour. Sign too late and the registrar rejects your identity.'
 
 /**
  * The wall clock, read afresh each render and nudged so the renders keep
@@ -321,39 +324,55 @@ export function VerifyIdentity({
       {/* One channel a row, and the two states beside the button answer
           different questions. What the chain stands behind outlives this
           dialog, while a sign in held here is good for an hour */}
-      <ItemGroup className="mt-4 gap-2.5">
+      <ItemGroup className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] gap-x-3.5 gap-y-2.5 max-sm:grid-cols-[auto_minmax(0,1fr)_auto]">
         {PROVIDERS.map((provider) => {
           const name = PROVIDER_NAMES[provider]
-          const held = checks[provider]
+          const held = keyless ? undefined : checks[provider]
           const stood = carried[provider]
           const riding = worn[provider] !== ''
           const trouble = failed[provider]
-          const state = keyless
-            ? "Signing in needs this address's own key, and this wallet holds none"
+          const chain = !stood
+            ? 'Not verified'
+            : removed[provider]
+              ? 'Removed when you sign'
+              : `Verified as ${stood}`
+          const signin = keyless
+            ? "Needs this account's key"
             : held
-              ? `Signed in as ${held.handle}, ${minutesLeft(held.expiresAt, now)} min left`
+              ? held.handle
               : !offsite && draft.checks[provider]
-                ? 'The sign in expired'
-                : stood && removed[provider]
-                  ? 'Comes off the record when you sign'
-                  : 'Not signed in'
+                ? 'Expired'
+                : 'None'
           return (
-            <Item key={provider} className="gap-3.5 p-0">
-              {/* Half the row apiece, so the states line up in a column */}
+            <Item key={provider} className="col-span-full grid grid-cols-subgrid gap-y-2 p-0">
+              {/* Rows share the group's columns, so labels and values line up across channels */}
               <Button
                 type="button"
                 variant={riding ? 'outline' : 'default'}
-                className="w-1/2 shrink-0"
+                className="max-sm:col-span-full"
                 disabled={busy !== null || keyless || offsite}
                 onClick={() => void run(provider)}
               >
                 {busy === provider ? `Waiting for ${name}…` : `Verify with ${name}`}
               </Button>
-              <ItemContent className="text-[12.5px] leading-[1.5]">
-                <p className={cn('truncate', stood && riding ? 'text-good' : 'text-dim')}>
-                  {stood ? `Checked on chain as ${stood}` : 'Never checked'}
-                </p>
-                <p className={trouble ? 'text-destructive' : 'truncate text-dim'}>{trouble ?? state}</p>
+              <ItemContent className="col-span-2 grid grid-cols-subgrid items-baseline gap-x-2.5 text-[12.5px] leading-[1.5]">
+                <span className={CAPTION}>On chain</span>
+                <span className={cn('truncate', stood && riding ? 'text-good' : 'text-dim')}>{chain}</span>
+                <span className={CAPTION}>Sign-in</span>
+                <span className={trouble ? 'text-destructive' : 'truncate'}>{trouble ?? signin}</span>
+                {held && (
+                  <>
+                    <span className={CAPTION}>Sign within</span>
+                    <span className="flex items-center gap-1.5">
+                      {minutesLeft(held.expiresAt, now)} min
+                      <Tip text={DEADLINE}>
+                        <span className="inline-flex text-dim">
+                          <Info className="size-3" />
+                        </span>
+                      </Tip>
+                    </span>
+                  </>
+                )}
               </ItemContent>
               {riding && (
                 <ItemActions>

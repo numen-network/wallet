@@ -450,7 +450,7 @@ async function verifyWith(page: Page, provider: Channel, name = 'Alice') {
   await dialog.getByLabel('Display name', { exact: true }).fill(name)
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: `Verify with ${provider}` }).click()
-  await expect(channel(page, provider)).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, provider)).toContainText('Sign-invaultkeeper')
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 }
 
@@ -489,7 +489,7 @@ test('the one click record carries the whole profile', async ({ page }) => {
   await dialog.getByLabel('Bio', { exact: true }).fill('Keeper of the vault')
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, 'Telegram')).toContainText('Sign-invaultkeeper')
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Identity registered')).toBeVisible()
 
@@ -524,11 +524,11 @@ test('two sign ins ride one signature and each pays its price', async ({ page })
   await dialog.getByLabel('Display name', { exact: true }).fill('Alice')
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, 'Telegram')).toContainText('Sign-invaultkeeper')
   // The total follows the sign ins, one price apiece
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
   await dialog.getByRole('button', { name: 'Verify with Discord' }).click()
-  await expect(channel(page, 'Discord')).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, 'Discord')).toContainText('Sign-invaultkeeper')
   await expect(
     dialog.getByText('2 × 10.0000 = 20.0000 tNUMN'),
   ).toBeVisible()
@@ -556,14 +556,14 @@ test('a channel already checked is not paid again', async ({ page }) => {
   // The chain already stands behind telegram, so it opens checked and free
   await openIdentity(page, 'Automatic')
   const dialog = page.getByRole('dialog')
-  await expect(channel(page, 'Telegram')).toContainText('Checked on chain as vaultkeeper')
-  await expect(channel(page, 'Discord')).toContainText('Never checked')
+  await expect(channel(page, 'Telegram')).toContainText('Verified as vaultkeeper')
+  await expect(channel(page, 'Discord')).toContainText('Not verified')
   await expect(dialog.getByText('0 × 10.0000 = 0.0000 tNUMN')).toBeVisible()
 
   // Only the new sign in is on the bill
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Discord' }).click()
-  await expect(channel(page, 'Discord')).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, 'Discord')).toContainText('Sign-invaultkeeper')
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
 
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
@@ -634,8 +634,8 @@ test('a channel row says whether it is checked and how long the sign in holds', 
 
   // Nothing on chain and nothing held, which is where both channels start
   for (const provider of ['Telegram', 'Discord'] as const) {
-    await expect(channel(page, provider)).toContainText('Never checked')
-    await expect(channel(page, provider)).toContainText('Not signed in')
+    await expect(channel(page, provider)).toContainText('Not verified')
+    await expect(channel(page, provider)).toContainText('Sign-inNone')
   }
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('0 × 10.0000 = 0.0000 tNUMN')).toBeVisible()
@@ -645,9 +645,10 @@ test('a channel row says whether it is checked and how long the sign in holds', 
   // A sign in is good for an hour, and only the channel it was for changes
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper, 60 min left')
-  await expect(channel(page, 'Telegram')).toContainText('Never checked')
-  await expect(channel(page, 'Discord')).toContainText('Not signed in')
+  await expect(channel(page, 'Telegram')).toContainText('Sign-invaultkeeper')
+  await expect(channel(page, 'Telegram')).toContainText('Sign within60 min')
+  await expect(channel(page, 'Telegram')).toContainText('Not verified')
+  await expect(channel(page, 'Discord')).toContainText('Sign-inNone')
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
   // The handle went on the record, so the held amount grew with it
   await expect(dialog.getByText('5.38 tNUMN', { exact: true })).toBeVisible()
@@ -666,7 +667,7 @@ test('the only boxes are the profile and the password', async ({ page }) => {
   // Verifying signs for the address, so the password goes in first
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, 'Telegram')).toContainText('Sign-invaultkeeper')
 
   const sign = dialog.getByRole('button', { name: 'Sign and send' })
   await dialog.getByLabel('Account password').fill('')
@@ -699,7 +700,7 @@ test('a record with no name does not sign', async ({ page }) => {
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, 'Telegram')).toContainText('Sign-invaultkeeper')
 
   const sign = dialog.getByRole('button', { name: 'Sign and send' })
   await expect(dialog.getByText('The record needs a display name')).toBeVisible()
@@ -721,11 +722,11 @@ test('a sign in can be taken back before it is paid for', async ({ page }) => {
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, 'Telegram')).toContainText('Sign-invaultkeeper')
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
 
   await channel(page, 'Telegram').getByRole('button', { name: 'Remove Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Not signed in')
+  await expect(channel(page, 'Telegram')).toContainText('Sign-inNone')
   await expect(dialog.getByText('0 × 10.0000 = 0.0000 tNUMN')).toBeVisible()
 })
 
@@ -736,15 +737,15 @@ test('a checked channel can be taken off the record', async ({ page }) => {
 
   await openIdentity(page, 'Automatic')
   const dialog = page.getByRole('dialog')
-  await expect(channel(page, 'Telegram')).toContainText('Checked on chain as vaultkeeper')
+  await expect(channel(page, 'Telegram')).toContainText('Verified as vaultkeeper')
 
   await dialog.getByLabel('Account password').fill(PASSWORD)
   await dialog.getByRole('button', { name: 'Verify with Discord' }).click()
-  await expect(channel(page, 'Discord')).toContainText('Signed in as vaultkeeper')
+  await expect(channel(page, 'Discord')).toContainText('Sign-invaultkeeper')
 
   // Dropping the checked handle costs nothing, only the fresh sign in is billed
   await channel(page, 'Telegram').getByRole('button', { name: 'Remove Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Comes off the record when you sign')
+  await expect(channel(page, 'Telegram')).toContainText('Removed when you sign')
   await expect(dialog.getByText('1 × 10.0000 = 10.0000 tNUMN')).toBeVisible()
 
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
@@ -775,7 +776,7 @@ test('closing the dialog forgets a removal', async ({ page }) => {
 
   await openIdentity(page, 'Automatic')
   await channel(page, 'Telegram').getByRole('button', { name: 'Remove Telegram' }).click()
-  await expect(channel(page, 'Telegram')).toContainText('Comes off the record when you sign')
+  await expect(channel(page, 'Telegram')).toContainText('Removed when you sign')
 
   // The overlay click that keeps typed drafts must not keep this
   await page.mouse.click(20, 400)
@@ -783,8 +784,8 @@ test('closing the dialog forgets a removal', async ({ page }) => {
 
   await openIdentity(page, 'Automatic')
   const dialog = page.getByRole('dialog')
-  await expect(channel(page, 'Telegram')).toContainText('Checked on chain as vaultkeeper')
-  await expect(dialog.getByText(/Comes off the record/)).toHaveCount(0)
+  await expect(channel(page, 'Telegram')).toContainText('Verified as vaultkeeper')
+  await expect(dialog.getByText('Removed when you sign')).toHaveCount(0)
   await expect(dialog.getByRole('button', { name: 'Sign and send' })).toBeVisible()
 })
 
