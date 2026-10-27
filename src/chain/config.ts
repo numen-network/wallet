@@ -23,11 +23,15 @@ export const IDENTITY_CHECK_FEE = 10n * UNIT
 
 /**
  * ERC20 contracts the wallet lists, keyed by the EVM chain id they live on,
- * each with the logo the chain doesn't keep. Name, symbol and decimals come
- * from each contract. Any other contract is the user's to import.
+ * each with its logo where the wallet has one, since the chain keeps none.
+ * Name, symbol and decimals come from each contract. Any other contract is the
+ * user's to import.
  */
-export const TOKENS: Record<number, { address: string; icon: string }[]> = {
-  32026: [{ address: '0xa1795b3c6f74866c7def1df390f9e2e403dca2e9', icon: wtmr }],
+export const TOKENS: Record<number, { address: string; icon?: string }[]> = {
+  32026: [
+    { address: '0xa1795b3c6f74866c7def1df390f9e2e403dca2e9', icon: wtmr },
+    { address: '0x2456f756084bc884f59bf1aa92845dee142cdb56' },
+  ],
 }
 
 export type NetworkId = 'mainnet' | 'testnet' | 'local'

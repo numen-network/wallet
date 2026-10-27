@@ -1606,7 +1606,7 @@ export function createPapiRepository(network: Network): ChainRepository {
       return Promise.all(
         (TOKENS[evmChainId] ?? []).map(async ({ address, icon }) => ({
           ...(await describe(address)),
-          icon,
+          icon: icon ?? null,
         })),
       )
     },
