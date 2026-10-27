@@ -1,21 +1,20 @@
 import type { Token } from '@/chain/types'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/cn'
 
-/** A token's logo, or the first letters of its symbol when the wallet has none. */
+/** A token's logo, or a blank of the same size so rows without one stay aligned. */
 export function TokenMark({
   token,
   className,
 }: {
-  token: Pick<Token, 'icon' | 'symbol'>
+  token: Pick<Token, 'icon'>
   className?: string
 }) {
+  if (!token.icon) return <span aria-hidden className={cn('block size-8 shrink-0', className)} />
+
   return (
-    <Avatar className={cn('text-[11px]', className)}>
-      {token.icon && <AvatarImage src={token.icon} alt="" />}
-      <AvatarFallback className="text-[length:inherit] font-bold">
-        {token.symbol.slice(0, 2)}
-      </AvatarFallback>
+    <Avatar className={className}>
+      <AvatarImage src={token.icon} alt="" />
     </Avatar>
   )
 }

@@ -29,9 +29,9 @@ import type { Account } from './types'
 const COIN = 'coin'
 
 /** Sized to the tick's column, so every row reads from the same left edge. */
-const mark = (token: Pick<Token, 'icon' | 'symbol'>) => (
-  <TokenMark token={token} className="size-3.5 text-[6px]" />
-)
+const mark = (token: Pick<Token, 'icon'>) => <TokenMark token={token} className="size-3.5" />
+
+const COIN_MARK = mark({ icon: logo })
 
 const NONE: Holding[] = []
 
@@ -56,7 +56,6 @@ export function MetaMaskSendModal({
 }) {
   const { network } = useChain()
   const { data: facts } = useFacts()
-  const coin = { icon: logo, symbol: facts?.symbol ?? '' }
   // Until the chain answers, the holding the dialog opened with stands in for it
   const holdings = useHoldings(source) ?? (initial ? [initial] : NONE)
   const [held, setHeld] = useState<string[]>([])
@@ -185,7 +184,7 @@ export function MetaMaskSendModal({
             {
               value: COIN,
               label: facts?.symbol ?? '',
-              icon: mark(coin),
+              icon: COIN_MARK,
               detail: formatAmount(there, { precision: 4 }),
             },
             ...holdings.map((holding) => ({
@@ -198,7 +197,7 @@ export function MetaMaskSendModal({
           label="Token"
           className={INSIDE}
         >
-          {mark(token?.token ?? coin)}
+          {token ? mark(token.token) : COIN_MARK}
         </Select>
       </Field>
 
