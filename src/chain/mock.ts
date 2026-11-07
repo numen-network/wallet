@@ -1,7 +1,7 @@
 import { stringToU8a } from '@polkadot/util'
 import { encodeMultiAddress } from '@polkadot/util-crypto'
 import wtmr from '@/assets/tokens/wtmr.svg'
-import { palletAccount } from '@/lib/address'
+import { frontierAccount, palletAccount, reviveAccount, reviveAddress } from '@/lib/address'
 import { replaceBigInt, reviveBigInt } from '@/lib/json'
 import { DECIMALS, SS58_PREFIX, UNIT } from './config'
 import {
@@ -52,6 +52,7 @@ import {
   type CallArg,
   type ChainRepository,
   type Delegation,
+  type EvmLayer,
   type Holding,
   type Operation,
   type Pending,
@@ -237,6 +238,14 @@ const callHashOf = (operation: Operation) => receipt(callText(operation))
  */
 const ALICE = 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb'
 const BOB = 'nu5sKtuEZG5GH9emAghk9MTdVPBJbieEsSD8Z6UKkA45afKcv'
+
+/** What Frontier left at the account it hashed for an H160, here the one the MetaMask stub holds. */
+const LEFT_BEHIND: [string, bigint][] = [
+  ['0x1234567890abcdef1234567890abcdef12345678', 39_381n * UNIT + UNIT / 8n],
+]
+
+/** An account the chain has never seen, so no H160 leads back to it yet. */
+const UNSEEN = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 
 const ALICE_KEYS: SessionKeys = {
   grandpa: '0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee',
@@ -716,7 +725,19 @@ interface Held {
 
 const NOTHING_PRIOR = { until: 0, amount: 0n }
 
-export function createMockRepository(): ChainRepository {
+export function createMockRepository(start: EvmLayer = 'frontier'): ChainRepository {
+  let evm = start
+  const runtimeListeners = new Set<(evm: EvmLayer) => void>()
+  const leftBehind = new Map(LEFT_BEHIND)
+  /** H160s pallet-revive maps back to an account, filled in as accounts are looked at. */
+  const mapped = new Map([ALICE, BOB].map((address) => [reviveAddress(address), address]))
+  // Nothing here has a runtime to upgrade, so the suites set one off by hand
+  const upgrade = () => {
+    evm = 'revive'
+    for (const listener of runtimeListeners) listener(evm)
+  }
+  globalThis.addEventListener?.('numen-mock-upgrade', upgrade)
+
   let height = NOW
   const balances = new Map<string, AccountBalance>()
   const listeners = new Map<string, Set<(balance: AccountBalance) => void>>()
@@ -1411,6 +1432,21 @@ export function createMockRepository(): ChainRepository {
     }
   }
 
+  /** The same walk a real call takes, so the UI has something to show. */
+  const walk = async (
+    hash: string,
+    onProgress: ((progress: TxProgress) => void) | undefined,
+    land: () => unknown,
+  ): Promise<string> => {
+    for (const stage of ['signed', 'broadcast', 'inBlock'] as const) {
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      onProgress?.({ stage, hash })
+    }
+    await land()
+    onProgress?.({ stage: 'finalized', hash })
+    return hash
+  }
+
   return {
     async facts(): Promise<ChainFacts> {
       return FACTS
@@ -1430,6 +1466,42 @@ export function createMockRepository(): ChainRepository {
         emit()
       }, 9_000)
       return () => clearInterval(tick)
+    },
+
+    subscribeRuntime(onRuntime): Unsubscribe {
+      const listener = (layer: EvmLayer) => onRuntime(layer)
+      runtimeListeners.add(listener)
+      // A beat late, the way a node answers
+      queueMicrotask(() => runtimeListeners.has(listener) && onRuntime(evm))
+      return () => runtimeListeners.delete(listener)
+    },
+
+    async evmAccount(h160: string): Promise<string> {
+      const address = h160.toLowerCase()
+      if (evm === 'frontier') return frontierAccount(address)
+      return mapped.get(address) ?? reviveAccount(address)
+    },
+
+    async evmAddressOf(address: string): Promise<string | null> {
+      if (evm === 'frontier' || address === UNSEEN) return null
+      const h160 = reviveAddress(address)
+      if (reviveAccount(h160) !== address) mapped.set(h160, address)
+      return h160
+    },
+
+    async claimable(h160: string): Promise<bigint> {
+      return evm === 'revive' ? (leftBehind.get(h160.toLowerCase()) ?? 0n) : 0n
+    },
+
+    claim(h160, onProgress): Promise<string> {
+      const address = h160.toLowerCase()
+      const amount = evm === 'revive' ? leftBehind.get(address) : undefined
+      if (!amount) return Promise.reject(new Error('Nothing is waiting to be claimed for that address'))
+      return walk(receipt(`claim:${address}:${(nonce += 1)}`), onProgress, () => {
+        leftBehind.delete(address)
+        const owner = reviveAccount(address)
+        write(owner, read(owner).free + amount - FEE)
+      })
     },
 
     subscribeBalance(address, onBalance): Unsubscribe {
@@ -1628,24 +1700,18 @@ export function createMockRepository(): ChainRepository {
       return parts.map((part) => part.flat())
     },
 
-    async submit(
+    submit(
       account,
       operation: Operation,
       onProgress?: (progress: TxProgress) => void,
     ): Promise<string> {
-      // The same walk a real one takes, so the UI has something to show
       const hash = receipt(`${account.address}:${operation.kind}:${(nonce += 1)}`)
-      for (const stage of ['signed', 'broadcast', 'inBlock'] as const) {
-        await new Promise((resolve) => setTimeout(resolve, 250))
-        onProgress?.({ stage, hash })
-      }
-
-      await apply(account, operation)
-      onProgress?.({ stage: 'finalized', hash })
-      return hash
+      return walk(hash, onProgress, () => apply(account, operation))
     },
 
     disconnect() {
+      globalThis.removeEventListener?.('numen-mock-upgrade', upgrade)
+      runtimeListeners.clear()
       listeners.clear()
       delegated.clear()
       proxies.clear()

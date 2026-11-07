@@ -21,6 +21,7 @@
     "@fontsource-variable/inter": "^5.3.0",
     "@icons-pack/react-simple-icons": "13.15.1",
     "@polkadot-api/descriptors": "file:.papi/descriptors",
+    "@polkadot-api/signers-common": "^0.4.0",
     "@polkadot/keyring": "^14.0.3",
     "@polkadot/react-identicon": "^3.16.7",
     "@polkadot/ui-shared": "^3.16.7",

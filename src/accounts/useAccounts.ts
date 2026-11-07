@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEvmAddress } from '@/chain/queries'
 import { isSubstrateAddress, toNumenAddress } from '@/lib/address'
 import { availableBackends } from '@/signing'
 import type { WalletAccount } from '@/signing/types'
@@ -176,4 +177,13 @@ export function useAccounts() {
   )
 
   return { accounts, byAddress, groups, connectExtension }
+}
+
+/**
+ * The H160 an account answers to. An EVM account has its own, and a Numen
+ * account has one once the chain maps it back.
+ */
+export function useEvmAddressOf(account: Account): string | null {
+  const { data: mapped } = useEvmAddress(account.evmAddress ? null : account.address)
+  return account.evmAddress ?? mapped ?? null
 }

@@ -7,10 +7,11 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { createRepository } from './index'
 import { defaultNetwork, NETWORKS, type Network } from './config'
 import { addEndpoint, allNetworks, removeEndpoint } from './custom'
-import type { ChainRepository } from './types'
+import type { ChainRepository, EvmLayer } from './types'
 
 const NETWORK_KEY = 'numen-wallet-network'
 
@@ -28,6 +29,8 @@ interface ChainContextValue {
   network: Network
   networks: Network[]
   repository: ChainRepository
+  /** Null until the chain has said which one it runs. */
+  evm: EvmLayer | null
   setNetwork: (id: string) => void
   /** Adds it and switches to it, since nobody adds one to leave it alone. */
   addNetwork: (name: string, url: string) => void
@@ -56,6 +59,19 @@ export function ChainProvider({ children }: { children: ReactNode }) {
     if (left !== repository) left.disconnect()
   }, [repository])
 
+  const queryClient = useQueryClient()
+  const [layer, setLayer] = useState<{ repository: ChainRepository; evm: EvmLayer } | null>(null)
+  useEffect(() => {
+    let first = true
+    return repository.subscribeRuntime((evm) => {
+      setLayer({ repository, evm })
+      // Everything so far was read under the runtime the session opened on
+      if (!first) void queryClient.invalidateQueries()
+      first = false
+    })
+  }, [repository, queryClient])
+  const evm = layer?.repository === repository ? layer.evm : null
+
   const value = useMemo(() => {
     const select = (id: string) => {
       try {
@@ -70,6 +86,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
       network,
       networks,
       repository,
+      evm,
       setNetwork: select,
 
       addNetwork: (name: string, url: string) => {
@@ -84,7 +101,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
         if (id === networkId) select(defaultNetwork())
       },
     }
-  }, [network, networks, networkId, repository])
+  }, [network, networks, networkId, repository, evm])
 
   return <ChainContext value={value}>{children}</ChainContext>
 }

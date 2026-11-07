@@ -6,7 +6,7 @@ import { toState } from './papi'
  * gets short of a running node.
  */
 const status = (over: {
-  deciding?: { since: number; confirming?: number }
+  deciding?: { since: number; confirming: number | undefined }
   in_queue?: boolean
 }) => ({
   track: 0,
@@ -28,9 +28,11 @@ describe('where an Ongoing referendum has got to', () => {
   })
 
   it('is deciding from the block deciding names', () => {
-    expect(toState(status({ deciding: { since: 400 } }))).toBe('deciding')
+    expect(toState(status({ deciding: { since: 400, confirming: undefined } }))).toBe('deciding')
     // in_queue outlives the wait, and deciding wins over it either way
-    expect(toState(status({ deciding: { since: 400 }, in_queue: true }))).toBe('deciding')
+    expect(
+      toState(status({ deciding: { since: 400, confirming: undefined }, in_queue: true })),
+    ).toBe('deciding')
   })
 
   it('is confirming once that block is set, block zero included', () => {

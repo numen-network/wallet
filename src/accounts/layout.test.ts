@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { frontierAccount, reviveAccount } from '@/lib/address'
 import {
   addGroup,
   emptyLayout,
@@ -6,6 +7,7 @@ import {
   moveAccount,
   moveGroup,
   reconcile,
+  rekey,
   removeGroup,
   renameGroup,
   unplace,
@@ -83,6 +85,40 @@ describe('unplace', () => {
     const back = reconcile(unplace(seed(), 'c'), ['a', 'b', 'c', 'd'])
     expect(accountsIn(back, 'cold')).toEqual([])
     expect(accountsIn(back, UNGROUPED_ID)).toEqual(['d', 'c'])
+  })
+})
+
+describe('rekey', () => {
+  const H160 = '0x1234567890abcdef1234567890abcdef12345678'
+  const FRONTIER = frontierAccount(H160)
+  const REVIVE = reviveAccount(H160)
+  const NUMEN = 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb'
+
+  const filed = (address: string): Layout => ({
+    ...emptyLayout(),
+    groups: [
+      { id: 'cold', name: 'Cold', accounts: [NUMEN, address], collapsed: false },
+      { id: UNGROUPED_ID, name: 'Ungrouped', accounts: [], collapsed: false },
+    ],
+    names: { [address]: 'MetaMask', [NUMEN]: 'Vault' },
+    hidden: [address],
+    watch: [
+      { address, evmAddress: H160, name: 'MetaMask' },
+      { address: NUMEN, evmAddress: null, name: 'Vault' },
+    ],
+  })
+
+  it('moves an EVM account to the account its H160 spends from under pallet-revive', () => {
+    expect(rekey(filed(FRONTIER), 'revive')).toEqual(filed(REVIVE))
+  })
+
+  it('moves it back for a network still on Frontier', () => {
+    expect(rekey(filed(REVIVE), 'frontier')).toEqual(filed(FRONTIER))
+  })
+
+  it('hands the same layout back when every account already sits where it belongs', () => {
+    const layout = filed(REVIVE)
+    expect(rekey(layout, 'revive')).toBe(layout)
   })
 })
 

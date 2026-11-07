@@ -8,6 +8,7 @@ import { Qr, QR_SIZE } from '@/ui/Qr'
 import { copyText } from '@/ui/clipboard'
 import type { Token } from '@/chain/types'
 import type { Account } from './types'
+import { useEvmAddressOf } from './useAccounts'
 
 function AddressBlock({ kind, address }: { kind: string; address: string }) {
   // Covering a code is for whoever is looking over your shoulder right now, so
@@ -63,6 +64,8 @@ export function ReceiveModal({
   token?: Token | undefined
   onClose: () => void
 }) {
+  const evmAddress = useEvmAddressOf(account)
+
   return (
     <Modal
       title={token ? `Receive ${token.symbol}` : 'Receive'}
@@ -76,7 +79,7 @@ export function ReceiveModal({
 
         <div className="flex flex-wrap justify-center gap-3.5 self-stretch">
           {!token && <AddressBlock kind="Numen" address={account.address} />}
-          {account.evmAddress && <AddressBlock kind="EVM" address={account.evmAddress} />}
+          {evmAddress && <AddressBlock kind="EVM" address={evmAddress} />}
         </div>
       </div>
     </Modal>

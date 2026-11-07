@@ -1,6 +1,16 @@
-import { hexToU8a, stringToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
-import { blake2AsU8a, decodeAddress, encodeAddress, isEthereumAddress } from '@polkadot/util-crypto'
+import { hexToU8a, stringToU8a, u8aConcat, u8aEq, u8aToHex } from '@polkadot/util'
+import {
+  blake2AsU8a,
+  decodeAddress,
+  encodeAddress,
+  isEthereumAddress,
+  keccakAsU8a,
+} from '@polkadot/util-crypto'
 import { SS58_PREFIX } from '@/chain/config'
+import type { EvmLayer } from '@/chain/types'
+
+/** What pallet-revive pads an H160 out to 32 bytes with. */
+const REVIVE_PAD = new Uint8Array(12).fill(0xee)
 
 /** Re-encodes any valid SS58 into Numen's prefix, so one account has one id. */
 export function toNumenAddress(address: string): string {
@@ -22,14 +32,41 @@ export function isEvmAddress(address: string): boolean {
 }
 
 /**
- * pallet-evm maps H160 onto AccountId32 with blake2_256("evm:" ++ h160), and
- * both names then point at one balance. The mapping is a hash, so it only
- * walks this way. An sr25519 account has no H160 and must never be shown one.
- * Money sent to a made up address is money nobody holds the key to.
+ * Where Frontier kept an H160's balance, blake2_256("evm:" ++ h160). The hash
+ * only walks this way and nobody holds a key to the account it lands on, so
+ * whatever is still there leaves through EvmClaims.
  */
-export function evmToSubstrate(evmAddress: string): string {
-  const payload = u8aConcat(stringToU8a('evm:'), hexToU8a(evmAddress))
+export function frontierAccount(h160: string): string {
+  const payload = u8aConcat(stringToU8a('evm:'), hexToU8a(h160))
   return encodeAddress(blake2AsU8a(payload, 256), SS58_PREFIX)
+}
+
+/**
+ * The account pallet-revive gives an H160 that no account maps back to, the
+ * H160 padded with 0xEE. Only the H160's own key or code can move its funds.
+ */
+export function reviveAccount(h160: string): string {
+  return encodeAddress(u8aConcat(hexToU8a(h160), REVIVE_PAD), SS58_PREFIX)
+}
+
+/**
+ * The account an H160 spends from, as far as the H160 alone tells, which is
+ * all a stored EVM account has to go on. pallet-revive first looks for an
+ * account mapped to the H160, and only the chain can say whether there is one.
+ */
+export function mirrorOf(h160: string, evm: EvmLayer): string {
+  return evm === 'revive' ? reviveAccount(h160) : frontierAccount(h160)
+}
+
+/**
+ * The H160 pallet-revive gives an account. A padded account is its H160 and
+ * any other takes the last 20 bytes of keccak256 over its 32. Funds sent there
+ * only reach the account once OriginalAccount maps the H160 back to it.
+ */
+export function reviveAddress(address: string): string {
+  const raw = decodeAddress(address)
+  if (u8aEq(raw.subarray(20), REVIVE_PAD)) return u8aToHex(raw.subarray(0, 20))
+  return u8aToHex(keccakAsU8a(raw).subarray(12))
 }
 
 /**
@@ -61,12 +98,11 @@ export function publicKeyOf(address: string): string {
 }
 
 /**
- * Whatever was pasted in, as the address the chain takes. An EVM address maps
- * one way onto its Numen account, so either form is an answer here.
+ * Whatever was pasted in, as the address the chain takes. Which account an
+ * H160 spends from depends on chain state, so `ChainRepository.evmAccount`
+ * answers for one and this takes Numen addresses alone.
  */
 export function resolveAddress(input: string): string | null {
   const trimmed = input.trim()
-  if (isEvmAddress(trimmed)) return evmToSubstrate(trimmed)
-  if (isSubstrateAddress(trimmed)) return toNumenAddress(trimmed)
-  return null
+  return isSubstrateAddress(trimmed) ? toNumenAddress(trimmed) : null
 }

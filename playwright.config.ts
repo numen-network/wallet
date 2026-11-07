@@ -20,7 +20,26 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${PORT}`,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: devices['Desktop Chrome'] }],
+  projects: [
+    { name: 'chromium', use: devices['Desktop Chrome'] },
+    {
+      // The same mock on pallet-revive, for the suites that read the EVM layer
+      name: 'revive',
+      testMatch: /(metamask|wallet)\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: {
+          cookies: [],
+          origins: [
+            {
+              origin: `http://127.0.0.1:${PORT}`,
+              localStorage: [{ name: 'numen-mock-evm', value: 'revive' }],
+            },
+          ],
+        },
+      },
+    },
+  ],
   webServer: {
     command: `pnpm dev --port ${PORT}`,
     url: `http://127.0.0.1:${PORT}`,

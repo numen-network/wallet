@@ -5,7 +5,7 @@ import type { AccountBalance } from '@/chain/types'
 import { lockedOf, totalOf, ZERO_BALANCE } from '@/chain/types'
 import { backing, labelOf, pendingWith, seatOf, type Standing } from '@/chain/identity'
 import { IdentityVerdict } from './IdentityVerdict'
-import { useRegistrars, useStanding, useSymbol } from '@/chain/queries'
+import { useClaimable, useRegistrars, useStanding, useSymbol } from '@/chain/queries'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { useChain } from '@/chain/provider'
@@ -41,7 +41,11 @@ import {
 import { Identicon } from '@/ui/Identicon'
 import { Menu, type MenuSection } from '@/ui/Menu'
 import { Tip } from '@/ui/Tip'
+import { toastProblem } from '@/ui/Toast'
+import { useClaim } from './Authorize'
+import { useSessionStore } from './session'
 import { canSend, signsAlone, type Account } from './types'
+import { useEvmAddressOf } from './useAccounts'
 
 /**
  * Which dialog a card asks the page to open. A card knows its own account, so
@@ -131,6 +135,42 @@ function IdentityMark({ standing }: { standing: Standing }) {
   )
 }
 
+/**
+ * What Frontier left at the account it hashed this H160 to, and the claim that
+ * brings it over. Nobody signs a claim, so the button sends it there and then.
+ */
+function Unclaimed({ account, h160 }: { account: Account; h160: string }) {
+  const { data: left = 0n, dataUpdatedAt } = useClaimable(h160)
+  const claim = useClaim()
+  // A claim this tab sent after the reading above is still on its way
+  const claiming = useSessionStore((state) =>
+    state.submissions.some(
+      (sent) =>
+        sent.operation.kind === 'claim' &&
+        sent.address === account.address &&
+        !sent.error &&
+        sent.at > dataUpdatedAt,
+    ),
+  )
+  if (left === 0n) return null
+
+  const send = () =>
+    claim(account, h160).catch((problem: unknown) =>
+      toastProblem(problem instanceof Error ? problem.message : String(problem)),
+    )
+
+  return (
+    <span className="flex items-center gap-1.5">
+      <Tip text="What this address held before the EVM upgrade">
+        <span>unclaimed {formatAmount(left, { precision: 2, compact: true })}</span>
+      </Tip>
+      <Button type="button" variant="soft" size="xs" data-nodrag disabled={claiming} onClick={send}>
+        Claim
+      </Button>
+    </span>
+  )
+}
+
 /** Only the EVM row is labelled, the Numen address is the one the card is about. */
 function AddressRow({
   kind,
@@ -197,6 +237,7 @@ function CardBody({
   // call MetaMask signs rather than one the wallet sends
   const viaMetaMask = account.evmAddress !== null
   const shut = !viaMetaMask && !canSend(account)
+  const evmAddress = useEvmAddressOf(account)
   // Which registrar this account is, if the chain lists it as one
   const seat = seatOf(registrars ?? [], account.address)
 
@@ -346,13 +387,8 @@ function CardBody({
           >
             {standing && <IdentityMark standing={standing} />}
           </AddressRow>
-          {account.evmAddress && (
-            <AddressRow
-              kind="EVM"
-              label="EVM"
-              full={account.evmAddress}
-              short={shorten(account.evmAddress)}
-            />
+          {evmAddress && (
+            <AddressRow kind="EVM" label="EVM" full={evmAddress} short={shorten(evmAddress)} />
           )}
         </div>
 
@@ -374,6 +410,7 @@ function CardBody({
         <div data-nodrag className={cn('mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground', PICKABLE)}>
           <span>transferable {formatAmount(holdings.transferable, { precision: 2, compact: true })}</span>
           <span>locked {formatAmount(lockedOf(holdings), { precision: 2, compact: true })}</span>
+          {account.evmAddress && <Unclaimed account={account} h160={account.evmAddress} />}
         </div>
       </CardContent>
 

@@ -9,6 +9,7 @@ Browser wallet for the Numen chain, static SPA with no backend, keys never leave
 - Multisigs, proxies, and vesting schedules
 - Validator seats and session keys
 - Numen added to MetaMask in one click, and EVM balances brought back to Substrate accounts
+- What an EVM address held under Frontier, claimed for it in one click with nothing to sign
 - ERC20 transfers from EVM accounts, signed in MetaMask
 
 ## Running it

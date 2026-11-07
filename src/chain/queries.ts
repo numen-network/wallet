@@ -98,6 +98,42 @@ export function useDiscoveredTokens(holder: string) {
   })
 }
 
+/** The account an H160 spends from. Undefined until the chain has named its EVM layer. */
+export function useEvmAccount(h160: string | null) {
+  const { repository, network, evm } = useChain()
+
+  return useQuery({
+    queryKey: ['evmAccount', network.id, evm, h160],
+    queryFn: () => repository.evmAccount(h160 ?? ''),
+    enabled: h160 !== null && evm !== null,
+    staleTime: 10_000,
+  })
+}
+
+/** The H160 that reaches an account. Null where none does. */
+export function useEvmAddress(address: string | null) {
+  const { repository, network, evm } = useChain()
+
+  return useQuery({
+    queryKey: ['evmAddress', network.id, evm, address],
+    queryFn: () => repository.evmAddressOf(address ?? ''),
+    enabled: address !== null && evm !== null,
+    staleTime: 10_000,
+  })
+}
+
+/** What a claim would move to an H160, zero where there is nothing worth claiming. */
+export function useClaimable(h160: string | null) {
+  const { repository, network, evm } = useChain()
+
+  return useQuery({
+    queryKey: ['claimable', network.id, evm, h160],
+    queryFn: () => repository.claimable(h160 ?? ''),
+    enabled: h160 !== null && evm !== null,
+    staleTime: 10_000,
+  })
+}
+
 /**
  * How the link is holding up, sampled rather than watched. Nothing on chain
  * changes it, so a poll on a slow clock says as much as a subscription would.
@@ -129,6 +165,7 @@ export function useHead(): ChainHead | null {
  * verdict both write a record the signer does not own.
  */
 export const CACHES = [
+  'claimable',
   'proxies',
   'identity',
   'subs',

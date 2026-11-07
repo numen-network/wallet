@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { expectAddress, fillAddress } from './address'
 
 /**
  * Runs against VITE_CHAIN=mock, so it needs no node. Accounts are seeded as
@@ -9,6 +10,18 @@ const VAULT = 'nu32czLMgUWfEXJgQPyWH3AMdjXbaBoqghDwtJbhaJf9UJJ5U'
 const BRIDGE = 'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg'
 const SPARE = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
 const BRIDGE_EVM = '0x1234567890abcdef1234567890abcdef12345678'
+
+/** The account pallet-revive spends BRIDGE_EVM from, BRIDGE being Frontier's. */
+const BRIDGE_REVIVE = 'nu347WpTCXVBp91rqygK1XLhSGitvqc2xfSwTD8YAPqyaNtuu'
+
+/** The H160 pallet-revive gives VAULT. */
+const VAULT_EVM = '0x484de3fc9343f31600ae1f3e13d633cb48cbf816'
+
+/** The suite runs on a Frontier mock and again on a pallet-revive one. */
+const onRevive = () => test.info().project.name === 'revive'
+
+/** Where the board files Bridge, which is where its H160 spends from. */
+const bridge = () => (onRevive() ? BRIDGE_REVIVE : BRIDGE)
 
 const LAYOUT = {
   groups: [
@@ -97,10 +110,25 @@ test('the picker files accounts the way the board does', async ({ page }) => {
 })
 
 test('shows the EVM row only for an account that has one', async ({ page }) => {
+  test.skip(onRevive(), 'pallet-revive gives Numen accounts an H160 too')
   await open(page)
 
   await expect(card(page, 'Bridge').getByText('EVM')).toBeVisible()
   await expect(card(page, 'Vault').getByText('EVM')).toHaveCount(0)
+})
+
+test('gives a Numen account the H160 that reaches it, once the chain has seen it', async ({ page }) => {
+  test.skip(!onRevive(), 'Frontier maps no Numen account to an H160')
+  await open(page)
+
+  await expect(card(page, 'Bridge').getByText('0x1234…5678')).toBeVisible()
+  await expect(card(page, 'Vault').getByText('0x484d…f816')).toBeVisible()
+  await expect(card(page, 'Spare').getByText('EVM')).toHaveCount(0)
+
+  await card(page, 'Vault').getByRole('button', { name: 'Receive' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText(VAULT)).toBeVisible()
+  await expect(dialog.getByText(VAULT_EVM)).toBeVisible()
 })
 
 test('watch only accounts cannot send', async ({ page }) => {
@@ -189,9 +217,22 @@ test('receive shows both addresses in full', async ({ page }) => {
   await card(page, 'Bridge').getByRole('button', { name: 'Receive' }).click()
 
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByText(BRIDGE)).toBeVisible()
+  await expect(dialog.getByText(bridge())).toBeVisible()
   await expect(dialog.getByText(BRIDGE_EVM)).toBeVisible()
   await expect(dialog.locator('svg[aria-label^="QR code"]')).toHaveCount(2)
+})
+
+/** Alice's own H160 under pallet-revive, which the chain maps back to her. */
+const ALICE_H160 = '0x9621dde636de098b43efb0fa9b61facfe328f99d'
+
+test('takes a typed H160 as the account the chain says it spends from', async ({ page }) => {
+  await open(page)
+  await page.getByRole('button', { name: 'Multisig' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await fillAddress(page, dialog, 'Signatory 1', ALICE_H160)
+  // pallet-revive maps Alice's own H160 back to her, Frontier hashes it to an account nobody holds
+  await expectAddress(dialog, 'Signatory 1', onRevive() ? 'nu7SVAy…SUyb' : 'nu6AdUB…Mrt1')
 })
 
 test('a dialog closes on escape and on a click outside it', async ({ page }) => {
@@ -532,7 +573,7 @@ test('one QR code goes behind a cover without moving the other', async ({ page }
   await card(page, 'Bridge').getByRole('button', { name: 'Receive' }).click()
 
   const dialog = page.getByRole('dialog')
-  const numen = dialog.getByRole('img', { name: `QR code for ${BRIDGE}` })
+  const numen = dialog.getByRole('img', { name: `QR code for ${bridge()}` })
   const evm = dialog.getByRole('img', { name: `QR code for ${BRIDGE_EVM}` })
   await expect(numen).toBeVisible()
 
@@ -552,5 +593,5 @@ test('one QR code goes behind a cover without moving the other', async ({ page }
   // Covering one is for whoever is watching now, so the next look starts clean
   await dialog.getByRole('button', { name: 'Done' }).click()
   await card(page, 'Bridge').getByRole('button', { name: 'Receive' }).click()
-  await expect(page.getByRole('dialog').getByRole('img', { name: `QR code for ${BRIDGE}` })).toBeVisible()
+  await expect(page.getByRole('dialog').getByRole('img', { name: `QR code for ${bridge()}` })).toBeVisible()
 })

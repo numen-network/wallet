@@ -1,12 +1,14 @@
-import { hexToU8a, isHex } from '@polkadot/util'
+import { compactStripLength, hexToU8a, isHex } from '@polkadot/util'
 import { blake2AsHex } from '@polkadot/util-crypto'
 import {
   IdentityData,
   numen,
+  numenFrontier,
   type ChildBountyStatus,
   type NumenCallData,
   type ReferendaTypesCurve,
 } from '@polkadot-api/descriptors'
+import { withCommonExtensions } from '@polkadot-api/signers-common'
 import {
   Binary,
   createClient,
@@ -17,7 +19,7 @@ import {
   type TxCallData,
   type TypedApi,
 } from 'polkadot-api'
-import { getFakeTxCreator } from 'polkadot-api/tx-creator'
+import { getFakeTxCreator, signatureExtensionTxCreator } from 'polkadot-api/tx-creator'
 import { getWsProvider } from 'polkadot-api/ws'
 import {
   balanceOfCall,
@@ -27,7 +29,12 @@ import {
   readToken,
   SYMBOL_CALL,
 } from '@/evm/erc20'
-import { palletAccount } from '@/lib/address'
+import {
+  frontierAccount,
+  palletAccount,
+  reviveAccount,
+  reviveAddress,
+} from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { DECIMALS, SS58_PREFIX, TOKENS, type Network } from './config'
 import { ChainError, refusalMessage, type Validity } from './refusal'
@@ -78,6 +85,7 @@ import {
   type ChainFacts,
   type ChainHead,
   type ChainRepository,
+  type EvmLayer,
   type Holding,
   type Operation,
   type Pending,
@@ -100,6 +108,23 @@ interface AccountInfo {
 
 /** What every call the api builds comes back as. */
 type Tx = ReturnType<Api['tx']['Utility']['batch_all']>
+
+/** What PAPI reports while a transaction makes its way to finality. */
+type TxEvents = ReturnType<Tx['createSubmitAndWatch']>
+
+/**
+ * A transaction nobody signs. AuthorizeCall stands where a signature would go,
+ * and the call's own authorize rule decides whether the chain takes it.
+ */
+const authorized = withCommonExtensions(
+  signatureExtensionTxCreator('AuthorizeCall', () => new Uint8Array()),
+)
+
+/** Immortal, as the runtime builds its own. Only a signed origin has a nonce to check. */
+const AUTHORIZED = {
+  mortality: { mortal: false },
+  customSignedExtensions: { CheckNonce: { value: 0 } },
+} as const
 
 /** What system_health answers with, which is a legacy call and so untyped. */
 interface Health {
@@ -378,7 +403,33 @@ function refused(problem: unknown): Error {
 
 export function createPapiRepository(network: Network): ChainRepository {
   const client: PolkadotClient = createClient(getWsProvider(network.rpc))
-  const api = client.getTypedApi(numen)
+  const revive = client.getTypedApi(numen)
+  const frontier = client.getTypedApi(numenFrontier)
+
+  /**
+   * Shared code is typed against pallet-revive's descriptor and runs on the
+   * one the runtime matches. The two agree on every entry it touches, and
+   * PAPI checks each call against the descriptor it came from.
+   */
+  const apiOf = (evm: EvmLayer): Api => (evm === 'revive' ? revive : (frontier as unknown as Api))
+
+  // Frontier's until the runtime says otherwise, so a Frontier chain meets
+  // the descriptor it always has
+  let api = apiOf('frontier')
+
+  /** pallet-revive decides how an H160 and an account name each other, so its presence names the layer. */
+  const layerAt = async (at: string): Promise<EvmLayer> => {
+    const { compat } = await revive.getStaticApis({ at })
+    return compat.query.Revive.OriginalAccount.isCompatible() ? 'revive' : 'frontier'
+  }
+  const adopt = (at: string) =>
+    layerAt(at).then((evm) => {
+      api = apiOf(evm)
+      return evm
+    })
+  let layer = adopt('finalized')
+  layer.catch(() => {})
+  const runtimeListeners = new Set<(evm: EvmLayer) => void>()
 
   /** The last nonce each address went out with, for sends fired back to back. */
   const sentNonces = new Map<string, number>()
@@ -396,9 +447,19 @@ export function createPapiRepository(network: Network): ChainRepository {
     return { ...readToken(address, { name, symbol, decimals }), icon: null }
   }
 
-  /** Every address with code, read off the keys of EVM.AccountCodes without the code itself. */
+  /**
+   * Every address with code. pallet-revive files contracts among all its
+   * accounts. Frontier keys code by address, so the keys are read without
+   * the code.
+   */
   const allContracts = async (): Promise<string[]> => {
-    const any = await api.query.EVM.AccountCodes.getKey(`0x${'00'.repeat(20)}`)
+    if ((await layer) === 'revive') {
+      const accounts = await revive.query.Revive.AccountInfoOf.getEntries()
+      return accounts.flatMap(({ keyArgs: [address], value }) =>
+        value.account_type.type === 'Contract' ? [address] : [],
+      )
+    }
+    const any = await frontier.query.EVM.AccountCodes.getKey(`0x${'00'.repeat(20)}`)
     // The pallet and map hashes fill the first 32 bytes, the address part follows
     const prefix = any.slice(0, 66)
     const keys: string[] = []
@@ -937,6 +998,8 @@ export function createPapiRepository(network: Network): ChainRepository {
           dest: Enum('Id', operation.to),
           value: operation.amount,
         })
+      case 'claim':
+        return claimTx(operation.h160.toLowerCase())
       case 'transferAll':
         return api.tx.Balances.transfer_all({
           dest: Enum('Id', operation.to),
@@ -1132,6 +1195,44 @@ export function createPapiRepository(network: Network): ChainRepository {
   // on whichever screen happens to read a constant first
   chainFacts().catch(() => {})
 
+  // An upgrade can change any constant and the EVM layer with them, so all of
+  // it is read again from the runtime the upgrade brought
+  client.finalizedBlock$.subscribe((block) => {
+    if (!block.hasNewRuntime) return
+    constants = null
+    tracks = null
+    keysLayout = null
+    layer = adopt(block.hash)
+    layer.then((evm) => runtimeListeners.forEach((listener) => listener(evm)), () => {})
+  })
+
+  /** The account an H160 spends from under pallet-revive. */
+  const reviveOwner = async (h160: string): Promise<string> =>
+    (await revive.query.Revive.OriginalAccount.getValue(h160, BEST)) ?? reviveAccount(h160)
+
+  const claimTx = (h160: string) => revive.tx.EvmClaims.claim({ address: h160 })
+
+  /** Follows a transaction to finality, reporting each stage it reaches. */
+  const follow = (events: TxEvents, onProgress?: (progress: TxProgress) => void) =>
+    new Promise<string>((resolve, reject) => {
+      events.subscribe({
+        next(event) {
+          if (event.type === 'created') onProgress?.({ stage: 'signed', hash: event.txHash })
+          if (event.type === 'broadcasted') onProgress?.({ stage: 'broadcast', hash: event.txHash })
+          if (event.type === 'inBestBlock') {
+            if (!event.ok) return reject(new Error(dispatchMessage(event.dispatchError)))
+            onProgress?.({ stage: 'inBlock', hash: event.txHash })
+          }
+          if (event.type === 'finalized') {
+            if (!event.ok) return reject(new Error(dispatchMessage(event.dispatchError)))
+            onProgress?.({ stage: 'finalized', hash: event.txHash })
+            resolve(event.txHash)
+          }
+        },
+        error: (problem: unknown) => reject(refused(problem)),
+      })
+    })
+
   return {
     facts(): Promise<ChainFacts> {
       return chainFacts()
@@ -1168,6 +1269,54 @@ export function createPapiRepository(network: Network): ChainRepository {
         onHead({ number: block.number, hash: block.hash })
       })
       return () => sub.unsubscribe()
+    },
+
+    subscribeRuntime(onRuntime): Unsubscribe {
+      let live = true
+      const listener = (evm: EvmLayer) => onRuntime(evm)
+      layer.then((evm) => live && onRuntime(evm), () => {})
+      runtimeListeners.add(listener)
+      return () => {
+        live = false
+        runtimeListeners.delete(listener)
+      }
+    },
+
+    async evmAccount(h160: string): Promise<string> {
+      const address = h160.toLowerCase()
+      return (await layer) === 'revive' ? reviveOwner(address) : frontierAccount(address)
+    },
+
+    async evmAddressOf(address: string): Promise<string | null> {
+      if ((await layer) === 'frontier') return null
+      const h160 = reviveAddress(address)
+      // Only an H160 that leads back to the account is one worth sending to
+      return (await reviveOwner(h160)) === address ? h160 : null
+    },
+
+    async claimable(h160: string): Promise<bigint> {
+      if ((await layer) === 'frontier') return 0n
+      const address = h160.toLowerCase()
+      const left = await revive.query.System.Account.getValue(frontierAccount(address), BEST)
+      if (left.data.free === 0n) return 0n
+
+      // Whether a claim pays its way is the chain's call, so the pool is asked
+      const [best] = await client.getBestBlocks()
+      if (!best) return 0n
+      const tx = await claimTx(address).create(authorized, AUTHORIZED)
+      // PAPI passes the extrinsic as a byte vector and prefixes the length itself
+      const [, body] = compactStripLength(tx)
+      const verdict = await revive.apis.TaggedTransactionQueue.validate_transaction(
+        Enum('External'),
+        body,
+        best.hash,
+        { at: best.hash },
+      )
+      return verdict.success ? left.data.free : 0n
+    },
+
+    claim(h160, onProgress): Promise<string> {
+      return follow(claimTx(h160.toLowerCase()).createSubmitAndWatch(authorized, AUTHORIZED), onProgress)
     },
 
     /**
@@ -1685,45 +1834,24 @@ export function createPapiRepository(network: Network): ChainRepository {
       operation: Operation,
       onProgress?: (progress: TxProgress) => void,
     ): Promise<string> {
-      return new Promise((resolve, reject) => {
-        // Left to itself PAPI reads the nonce out of block state, which cannot
-        // see the pool, so a second send while one is pending would go out
-        // stale. The node counts its pool, the map covers a send still on its
-        // way there, and a refusal drops the memory so a nonce that never
-        // landed cannot wedge the ones after it.
-        const fail = (problem: unknown) => {
+      // Left to itself PAPI reads the nonce out of block state, which cannot
+      // see the pool, so a second send while one is pending would go out
+      // stale. The node counts its pool, the map covers a send still on its
+      // way there, and a refusal drops the memory so a nonce that never
+      // landed cannot wedge the ones after it.
+      return Promise.all([
+        build(operation),
+        client._request<number, [string]>('system_accountNextIndex', [account.address]),
+      ])
+        .then(([tx, fromNode]) => {
+          const nonce = Math.max(fromNode, (sentNonces.get(account.address) ?? -1) + 1)
+          sentNonces.set(account.address, nonce)
+          return follow(tx.createSubmitAndWatch(account.signer, { nonce }), onProgress)
+        })
+        .catch((problem: unknown) => {
           sentNonces.delete(account.address)
-          reject(problem)
-        }
-        Promise.all([
-          build(operation),
-          client._request<number, [string]>('system_accountNextIndex', [account.address]),
-        ])
-          .then(([tx, fromNode]) => {
-            const nonce = Math.max(fromNode, (sentNonces.get(account.address) ?? -1) + 1)
-            sentNonces.set(account.address, nonce)
-            return tx.createSubmitAndWatch(account.signer, { nonce }).subscribe({
-              next(event) {
-                if (event.type === 'created') onProgress?.({ stage: 'signed', hash: event.txHash })
-                if (event.type === 'broadcasted') {
-                  onProgress?.({ stage: 'broadcast', hash: event.txHash })
-                }
-                if (event.type === 'inBestBlock') {
-                  if (!event.ok) return fail(new Error(dispatchMessage(event.dispatchError)))
-                  onProgress?.({ stage: 'inBlock', hash: event.txHash })
-                }
-                if (event.type === 'finalized') {
-                  if (!event.ok) return fail(new Error(dispatchMessage(event.dispatchError)))
-                  onProgress?.({ stage: 'finalized', hash: event.txHash })
-                  resolve(event.txHash)
-                }
-              },
-              error: (problem: unknown) => fail(refused(problem)),
-              complete: () => undefined,
-            })
-          })
-          .catch(fail)
-      })
+          throw problem
+        })
     },
 
     disconnect() {

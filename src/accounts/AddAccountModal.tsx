@@ -1,6 +1,14 @@
 import { useId, useMemo, useState } from 'react'
+import { useChain } from '@/chain/provider'
+import type { EvmLayer } from '@/chain/types'
 import { cn } from '@/lib/cn'
-import { evmToSubstrate, isEvmAddress, isSubstrateAddress, toNumenAddress } from '@/lib/address'
+import {
+  isEvmAddress,
+  isSubstrateAddress,
+  mirrorOf,
+  reviveAccount,
+  toNumenAddress,
+} from '@/lib/address'
 import { plural } from '@/lib/plural'
 import { addressOf, newMnemonic, seedOf } from '@/signing/vault'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -23,7 +31,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { toast, toastProblem } from '@/ui/Toast'
 import { GroupField } from './GroupField'
-import { UNGROUPED_ID } from './layout'
+import { UNGROUPED_ID, type WatchEntry } from './layout'
 import { useAccountsStore } from './store'
 import { NoExtensionError } from './useAccounts'
 import { AddressField } from './AddressField'
@@ -106,7 +114,19 @@ function MnemonicNotice({
   )
 }
 
+/**
+ * What watching an address stores. An H160 pallet-revive maps back to an
+ * account is that account. Any other is filed under the account it spends
+ * from, which the board files again whenever the layer changes.
+ */
+function watched(input: string, owner: string | null, evm: EvmLayer | null): Omit<WatchEntry, 'name'> {
+  if (!isEvmAddress(input)) return { address: toNumenAddress(input), evmAddress: null }
+  if (owner && owner !== reviveAccount(input)) return { address: owner, evmAddress: null }
+  return { address: mirrorOf(input, evm ?? 'frontier'), evmAddress: input }
+}
+
 export function AddAccountModal({ connectExtension, onClose }: AddAccountModalProps) {
+  const { repository, evm } = useChain()
   const addWatch = useAccountsStore((s) => s.addWatch)
   const moveAccount = useAccountsStore((s) => s.moveAccount)
   const importSuri = useAccountsStore((s) => s.importSuri)
@@ -146,25 +166,26 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
     }
   }
 
-  const addWatchAccount = () => {
+  const addWatchAccount = async () => {
     const input = address.trim()
-    const evm = isEvmAddress(input)
-
-    if (!evm && !isSubstrateAddress(input)) {
+    if (!isEvmAddress(input) && !isSubstrateAddress(input)) {
       setError('Enter a Numen or EVM address')
-      return false
+      return
     }
 
-    const entry = {
-      address: evm ? evmToSubstrate(input) : toNumenAddress(input),
-      evmAddress: evm ? input : null,
-      name: name.trim() || 'Watched account',
+    setBusy(true)
+    try {
+      const owner = isEvmAddress(input) && evm === 'revive' ? await repository.evmAccount(input) : null
+      const entry = watched(input, owner, evm)
+      addWatch({ ...entry, name: name.trim() || 'Watched account' })
+      place(entry.address)
+      toast('Watch account added')
+      onClose()
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : String(problem))
+    } finally {
+      setBusy(false)
     }
-
-    addWatch(entry)
-    place(entry.address)
-    toast('Watch account added')
-    return true
   }
 
   const passwordProblem = () => {
@@ -217,7 +238,10 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
       void importFromExtension()
       return false
     }
-    if (kind === 'watch') return addWatchAccount() ? undefined : false
+    if (kind === 'watch') {
+      void addWatchAccount()
+      return false
+    }
     if (kind === 'create') return createLocalKey()
     return importPhrase() ? undefined : false
   }

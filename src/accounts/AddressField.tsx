@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { useBalances, useStanding, useSymbol } from '@/chain/queries'
+import { useBalances, useEvmAccount, useStanding, useSymbol } from '@/chain/queries'
 import { labelOf } from '@/chain/identity'
 import { cn } from '@/lib/cn'
 import { isEvmAddress, resolveAddress, shorten } from '@/lib/address'
@@ -25,14 +25,30 @@ export interface Pickable {
 const WIDE = 'w-full'
 
 /**
+ * The account an address names. An H160's comes from the chain, so it stays
+ * undefined until the chain answers. Null is input that names no account.
+ */
+function useAccountOf(input: string): string | null | undefined {
+  const trimmed = input.trim()
+  const h160 = isEvmAddress(trimmed) ? trimmed : null
+  const { data } = useEvmAccount(h160)
+  return h160 ? data : resolveAddress(trimmed)
+}
+
+/** An EVM address has a face too, the one its Numen account wears. */
+function Face({ address, size }: { address: string; size: number }) {
+  return <Identicon address={useAccountOf(address) ?? ''} size={size} />
+}
+
+/**
  * What the chain says about the address, over the address itself. The name the
  * wallet gave an account is the wallet's own and says nothing about who holds
  * it, so the registrar's verdict comes with the identity rather than after it.
  * A display name on its own is only a claim, and picking the wrong address is
  * the mistake this list exists to prevent.
  */
-function Chain({ address, shown }: { address: string; shown: string }) {
-  const { data: standing } = useStanding(address)
+function Chain({ shown }: { shown: string }) {
+  const { data: standing } = useStanding(useAccountOf(shown) ?? '')
   const named = standing ? labelOf(standing) : ''
 
   return (
@@ -116,11 +132,14 @@ export function AddressField<T extends Pickable>({
   const [open, setOpen] = useState(false)
   const [typed, setTyped] = useState('')
 
-  const resolved = resolveAddress(value)
+  const resolved = useAccountOf(value) ?? null
+  const typedAccount = useAccountOf(typed)
   const accepts = (input: string) =>
-    evm ? isEvmAddress(input.trim()) : resolveAddress(input) !== null
-  const shown = (address: string) =>
-    evm ? shorten(address) : shorten(resolveAddress(address) ?? '')
+    isEvmAddress(input.trim()) || (!evm && resolveAddress(input) !== null)
+  const shown = (address: string, account: string | null | undefined) =>
+    evm ? shorten(address) : shorten(account ?? '')
+  // An H160 typed into a Numen box goes out as the account the chain says it spends from
+  const typedTakes = evm || !isEvmAddress(typed.trim()) ? typed : typedAccount
   const known = accounts.find((entry) => entry.address === value || entry.address === resolved)
   // A list whose only entry is what is already there is not a choice
   const choices = accounts.filter((entry) => entry.address !== value)
@@ -174,12 +193,12 @@ export function AddressField<T extends Pickable>({
                 !value && 'text-hint',
               )}
             >
-              {known?.name || (accepts(value) ? shown(value) : value) || placeholder}
+              {known?.name || (accepts(value) ? shown(value, resolved) : value) || placeholder}
             </span>
             {/* Its own column whoever the address belongs to, so a table of
                 these reads down the right as well as across */}
             {accepts(value) && (
-              <span className={cn('shrink-0 font-mono', NOTE)}>{shown(value)}</span>
+              <span className={cn('shrink-0 font-mono', NOTE)}>{shown(value, resolved)}</span>
             )}
           </span>
         </span>
@@ -216,10 +235,16 @@ export function AddressField<T extends Pickable>({
               </p>
             )}
             {!readOnly && accepts(typed) && (
-              <CommandItem value={typed} onSelect={() => take(typed)}>
-                <Identicon address={resolveAddress(typed)!} size={26} />
+              <CommandItem
+                value={typed}
+                disabled={!typedTakes}
+                onSelect={() => typedTakes && take(typedTakes)}
+              >
+                <Identicon address={typedAccount ?? ''} size={26} />
                 Use this address
-                <span className="ml-auto pl-4 font-mono text-[13px] text-dim">{shown(typed)}</span>
+                <span className="ml-auto pl-4 font-mono text-[13px] text-dim">
+                  {shown(typed, typedAccount)}
+                </span>
               </CommandItem>
             )}
 
@@ -231,11 +256,9 @@ export function AddressField<T extends Pickable>({
                     value={`${entry.name} ${entry.address}`}
                     onSelect={() => (onPick ? (onPick(entry), setOpen(false)) : take(entry.address))}
                   >
-                    {/* An EVM address has a face too, the one its Numen
-                        account wears, which is the account being picked */}
-                    <Identicon address={resolveAddress(entry.address) ?? ''} size={26} />
+                    <Face address={entry.address} size={26} />
                     <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                    <Chain address={resolveAddress(entry.address) ?? ''} shown={entry.address} />
+                    <Chain shown={entry.address} />
                   </CommandItem>
                 ))}
               </CommandGroup>

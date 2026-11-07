@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WalletAccount } from '@/signing/types'
+import { frontierAccount, reviveAccount, reviveAddress } from '@/lib/address'
 import { UNIT } from './config'
 import { createMockRepository } from './mock'
 import type { ChainHead, Operation } from './types'
@@ -119,5 +120,49 @@ describe('tokens on the mock chain', () => {
 
     await expect(chain.token(GOLD)).resolves.toMatchObject({ symbol: 'mGLD', icon: null })
     await expect(chain.token(`0x${'ab'.repeat(20)}`)).rejects.toThrow()
+  })
+})
+
+describe('the EVM layer on the mock chain', () => {
+  const H160 = '0x1234567890abcdef1234567890abcdef12345678'
+
+  it('spends an H160 from the account Frontier hashed it to, and maps no account back', async () => {
+    const chain = createMockRepository()
+    expect(await chain.evmAccount(H160)).toBe(frontierAccount(H160))
+    expect(await chain.evmAddressOf(A)).toBeNull()
+    expect(await chain.claimable(H160)).toBe(0n)
+  })
+
+  it('maps both ways under pallet-revive', async () => {
+    const chain = createMockRepository('revive')
+    expect(await chain.evmAccount(H160)).toBe(reviveAccount(H160))
+    const h160 = await chain.evmAddressOf(B)
+    expect(h160).toBe(reviveAddress(B))
+    expect(await chain.evmAccount(h160!)).toBe(B)
+  })
+
+  it('moves what Frontier left with one claim and refuses a second', async () => {
+    const chain = createMockRepository('revive')
+    expect(await chain.claimable(H160)).toBeGreaterThan(0n)
+
+    const sent = chain.claim(H160)
+    await vi.advanceTimersByTimeAsync(750)
+    await sent
+
+    expect(await chain.claimable(H160)).toBe(0n)
+    await expect(chain.claim(H160)).rejects.toThrow()
+  })
+
+  it('tells whoever listens once the runtime moves to pallet-revive', async () => {
+    const chain = createMockRepository()
+    const seen: string[] = []
+    const stop = chain.subscribeRuntime((evm) => seen.push(evm))
+    await Promise.resolve()
+    globalThis.dispatchEvent(new Event('numen-mock-upgrade'))
+
+    expect(seen).toEqual(['frontier', 'revive'])
+    expect(await chain.evmAccount(H160)).toBe(reviveAccount(H160))
+    stop()
+    chain.disconnect()
   })
 })

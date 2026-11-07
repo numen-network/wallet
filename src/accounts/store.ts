@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { EvmLayer } from '@/chain/types'
 import * as vault from '@/signing/vault'
 import type { VaultKey } from '@/signing/vault'
 import * as layout from './layout'
@@ -17,6 +18,8 @@ interface AccountsState {
   beforeDrag: Layout | null
 
   reconcile: (addresses: string[]) => void
+  /** Files EVM accounts under what their H160s spend from on this EVM layer. */
+  rekey: (evm: EvmLayer) => void
   renameAccount: (address: string, name: string) => void
   forgetAccount: (address: string) => void
   addWatch: (entry: WatchEntry) => void
@@ -71,6 +74,8 @@ export const useAccountsStore = create<AccountsState>((set, get) => {
     beforeDrag: null,
 
     reconcile: (addresses) => update((l) => layout.reconcile(l, addresses)),
+
+    rekey: (evm) => update((l) => layout.rekey(l, evm)),
 
     renameAccount: (address, name) =>
       update((l) => ({ ...l, names: { ...l.names, [address]: name } })),

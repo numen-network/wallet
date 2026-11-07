@@ -7,6 +7,7 @@ import { useBalances, useFacts, useHead, useReach } from '@/chain/queries'
 import { quality, type Quality } from '@/chain/reach'
 import { lockedOf, totalOf, type Token } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
+import { isEvmAddress } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { LINK_PARAMS, readLink } from '@/lib/link'
 import { plural } from '@/lib/plural'
@@ -266,8 +267,16 @@ function Stat({ label, planck, lead = false }: { label: string; planck: bigint; 
 }
 
 export function App() {
+  const { repository, evm } = useChain()
   const { accounts, byAddress, groups, connectExtension } = useAccounts()
   const store = useAccountsStore()
+  const { rekey } = store
+
+  // One layout serves every network, so EVM accounts follow the layer of the
+  // one connected, entries added later too
+  useEffect(() => {
+    if (evm) rekey(evm)
+  }, [evm, store.layout.watch, rekey])
   const dialog = useDialog<Modal>()
   const { modal, close, open: setModal } = dialog
   const [link] = useState(() => readLink(location.search))
@@ -317,9 +326,15 @@ export function App() {
       toastProblem("That link doesn't name this chain")
       return
     }
-    if (opened.target.kind === 'delegate') setModal({ kind: 'delegate', to: opened.target.to })
-    else setVote(opened.target.poll)
-  }, [facts.data])
+    const { target } = opened
+    if (target.kind === 'vote') return setVote(target.poll)
+    // Which account an H160 names is the chain's to say
+    if (!isEvmAddress(target.to)) return setModal({ kind: 'delegate', to: target.to })
+    repository.evmAccount(target.to).then(
+      (to) => setModal({ kind: 'delegate', to }),
+      (problem: unknown) => toastProblem(problem instanceof Error ? problem.message : String(problem)),
+    )
+  }, [facts.data, repository, setModal])
 
   const deleteGroup = (id: string) => {
     store.removeGroup(id)

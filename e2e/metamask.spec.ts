@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test'
 import { expectAddress, pickAddress } from './address'
 
+/** The suite runs on a Frontier mock and again on a pallet-revive one. */
+const onRevive = () => test.info().project.name === 'revive'
+
 /** MetaMask is stubbed, so what is proved here is what the wallet asks it for. */
 async function withMetaMask(page: Page, outcome: 'accept' | 'reject' | 'fail' = 'accept') {
   await page.addInitScript((mode) => {
@@ -426,4 +429,67 @@ test('refuses to send a token into its own contract', async ({ page }) => {
 
   await expect(dialog.getByText("That is the token's own contract")).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Ask MetaMask' })).toBeDisabled()
+})
+
+/** The account pallet-revive spends EVM from, MIRROR being Frontier's. */
+const MIRROR_REVIVE = 'nu347WpTCXVBp91rqygK1XLhSGitvqc2xfSwTD8YAPqyaNtuu'
+
+
+test('claims what Frontier left for the address, with nothing for MetaMask to sign', async ({ page }) => {
+  test.skip(!onRevive(), 'There is nothing to claim before pallet-revive')
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  const mirror = card(page, 'Mirror')
+  await expect(mirror.getByText('unclaimed ≈39.38K')).toBeVisible()
+  await mirror.getByRole('button', { name: 'Claim' }).click()
+  await expect(page.getByText('EVM balance claimed')).toBeVisible()
+  await expect(mirror.getByRole('button', { name: 'Claim' })).toHaveCount(0)
+
+  const asked = (await calls(page)) as unknown as Array<{ method: string }>
+  expect(asked.some((call) => call.method === 'eth_sendTransaction')).toBe(false)
+})
+
+test('offers no claim while the chain runs Frontier', async ({ page }) => {
+  test.skip(onRevive(), 'The claim is the point under pallet-revive')
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+
+  await expect(card(page, 'Mirror').getByText('locked')).toBeVisible()
+  await expect(card(page, 'Mirror').getByRole('button', { name: 'Claim' })).toHaveCount(0)
+})
+
+test('keeps an EVM account its group and name through the upgrade to pallet-revive', async ({ page }) => {
+  test.skip(onRevive(), 'This chain has to start on Frontier to be upgraded')
+  await withMetaMask(page)
+  await page.evaluate(
+    (layout) => localStorage.setItem('numen-wallet-v1', JSON.stringify(layout)),
+    {
+      groups: [
+        { id: 'hot', name: 'Hot', accounts: [MIRROR], collapsed: false },
+        { id: 'ungrouped', name: 'Ungrouped', accounts: [], collapsed: false },
+      ],
+      names: { [MIRROR]: 'Trading' },
+      hidden: [],
+      watch: [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }],
+      extensionConnected: false,
+    },
+  )
+  await page.reload()
+
+  const trading = card(page, 'Trading')
+  await expect(trading.getByText('nu2uaQW…nASg')).toBeVisible()
+
+  await page.evaluate(() => window.dispatchEvent(new Event('numen-mock-upgrade')))
+
+  await expect(trading.getByText('nu347Wp…Ntuu')).toBeVisible()
+  await expect(trading.getByRole('button', { name: 'Claim' })).toBeVisible()
+  const stored = (await page.evaluate(() => JSON.parse(localStorage.getItem('numen-wallet-v1')!))) as {
+    groups: Array<{ id: string; accounts: string[] }>
+    names: Record<string, string>
+    watch: Array<{ address: string }>
+  }
+  expect(stored.groups.find((group) => group.id === 'hot')?.accounts).toEqual([MIRROR_REVIVE])
+  expect(stored.names).toEqual({ [MIRROR_REVIVE]: 'Trading' })
+  expect(stored.watch.map((entry) => entry.address)).toEqual([MIRROR_REVIVE])
 })

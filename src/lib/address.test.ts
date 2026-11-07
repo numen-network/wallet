@@ -1,11 +1,14 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { hexToU8a, stringToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
-import { blake2AsU8a, cryptoWaitReady, decodeAddress } from '@polkadot/util-crypto'
+import { blake2AsU8a, cryptoWaitReady, decodeAddress, keccakAsU8a } from '@polkadot/util-crypto'
 import {
-  evmToSubstrate,
+  frontierAccount,
   isEvmAddress,
   isSubstrateAddress,
   palletAccount,
+  resolveAddress,
+  reviveAccount,
+  reviveAddress,
   shorten,
   toNumenAddress,
 } from './address'
@@ -14,8 +17,12 @@ const ALICE_PUBLIC_KEY = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a56
 const ALICE_GENERIC = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
 const ALICE_NUMEN = 'nu7SVAyQhPoGBJfFg7di66oYTV2KVBBeCw3Gt9qTRE2zpSUyb'
 
+/** What ReviveApi.address answers for Alice on a 10200 dev chain. */
+const ALICE_H160 = '0x9621dde636de098b43efb0fa9b61facfe328f99d'
+
 const H160 = '0x1234567890abcdef1234567890abcdef12345678'
-const H160_MIRROR = 'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg'
+const H160_FRONTIER = 'nu2uaQWzSyDzXHrgd78sQL2871qL2LpPU6kHeeb4ETtXfnASg'
+const H160_REVIVE = 'nu347WpTCXVBp91rqygK1XLhSGitvqc2xfSwTD8YAPqyaNtuu'
 
 const TREASURY_PALLET_ID = stringToU8a('py/trsry')
 const TREASURY = 'nu57jR3GB3XHGGDYiG5Hx7f8NBK5yMvgPNedmiFFoBA6fbxKX'
@@ -26,10 +33,12 @@ beforeAll(async () => {
   await cryptoWaitReady()
 })
 
-describe('evmToSubstrate', () => {
-  it('is the mapping the runtime uses, blake2_256 over "evm:" and the H160', () => {
+const upper = (h160: string) => h160.toUpperCase().replace('0X', '0x')
+
+describe('frontierAccount', () => {
+  it('is the mapping Frontier used, blake2_256 over "evm:" and the H160', () => {
     const expected = blake2AsU8a(u8aConcat(stringToU8a('evm:'), hexToU8a(H160)), 256)
-    expect(u8aToHex(decodeAddress(evmToSubstrate(H160)))).toBe(u8aToHex(expected))
+    expect(u8aToHex(decodeAddress(frontierAccount(H160)))).toBe(u8aToHex(expected))
   })
 
   it('agrees between the wasm and the pure JS hasher', () => {
@@ -39,22 +48,65 @@ describe('evmToSubstrate', () => {
     )
   })
 
-  it('holds its value, a change here sends funds to a different account', () => {
-    expect(evmToSubstrate(H160)).toBe(H160_MIRROR)
+  it('holds its value, a change here claims from an account that holds nothing', () => {
+    expect(frontierAccount(H160)).toBe(H160_FRONTIER)
   })
 
   it('encodes into Numen, not the generic prefix', () => {
-    expect(decodeAddress(evmToSubstrate(H160)).length).toBe(32)
-    expect(evmToSubstrate(H160)).toBe(toNumenAddress(evmToSubstrate(H160)))
+    expect(decodeAddress(frontierAccount(H160)).length).toBe(32)
+    expect(frontierAccount(H160)).toBe(toNumenAddress(frontierAccount(H160)))
   })
 
   it('ignores the case an address is written in', () => {
-    expect(evmToSubstrate(H160.toLowerCase())).toBe(evmToSubstrate(H160.toUpperCase().replace('0X', '0x')))
+    expect(frontierAccount(H160.toLowerCase())).toBe(frontierAccount(upper(H160)))
   })
 
   it('gives every H160 its own account', () => {
     const other = '0x1234567890abcdef1234567890abcdef12345679'
-    expect(evmToSubstrate(other)).not.toBe(evmToSubstrate(H160))
+    expect(frontierAccount(other)).not.toBe(frontierAccount(H160))
+  })
+})
+
+describe('reviveAccount', () => {
+  it('pads the H160 out with twelve 0xEE bytes', () => {
+    expect(u8aToHex(decodeAddress(reviveAccount(H160)))).toBe(`${H160}${'ee'.repeat(12)}`)
+  })
+
+  it('holds its value, a change here sends funds to a different account', () => {
+    expect(reviveAccount(H160)).toBe(H160_REVIVE)
+  })
+
+  it('ignores the case an address is written in', () => {
+    expect(reviveAccount(upper(H160))).toBe(reviveAccount(H160))
+  })
+})
+
+describe('reviveAddress', () => {
+  it('takes the last 20 bytes of keccak256 over the account', () => {
+    const hashed = keccakAsU8a(hexToU8a(ALICE_PUBLIC_KEY))
+    expect(reviveAddress(ALICE_NUMEN)).toBe(u8aToHex(hashed.subarray(12)))
+  })
+
+  it('holds its value, the H160 the chain gives Alice', () => {
+    expect(reviveAddress(ALICE_NUMEN)).toBe(ALICE_H160)
+  })
+
+  it('hands a padded account its own H160 back', () => {
+    expect(reviveAddress(reviveAccount(H160))).toBe(H160)
+  })
+})
+
+describe('resolveAddress', () => {
+  it('takes a Numen address in whatever prefix it came in', () => {
+    expect(resolveAddress(` ${ALICE_GENERIC} `)).toBe(ALICE_NUMEN)
+  })
+
+  it('leaves an H160 to the chain, which knows the account it spends from', () => {
+    expect(resolveAddress(H160)).toBeNull()
+  })
+
+  it('refuses anything else', () => {
+    expect(resolveAddress('nu7')).toBeNull()
   })
 })
 

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useChain } from '@/chain/provider'
 import { CACHES, useFeesEstimate, useRefresh, useSymbol, type Cache, type Charge } from '@/chain/queries'
 import { ChainError } from '@/chain/refusal'
-import type { Operation } from '@/chain/types'
+import type { Operation, TxProgress } from '@/chain/types'
 import { cn } from '@/lib/cn'
 import { formatAmount } from '@/lib/balance'
 import type { WalletAccount } from '@/signing/types'
@@ -311,6 +311,7 @@ export function SignerField({
 
 /** What a settled call leaves out of date, since the next screen would read it. */
 const STALE: Partial<Record<Operation['kind'], Cache[]>> = {
+  claim: ['claimable'],
   delegate: ['voting'],
   undelegate: ['voting'],
   addProxy: ['proxies'],
@@ -388,6 +389,38 @@ export function useSubmit(account: Account) {
 /** useSubmit for a dialog that signs as several accounts, named at each send. */
 export function useSend() {
   const { repository } = useChain()
+  const track = useTrack()
+
+  return (account: Account, operation: Operation, password: string): Sending => {
+    let signing: WalletAccount
+    try {
+      signing = signerFor(account, password)
+    } catch (problem) {
+      const message = problem instanceof Error ? problem.message : 'That account could not be opened'
+      return Promise.reject(new Unsent(message, { address: account.address, operation }))
+    }
+    return track(account, operation, (onProgress) => repository.submit(signing, operation, onProgress))
+  }
+}
+
+/**
+ * Puts a claim on chain and a notice in the corner. Nobody signs a claim, so
+ * it counts as signed the moment it is built.
+ */
+export function useClaim() {
+  const { repository } = useChain()
+  const track = useTrack()
+  const launch = useLaunch()
+
+  return (account: Account, h160: string) =>
+    launch([
+      track(account, { kind: 'claim', h160 }, (onProgress) => repository.claim(h160, onProgress)),
+    ])
+}
+
+/** Writes one call's walk into this tab's log, whatever puts it on chain. */
+function useTrack() {
+  const { repository } = useChain()
   const record = useSessionStore((state) => state.record)
   const encode = useSessionStore((state) => state.encode)
   const remember = useCallsStore((state) => state.remember)
@@ -395,20 +428,13 @@ export function useSend() {
   const fail = useSessionStore((state) => state.fail)
   const refresh = useRefresh()
 
-  return (account: Account, operation: Operation, password: string): Sending =>
+  return (
+    account: Account,
+    operation: Operation,
+    send: (onProgress: (progress: TxProgress) => void) => Promise<string>,
+  ): Sending =>
     new Promise((resolve, reject) => {
       const part = { address: account.address, operation }
-      const refuse = (problem: unknown, fallback: string) =>
-        reject(new Unsent(problem instanceof Error ? problem.message : fallback, part))
-
-      let signing: WalletAccount
-      try {
-        signing = signerFor(account, password)
-      } catch (problem) {
-        refuse(problem, 'That account could not be opened')
-        return
-      }
-
       const id = record(account.address, operation)
       let signed = false
 
@@ -428,20 +454,19 @@ export function useSend() {
           .catch(() => {})
       }
 
-      repository
-        .submit(signing, operation, (progress) => {
-          advance(id, progress.stage, progress.hash)
-          if (progress.stage === 'signed' && !signed) {
-            signed = true
-            resolve({ ...part, submission: id })
-          }
-        })
+      send((progress) => {
+        advance(id, progress.stage, progress.hash)
+        if (progress.stage === 'signed' && !signed) {
+          signed = true
+          resolve({ ...part, submission: id })
+        }
+      })
         // What a screen reads is only wrong once the chain has agreed
         .then(() => refresh(staleFor(operation)))
         .catch((problem: unknown) => {
           const message = problem instanceof Error ? problem.message : 'The chain refused it'
           fail(id, message, problem instanceof ChainError ? problem.detail : undefined)
-          if (!signed) refuse(problem, message)
+          if (!signed) reject(new Unsent(message, part))
         })
     })
 }

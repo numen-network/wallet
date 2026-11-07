@@ -5,6 +5,9 @@
  * makes the drag interactions testable without a browser.
  */
 
+import type { EvmLayer } from '@/chain/types'
+import { mirrorOf } from '@/lib/address'
+
 export const STORAGE_KEY = 'numen-wallet-v1'
 
 /**
@@ -118,6 +121,33 @@ export function reconcile(layout: Layout, addresses: string[]): Layout {
   const next = withGroups(layout, groups)
   ungrouped(next).accounts.push(...fresh)
   return next
+}
+
+/**
+ * Files every EVM account under the account its H160 spends from on `evm`,
+ * together with its group, name and forgotten mark. One layout serves every
+ * network, and networks change EVM layer on their own schedules, so this runs
+ * each time the connected one turns out to run another.
+ */
+export function rekey(layout: Layout, evm: EvmLayer): Layout {
+  const moves = new Map<string, string>()
+  for (const entry of layout.watch) {
+    if (!entry.evmAddress) continue
+    const next = mirrorOf(entry.evmAddress, evm)
+    if (next !== entry.address) moves.set(entry.address, next)
+  }
+  if (moves.size === 0) return layout
+
+  const moved = (address: string) => moves.get(address) ?? address
+  return {
+    ...layout,
+    groups: layout.groups.map((group) => ({ ...group, accounts: group.accounts.map(moved) })),
+    names: Object.fromEntries(
+      Object.entries(layout.names).map(([address, name]) => [moved(address), name]),
+    ),
+    hidden: layout.hidden.map(moved),
+    watch: layout.watch.map((entry) => ({ ...entry, address: moved(entry.address) })),
+  }
 }
 
 /** Takes an address off the board, which is the one thing reconcile will not do. */

@@ -25,6 +25,7 @@ export const WORKING: Record<TxStage, string> = {
 export const SETTLED: Record<Operation['kind'], string> = {
   transfer: 'Transfer confirmed',
   transferAll: 'Transfer confirmed',
+  claim: 'EVM balance claimed',
   delegate: 'Votes delegated',
   undelegate: 'Delegation ended',
   addProxy: 'Proxy added',
@@ -121,6 +122,8 @@ export function describe(
         title: 'Transfer all',
         fields: row({ amount: 'everything', to: who(operation.to) }),
       }
+    case 'claim':
+      return { title: 'Claim an EVM balance', fields: row({ for: who(operation.h160) }) }
     case 'delegate':
       return {
         title: 'Delegate votes',

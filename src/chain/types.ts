@@ -164,6 +164,8 @@ export type TrackVoting =
  */
 export type Operation =
   | { kind: 'transfer'; to: string; amount: bigint }
+  /** What Frontier left for an H160, moved to the account pallet-revive gives it. */
+  | { kind: 'claim'; h160: string }
   /** Sends the lot and lets the account be reaped, so there is no amount. */
   | { kind: 'transferAll'; to: string }
   | { kind: 'delegate'; delegation: Delegation }
@@ -486,11 +488,31 @@ export interface ChainFacts {
   sessionOffset: number
 }
 
+/**
+ * The EVM runtime a chain runs, which decides how an H160 and an account name
+ * each other. Frontier hashes the H160 one way. pallet-revive pads it, and
+ * gives every account an H160 of its own.
+ */
+export type EvmLayer = 'frontier' | 'revive'
+
 export interface ChainRepository {
   reach(): Promise<Reach>
   /** Runtime constants, which change only when the runtime does. */
   facts(): Promise<ChainFacts>
   subscribeHead(onHead: (head: ChainHead) => void): Unsubscribe
+  /**
+   * The EVM layer once it is known, and again after every runtime upgrade,
+   * since whatever was read under the old runtime may read differently now.
+   */
+  subscribeRuntime(onRuntime: (evm: EvmLayer) => void): Unsubscribe
+  /** The account an H160 spends from. */
+  evmAccount(h160: string): Promise<string>
+  /** The H160 that reaches this account, if there is one. */
+  evmAddressOf(address: string): Promise<string | null>
+  /** What a claim would move off the account Frontier kept an H160's balance at. */
+  claimable(h160: string): Promise<bigint>
+  /** Moves what Frontier left for an H160. Nobody signs it, and the fee comes out of what moves. */
+  claim(h160: string, onProgress?: (progress: TxProgress) => void): Promise<string>
   subscribeBalance(address: string, onBalance: (balance: AccountBalance) => void): Unsubscribe
   estimateFee(from: string, operation: Operation): Promise<bigint>
   /**

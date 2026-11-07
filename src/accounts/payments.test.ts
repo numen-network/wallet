@@ -3,14 +3,18 @@ import { UNIT } from '@/chain/config'
 import { owed, payments, rowProblem, spendableOf, type Row } from './payments'
 
 const TO = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
+const OTHER = 'nu32czLMgUWfEXJgQPyWH3AMdjXbaBoqghDwtJbhaJf9UJJ5U'
 const EVM = '0x1234567890abcdef1234567890abcdef12345678'
 
 const row = (over: Partial<Row> = {}): Row => ({ to: TO, amount: '1', ...over })
 
 describe('a row of the payment form', () => {
-  it('takes a Numen address and an EVM one, since both name the same pot', () => {
+  it('takes the Numen address the address box hands over', () => {
     expect(rowProblem(row())).toBeNull()
-    expect(rowProblem(row({ to: EVM }))).toBeNull()
+  })
+
+  it('turns down an H160 the box has not resolved, since only the chain knows its account', () => {
+    expect(rowProblem(row({ to: EVM }))).toBe('Enter a Numen or EVM address')
   })
 
   it('turns down an address it cannot read', () => {
@@ -27,9 +31,9 @@ describe('a row of the payment form', () => {
 
 describe('the calls a payment form comes to', () => {
   it('is one transfer a row, in the order they were typed', () => {
-    expect(payments([row({ amount: '1' }), row({ to: EVM, amount: '2.5' })])).toEqual([
+    expect(payments([row({ amount: '1' }), row({ to: OTHER, amount: '2.5' })])).toEqual([
       { kind: 'transfer', to: TO, amount: UNIT },
-      { kind: 'transfer', to: expect.stringMatching(/^nu/) as unknown as string, amount: UNIT * 5n / 2n },
+      { kind: 'transfer', to: OTHER, amount: UNIT * 5n / 2n },
     ])
   })
 

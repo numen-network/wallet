@@ -5,6 +5,10 @@
  *
  *   numen --dev --tmp --miner <ss58> --node-miner 1
  *
+ * A pallet-revive runtime answers eth_call only through eth-rpc, so a node on
+ * one also takes `--eth-rpc <url>` with eth-rpc from the same release beside it.
+ * The suite reads the runtime version and runs the half that matches it.
+ *
  * A dev chain has no registrar until prime adds one, and no account clears the
  * identity standard until a registrar has judged it. On --dev prime is Alice,
  * who signs everything here anyway, so the suite sets that up for itself.
@@ -18,12 +22,18 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { Keyring } from '@polkadot/keyring'
 import { hexToU8a, u8aToHex as toHex } from '@polkadot/util'
-import { blake2AsHex, cryptoWaitReady, encodeMultiAddress } from '@polkadot/util-crypto'
+import {
+  blake2AsHex,
+  cryptoWaitReady,
+  encodeAddress,
+  encodeMultiAddress,
+  randomAsU8a,
+} from '@polkadot/util-crypto'
 import { numen } from '@polkadot-api/descriptors'
 import { Binary, createClient, Enum } from 'polkadot-api'
 import { getTxCreator } from 'polkadot-api/tx-creator'
 import { getWsProvider } from 'polkadot-api/ws'
-import { publicKeyOf, toNumenAddress } from '@/lib/address'
+import { frontierAccount, publicKeyOf, reviveAccount, toNumenAddress } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { NETWORKS, SS58_PREFIX, UNIT } from './config'
 import { dumpBytes, metadataDump, remarkBytes, type Motion } from './governance'
@@ -35,6 +45,7 @@ import {
   transferableOf,
   type AccountBalance,
   type ChainRepository,
+  type EvmLayer,
   type Operation,
 } from './types'
 import { nextBoundary } from './validator'
@@ -1109,5 +1120,81 @@ describe('validators', () => {
     for (const call of calls) {
       expect(await fresh.estimateFee(bob.address, call)).toBeGreaterThan(0n)
     }
+  })
+})
+
+/** pallet-revive arrived with 10200 in the release builds the suite runs on. */
+const REVIVE =
+  (await raw._request<{ specVersion: number }, []>('state_getRuntimeVersion', [])).specVersion >= 10200
+
+const strangerH160 = () => toHex(randomAsU8a(20))
+
+describe('the EVM layer', () => {
+  it('is the one the runtime runs', async () => {
+    const evm = await new Promise<EvmLayer>((resolve) => {
+      const stop = repository.subscribeRuntime((layer) => {
+        stop()
+        resolve(layer)
+      })
+    })
+    expect(evm).toBe(REVIVE ? 'revive' : 'frontier')
+  })
+})
+
+describe.skipIf(REVIVE)('the EVM layer under Frontier', () => {
+  it('spends an H160 from the account Frontier hashed it to', async () => {
+    const h160 = strangerH160()
+    expect(await repository.evmAccount(h160)).toBe(frontierAccount(h160))
+  })
+
+  it('maps no Numen account to an H160 and leaves nothing to claim', async () => {
+    expect(await repository.evmAddressOf(alice.address)).toBeNull()
+    expect(await repository.claimable(strangerH160())).toBe(0n)
+  })
+})
+
+describe.runIf(REVIVE)('the EVM layer under pallet-revive', () => {
+  it('maps an H160 and an account the way ReviveApi does', async () => {
+    const h160 = await api.apis.ReviveApi.address(alice.address)
+    expect(await repository.evmAddressOf(alice.address)).toBe(h160)
+    expect(await repository.evmAccount(h160)).toBe(alice.address)
+
+    const stranger = strangerH160()
+    expect(await repository.evmAccount(stranger)).toBe(await api.apis.ReviveApi.account_id(stranger))
+  })
+
+  it('gives no H160 to an account the chain has never seen', async () => {
+    expect(await repository.evmAddressOf(encodeAddress(randomAsU8a(32), SS58_PREFIX))).toBeNull()
+  })
+
+  it('claims what Frontier left for an H160 without a signature', { timeout: 200_000 }, async () => {
+    const h160 = strangerH160()
+    await send({ kind: 'transfer', to: frontierAccount(h160), amount: 5n * UNIT })
+    expect(await repository.claimable(h160)).toBe(5n * UNIT)
+
+    await new Promise<void>((resolve, reject) => {
+      repository
+        .claim(h160, (progress) => {
+          if (progress.stage === 'inBlock') resolve()
+        })
+        .catch(reject)
+      setTimeout(() => reject(new Error('The claim never made it into a block')), 90_000)
+    })
+
+    const moved = await api.query.System.Account.getValue(reviveAccount(h160), { at: 'best' })
+    expect(moved.data.free).toBeGreaterThan(4n * UNIT)
+    expect(await repository.claimable(h160)).toBe(0n)
+  })
+
+  it('offers no claim on a balance that would not cover its fee', { timeout: 200_000 }, async () => {
+    const h160 = strangerH160()
+    await send({ kind: 'transfer', to: frontierAccount(h160), amount: 1n })
+    expect(await repository.claimable(h160)).toBe(0n)
+  })
+
+  it('finds the coin facade among the contracts and reads it over eth_call', { timeout: 60_000 }, async () => {
+    const { balancesErc20 } = await repository.facts()
+    const held = await repository.discoverTokens(await api.apis.ReviveApi.address(alice.address))
+    expect(held.map(({ token }) => token.address.toLowerCase())).toContain(balancesErc20)
   })
 })

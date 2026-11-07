@@ -5,6 +5,11 @@
     "numen": {
       "wsUrl": "ws://127.0.0.1:9944",
       "metadata": ".papi/metadata/numen.scale",
+      "genesis": "0xc7d0d27ef337ea6b19121d73cc65c699fc2317d223203f8a2b35f03120dc15ee",
+      "codeHash": "0x6064c794fd6358cce3499e4883ace1d62e1799b9d8283d449eae6ab7462d7db2"
+    },
+    "numenFrontier": {
+      "metadata": ".papi/metadata/numenFrontier.scale",
       "genesis": "0x7b7c7b93a0454cf907b400703e67691394db8558bb07d470af3d0ac510d91904",
       "codeHash": "0x0a10d2622aa53febb86117a98bb274bfb2073179404b428e85edb7c3fe01f9ab"
     }

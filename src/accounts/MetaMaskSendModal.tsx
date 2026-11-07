@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import logo from '@/assets/logo.svg'
 import { useChain } from '@/chain/provider'
-import { useBalances, useFacts } from '@/chain/queries'
+import { useBalances, useEvmAccount, useFacts } from '@/chain/queries'
 import { totalOf, type Holding, type Token } from '@/chain/types'
 import {
   evmAccounts,
@@ -12,7 +12,7 @@ import {
   withdrawToSubstrate,
 } from '@/evm/metamask'
 import { cn } from '@/lib/cn'
-import { evmToSubstrate, isEvmAddress, publicKeyOf, shorten } from '@/lib/address'
+import { isEvmAddress, publicKeyOf, shorten } from '@/lib/address'
 import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
 import { Field, INSIDE } from '@/ui/Field'
 import { LEDE, Modal } from '@/ui/Modal'
@@ -36,8 +36,8 @@ const COIN_MARK = mark({ icon: logo })
 const NONE: Holding[] = []
 
 /**
- * An EVM address spends from a substrate account derived by hashing it, and
- * nobody holds a key to that account. So whatever leaves it is a call the EVM
+ * An EVM address spends from a substrate account derived from it, and nobody
+ * holds a key to that account. So whatever leaves it is a call the EVM
  * side signs, and MetaMask is what signs it. The wallet only writes the call
  * down. The coin goes back to a Numen account and a token to another H160.
  */
@@ -74,11 +74,12 @@ export function MetaMaskSendModal({
   const token = holdings.find((entry) => entry.token.address === picked)
   // The EVM address and the account it spends from are one balance, so the
   // wallet can read what is there without asking MetaMask
-  const mirror = evmToSubstrate(source)
-  const balances = useBalances([mirror])
-  const there = balances[mirror] ? totalOf(balances[mirror]) : 0n
+  const { data: mirror } = useEvmAccount(source)
+  const balances = useBalances(mirror ? [mirror] : [])
+  const balance = mirror ? balances[mirror] : undefined
+  const there = balance ? totalOf(balance) : 0n
   // A reserve cannot leave the account, so only the transferable part can go
-  const movable = balances[mirror]?.transferable ?? 0n
+  const movable = balance?.transferable ?? 0n
   // An H160 added to the wallet is stored as the account it spends from, so the
   // two ends can name the same place. Sending there costs gas and moves nothing
   const itself = mirror === to
