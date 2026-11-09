@@ -382,19 +382,20 @@ describe('governance', () => {
   it('derives the treasury account the chain deactivates', { timeout: 60_000 }, async () => {
     const { treasury, existentialDeposit } = await repository.facts()
 
-    // Treasury deactivates the pot in on_initialize, so InactiveIssuance at a
-    // block is the pot its parent closed on. The block's own fee share lands
-    // after the hook and only counts in the next one.
+    // Treasury deactivates the pot in on_initialize and records it in
+    // Deactivated, so the record at a block is the pot its parent closed on.
+    // The block's own fee share lands after the hook and only counts in the
+    // next one. Under pallet-revive, InactiveIssuance also holds EDs minted
+    // for new EVM accounts, so it runs ahead of the pot.
     const opened = await raw.getFinalizedBlock()
     const account = await api.query.System.Account.getValue(treasury, { at: opened.hash })
     const closed = await blockAfter(opened.hash)
-    const inactive = await api.query.Balances.InactiveIssuance.getValue({ at: closed })
+    const deactivated = await api.query.Treasury.Deactivated.getValue({ at: closed })
 
-    // The pot is the treasury's balance bar what keeps the account alive, and
-    // it is the only thing this chain takes out of circulation. Get the
-    // derivation wrong and the address names an empty account holding nothing
+    // The pot is the treasury's balance bar what keeps the account alive. Get
+    // the derivation wrong and the address names an empty account holding nothing
     expect(account.data.free).toBeGreaterThan(0n)
-    expect(inactive).toBe(account.data.free - existentialDeposit)
+    expect(deactivated).toBe(account.data.free - existentialDeposit)
   })
 
   it('measures support against issuance that leaves the treasury out', async () => {
