@@ -57,8 +57,17 @@ export function transferableOf(
   existentialDeposit: bigint,
 ): bigint {
   const alive = frozen === 0n && reserved === 0n ? 0n : existentialDeposit
+  return reducible(free, reserved, frozen, alive)
+}
+
+/** What a fee may take. The chain won't let a fee reap the account. */
+export function payableOf(balance: AccountBalance, existentialDeposit: bigint): bigint {
+  return reducible(balance.free, balance.reserved, balance.frozen, existentialDeposit)
+}
+
+function reducible(free: bigint, reserved: bigint, frozen: bigint, kept: bigint): bigint {
   const bites = frozen - reserved
-  const untouchable = bites > alive ? bites : alive
+  const untouchable = bites > kept ? bites : kept
   return free > untouchable ? free - untouchable : 0n
 }
 

@@ -1,10 +1,20 @@
 import { useState, type ReactNode } from 'react'
 import { useChain } from '@/chain/provider'
-import { CACHES, useFeesEstimate, useRefresh, useSymbol, type Cache, type Charge } from '@/chain/queries'
+import {
+  CACHES,
+  useBalances,
+  useFacts,
+  useFees,
+  useRefresh,
+  useSymbol,
+  type Cache,
+  type Charge,
+} from '@/chain/queries'
 import { ChainError } from '@/chain/refusal'
-import type { Operation, TxProgress } from '@/chain/types'
+import { payableOf, type Operation, type TxProgress } from '@/chain/types'
 import { cn } from '@/lib/cn'
 import { formatAmount } from '@/lib/balance'
+import { shorten } from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { unlockKey } from '@/signing/vault'
 import { ModalFrame, ModalPage, type ModalPageProps, type ModalProps } from '@/ui/Modal'
@@ -97,35 +107,73 @@ export function CallPage({
 }: CallProps & Omit<ModalPageProps, 'footer' | 'fee'>) {
   const priced =
     charges ?? (operation && [operation].flat().map((call) => ({ from, operation: call })))
+  const fees = useFees(priced ?? [])
+  const short = useShortPayers(priced ?? [], fees)
 
   return (
     <ModalPage
       {...page}
+      disabled={page.disabled || short.length > 0}
       footer={
         <>
           {needsPassword && <AccountPassword value={password} note={note} onChange={onPassword} />}
           <FieldError>{error}</FieldError>
         </>
       }
-      fee={priced && <FeeLine charges={priced} />}
+      fee={
+        priced && (
+          <FeeLine
+            fee={fees?.reduce((sum, each) => sum + each, 0n)}
+            payers={new Set(priced.map((charge) => charge.from)).size}
+            short={short}
+          />
+        )
+      }
     >
       {children}
     </ModalPage>
   )
 }
 
+interface ShortPayer {
+  from: string
+  payable: bigint
+}
+
+/** Every payer whose balance cannot cover its share of the fees. */
+function useShortPayers(charges: Charge[], fees: bigint[] | undefined): ShortPayer[] {
+  const payers = [...new Set(charges.map((charge) => charge.from))]
+  const balances = useBalances(payers)
+  const { data: facts } = useFacts()
+  if (!fees || !facts) return []
+
+  return payers.flatMap((from) => {
+    const balance = balances[from]
+    if (!balance) return []
+    const owed = charges.reduce((sum, charge, index) => (charge.from === from ? sum + fees[index]! : sum), 0n)
+    const payable = payableOf(balance, facts.existentialDeposit)
+    return payable < owed ? [{ from, payable }] : []
+  })
+}
+
 /** What the chain would charge for this call, as the form has it so far. */
-function FeeLine({ charges }: { charges: Charge[] }) {
+function FeeLine({ fee, payers, short }: { fee: bigint | undefined; payers: number; short: ShortPayer[] }) {
   const symbol = useSymbol()
-  const fee = useFeesEstimate(charges)
-  const accounts = new Set(charges.map((charge) => charge.from)).size
+  const payer = (from: string) => (payers > 1 ? shorten(from) : 'Signer')
 
   return (
-    <p className="text-[11.5px] text-muted-foreground">
-      {fee === undefined
-        ? 'Estimating fee…'
-        : `Estimated fee ${formatAmount(fee, { precision: 6 })} ${symbol}${accounts > 1 ? ` for ${accounts} accounts` : ''}`}
-    </p>
+    <>
+      <p className="text-[11.5px] text-muted-foreground">
+        {fee === undefined
+          ? 'Estimating fee…'
+          : `Estimated fee ${formatAmount(fee, { precision: 6 })} ${symbol}${payers > 1 ? ` for ${payers} accounts` : ''}`}
+      </p>
+      {short.map(({ from, payable }) => (
+        <p key={from} className="text-[12.5px] text-destructive">
+          {`${payer(from)} has only ${formatAmount(payable, { precision: 6 })} ${symbol} spendable, not enough for the fee`}
+        </p>
+      ))}
+    </>
   )
 }
 

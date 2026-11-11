@@ -526,8 +526,3 @@ export function useFees(charges: Charge[]) {
         : undefined,
   })
 }
-
-/** What a run of calls comes to, once every one is priced. */
-export function useFeesEstimate(charges: Charge[]) {
-  return useFees(charges)?.reduce((sum, fee) => sum + fee, 0n)
-}

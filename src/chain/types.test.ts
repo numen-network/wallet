@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { UNIT } from './config'
 import { createMockRepository } from './mock'
-import { lockedOf, packed, totalOf, transferableOf, type Operation } from './types'
+import { lockedOf, packed, payableOf, totalOf, transferableOf, type Operation } from './types'
 
 /**
  * The two computed figures, worked out the way the explorer reads them back.
@@ -43,6 +43,27 @@ describe('what may leave the account', () => {
 
   it('is nothing rather than a negative when the freeze is bigger than free', () => {
     expect(transferableOf(10n * UNIT, 0n, 30n * UNIT, DEPOSIT)).toBe(0n)
+  })
+})
+
+describe('what a fee may take', () => {
+  const balance = (free: bigint, reserved: bigint, frozen: bigint) => ({
+    free,
+    reserved,
+    frozen,
+    transferable: transferableOf(free, reserved, frozen, DEPOSIT),
+  })
+
+  it('keeps the deposit back even when nothing is frozen or reserved', () => {
+    expect(payableOf(balance(100n * UNIT, 0n, 0n), DEPOSIT)).toBe(100n * UNIT - DEPOSIT)
+  })
+
+  it('takes the freeze off the free balance like a transfer', () => {
+    expect(payableOf(balance(100n * UNIT, 0n, 30n * UNIT), DEPOSIT)).toBe(70n * UNIT)
+  })
+
+  it('is nothing when the deposit is all there is', () => {
+    expect(payableOf(balance(DEPOSIT, 0n, 0n), DEPOSIT)).toBe(0n)
   })
 })
 
