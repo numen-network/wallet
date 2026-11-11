@@ -444,7 +444,7 @@ function CardBody({
         <Button type="button" variant="outline" data-nodrag onClick={ask('receive')}>
           Receive
         </Button>
-        {account.evmAddress && (
+        {evmAddress && (
           <Button type="button" variant="outline" data-nodrag onClick={ask('tokenBalances')}>
             Tokens
           </Button>

@@ -122,6 +122,38 @@ export function useEvmAddress(address: string | null) {
   })
 }
 
+/** The same for several accounts at once, keyed by account. */
+export function useEvmAddresses(addresses: string[]): Record<string, string | null> {
+  const { repository, network, evm } = useChain()
+
+  return useQueries({
+    queries: addresses.map((address) => ({
+      queryKey: ['evmAddress', network.id, evm, address],
+      queryFn: () => repository.evmAddressOf(address),
+      enabled: evm !== null,
+      staleTime: 10_000,
+    })),
+    combine: (results) =>
+      Object.fromEntries(addresses.map((address, at) => [address, results[at]?.data ?? null])),
+  })
+}
+
+/** What a token transfer takes, measured by a dry run. Takes null until there is one to run. */
+export function useTokenQuote(
+  transfer: { from: string; token: string; to: string; amount: bigint } | null,
+) {
+  const { repository, network } = useChain()
+
+  return useQuery({
+    queryKey: ['tokenQuote', network.id, JSON.stringify(transfer, replaceBigInt)],
+    queryFn: () =>
+      repository.quoteTokenTransfer(transfer!.from, transfer!.token, transfer!.to, transfer!.amount),
+    enabled: transfer !== null,
+    staleTime: 10_000,
+    retry: false,
+  })
+}
+
 /** What a claim would move to an H160, zero where there is nothing worth claiming. */
 export function useClaimable(h160: string | null) {
   const { repository, network, evm } = useChain()

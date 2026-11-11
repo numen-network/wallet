@@ -5,9 +5,12 @@ import {
   NAME_CALL,
   readBalance,
   readToken,
+  readTransferred,
+  revertReason,
   SYMBOL_CALL,
   transferCall,
 } from './erc20'
+import { hexToU8a } from '@polkadot/util'
 
 const HOLDER = '0x1234567890abcdef1234567890abcdef12345678'
 
@@ -66,5 +69,28 @@ describe('reading the answers', () => {
 
   it('reads a balance as planck', () => {
     expect(readBalance(`0x${word('3e')}`)).toBe(62n)
+  })
+})
+
+describe('what a transfer answers', () => {
+  it('reads a true, a false and the silence some tokens give', () => {
+    expect(readTransferred(hexToU8a(`0x${word('01')}`))).toBe(true)
+    expect(readTransferred(hexToU8a(`0x${word('00')}`))).toBe(false)
+    expect(readTransferred(new Uint8Array())).toBe(true)
+  })
+
+  it("names OpenZeppelin's error for a balance too small", () => {
+    // ERC20InsufficientBalance(sender, 5, 7)
+    const data = `0xe450d38c${word(HOLDER)}${word('05')}${word('07')}`
+    expect(revertReason(hexToU8a(data))).toContain('ERC20InsufficientBalance')
+  })
+
+  it('passes on the reason a plain require gives', () => {
+    const reason = '6e6f7065' // "nope"
+    expect(revertReason(hexToU8a(`0x08c379a0${text(reason).slice(2)}`))).toContain('nope')
+  })
+
+  it('falls back to saying the contract refused when it says nothing it can read', () => {
+    expect(revertReason(hexToU8a('0xdeadbeef'))).toBe('The token contract refused the transfer')
   })
 })

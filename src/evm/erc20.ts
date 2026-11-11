@@ -1,5 +1,5 @@
 import { hexToU8a, u8aToHex } from '@polkadot/util'
-import { createContract, ERC20 } from 'micro-eth-signer/abi.js'
+import { createContract, decodeError, ERC20 } from 'micro-eth-signer/abi.js'
 import type { Token } from '@/chain/types'
 
 /**
@@ -8,6 +8,21 @@ import type { Token } from '@/chain/types'
  */
 
 const erc20 = createContract(ERC20)
+
+/** The errors OpenZeppelin's ERC20 reverts a transfer with. */
+const TRANSFER_ERRORS = [
+  {
+    type: 'error',
+    name: 'ERC20InsufficientBalance',
+    inputs: [
+      { name: 'sender', type: 'address' },
+      { name: 'balance', type: 'uint256' },
+      { name: 'needed', type: 'uint256' },
+    ],
+  },
+  { type: 'error', name: 'ERC20InvalidSender', inputs: [{ name: 'sender', type: 'address' }] },
+  { type: 'error', name: 'ERC20InvalidReceiver', inputs: [{ name: 'receiver', type: 'address' }] },
+] as const
 
 export const NAME_CALL = u8aToHex(erc20.name.encodeInput())
 export const SYMBOL_CALL = u8aToHex(erc20.symbol.encodeInput())
@@ -35,4 +50,13 @@ export function readToken(
 
 export function readBalance(answer: string): bigint {
   return erc20.balanceOf.decodeOutput(hexToU8a(answer))
+}
+
+/** Some tokens return nothing from a transfer. For them only a revert means failure. */
+export function readTransferred(answer: Uint8Array): boolean {
+  return answer.length === 0 || erc20.transfer.decodeOutput(answer)
+}
+
+export function revertReason(data: Uint8Array): string {
+  return decodeError(data, TRANSFER_ERRORS)?.message ?? 'The token contract refused the transfer'
 }

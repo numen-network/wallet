@@ -371,12 +371,68 @@ test('opens Receive with only the EVM address for a token', async ({ page }) => 
   await expect(dialog.getByText('Numen address')).toHaveCount(0)
 })
 
-test('keeps token balances off a Numen account', async ({ page }) => {
+test('keeps token balances off a Numen account under Frontier', async ({ page }) => {
+  test.skip(onRevive(), 'pallet-revive gives a Numen account an H160 to hold tokens with')
   await withMetaMask(page)
   await watching(page, [{ address: VAULT, evmAddress: null, name: 'Vault' }])
 
   await expect(card(page, 'Vault').getByRole('button', { name: 'Receive' })).toBeVisible()
   await expect(card(page, 'Vault').getByRole('button', { name: 'Tokens' })).toHaveCount(0)
+})
+
+const PASSWORD = 'correct horse battery'
+
+/** Alice, which the mock maps an H160 to, so tokens can sit with her. */
+async function importAlice(page: Page) {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Add account' }).first().click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('radio', { name: 'From seed' }).check()
+  await dialog
+    .getByLabel('Seed', { exact: true })
+    .fill('bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice')
+  await dialog.getByLabel('Name').fill('Alice')
+  await dialog.getByLabel('Password', { exact: true }).fill(PASSWORD)
+  await dialog.getByLabel('Repeat password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(card(page, 'Alice')).toBeVisible()
+}
+
+test('sends a token from a Numen account, signed like any other call', async ({ page }) => {
+  test.skip(!onRevive(), 'Frontier gives a Numen account no H160 to hold tokens with')
+  await importAlice(page)
+
+  const balances = await tokenBalances(page, 'Alice')
+  const row = balances.getByRole('listitem').filter({ hasText: 'mUSD' })
+  const before = await row.locator('.font-mono.font-semibold').textContent()
+  await balances.getByRole('button', { name: 'Send mUSD' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Send mUSD' })).toBeVisible()
+  await dialog.getByRole('button', { name: 'To', exact: true }).click()
+  await page.getByPlaceholder('0x…').fill(BARE)
+  await page.getByText('Use this address').click()
+  await dialog.getByPlaceholder('0.0').fill('1')
+  // The recipient has never held mUSD, so the contract starts a balance for it
+  await expect(dialog.getByText(/0\.002000 tNUMN storage deposit/)).toBeVisible()
+  await dialog.getByLabel('Password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and send' }).click()
+  await expect(page.getByText('Token transfer confirmed')).toBeVisible()
+
+  const after = await tokenBalances(page, 'Alice')
+  await expect(
+    after.getByRole('listitem').filter({ hasText: 'mUSD' }).locator('.font-mono.font-semibold'),
+  ).not.toHaveText(before ?? '')
+})
+
+test('opens token balances on a Numen account the chain maps an H160 to', async ({ page }) => {
+  test.skip(!onRevive(), 'Frontier gives a Numen account no H160 to hold tokens with')
+  await withMetaMask(page)
+  await watching(page, [{ address: VAULT, evmAddress: null, name: 'Vault' }])
+
+  const dialog = await tokenBalances(page, 'Vault')
+  await expect(dialog.getByRole('heading', { name: 'Token balances' })).toBeVisible()
+  await expect(dialog.getByText('0x484d…f816')).toBeVisible()
 })
 
 test('offers what an EVM address holds in its Send dialog', async ({ page }) => {

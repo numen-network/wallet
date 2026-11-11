@@ -60,6 +60,7 @@ import { SignModal } from '@/accounts/SignModal'
 import { VestingModal } from '@/accounts/VestingModal'
 import { MetaMaskSendModal } from '@/accounts/MetaMaskSendModal'
 import { TokenBalancesModal } from '@/accounts/TokenBalancesModal'
+import { TokenSendModal } from '@/accounts/TokenSendModal'
 import type { Holding } from '@/chain/types'
 import { ReceiveModal } from '@/accounts/ReceiveModal'
 import { JudgeModal, SetFeeModal } from '@/accounts/JudgeModal'
@@ -70,7 +71,7 @@ import { GovernanceView } from '@/governance/GovernanceView'
 import { voters } from '@/governance/Voter'
 import { isSystemGroup, UNGROUPED_ID } from '@/accounts/layout'
 import { useAccountsStore } from '@/accounts/store'
-import { useAccounts } from '@/accounts/useAccounts'
+import { useAccounts, useEvmAddressOf } from '@/accounts/useAccounts'
 import { signersFor, type Account } from '@/accounts/types'
 import type { CardAction } from '@/accounts/AccountCard'
 
@@ -103,6 +104,7 @@ type Modal =
   | { kind: 'metaMaskSend'; address: string; holding?: Holding }
   | { kind: 'validator'; address: string }
   | { kind: 'tokenBalances'; address: string }
+  | { kind: 'tokenSend'; address: string; holding: Holding }
   | { kind: 'endpoint' }
   | { kind: 'forget'; address: string }
   | { kind: 'newGroup' }
@@ -304,6 +306,8 @@ export function App() {
   const selected =
     modal && 'address' in modal && modal.address ? byAddress.get(modal.address) : undefined
   const signers = selected ? signersFor(selected, accounts) : []
+  // What holds the selected account's tokens, its own H160 or the one the chain maps to it
+  const selectedEvm = useEvmAddressOf(selected)
   const targetGroup =
     modal && 'id' in modal ? store.layout.groups.find((group) => group.id === modal.id) : undefined
 
@@ -557,14 +561,29 @@ export function App() {
           />
         )}
 
-        {modal?.kind === 'tokenBalances' && selected?.evmAddress && (
+        {modal?.kind === 'tokenBalances' && selected && selectedEvm && (
           <TokenBalancesModal
             account={selected}
-            source={selected.evmAddress}
+            source={selectedEvm}
             onSend={(holding) =>
-              setModal({ kind: 'metaMaskSend', address: selected.address, holding })
+              setModal({
+                kind: selected.evmAddress ? 'metaMaskSend' : 'tokenSend',
+                address: selected.address,
+                holding,
+              })
             }
             onReceive={(token) => setModal({ kind: 'receive', address: selected.address, token })}
+            onClose={close}
+          />
+        )}
+
+        {modal?.kind === 'tokenSend' && selected && selectedEvm && (
+          <TokenSendModal
+            account={selected}
+            source={selectedEvm}
+            accounts={accounts}
+            signers={signers}
+            initial={modal.holding}
             onClose={close}
           />
         )}

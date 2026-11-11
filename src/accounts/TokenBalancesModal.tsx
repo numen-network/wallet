@@ -26,7 +26,7 @@ import { TokenMark } from './TokenMark'
 import { tokenAmount, useHoldings, useImported, useImportedStore } from './tokens'
 import type { Account } from './types'
 
-/** What an EVM account holds of the tokens the wallet shows. Its card leaves them out. */
+/** What an H160 holds of the tokens the wallet shows. The card it belongs to leaves them out. */
 export function TokenBalancesModal({
   account,
   source,

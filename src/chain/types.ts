@@ -177,6 +177,14 @@ export type Operation =
   | { kind: 'claim'; h160: string }
   /** Sends the lot and lets the account be reaped, so there is no amount. */
   | { kind: 'transferAll'; to: string }
+  /** An ERC20 transfer the account's own H160 makes, capped at what a dry run of it took. */
+  | {
+      kind: 'sendToken'
+      token: Pick<Token, 'address' | 'symbol' | 'decimals'>
+      to: string
+      amount: bigint
+      limits: CallLimits
+    }
   | { kind: 'delegate'; delegation: Delegation }
   | { kind: 'undelegate'; track: number }
   | { kind: 'addProxy'; proxy: Proxy }
@@ -427,6 +435,21 @@ export interface Token {
   icon: string | null
 }
 
+/** The most a contract call may take, which the chain refuses to go past. */
+export interface CallLimits {
+  refTime: bigint
+  proofSize: bigint
+  /** Storage the call may pay for, at its peak. */
+  deposit: bigint
+}
+
+/** What a dry run of a contract call took. */
+export interface CallQuote {
+  limits: CallLimits
+  /** What the call leaves on deposit once it is done, never more than its peak. */
+  deposit: bigint
+}
+
 /** What an EVM address holds of one token. */
 export interface Holding {
   token: Token
@@ -585,6 +608,11 @@ export interface ChainRepository {
   token(address: string): Promise<Token>
   /** What an EVM address holds across every contract on chain, empty ones left out. */
   discoverTokens(holder: string): Promise<Holding[]>
+  /**
+   * Dry runs a token transfer from this account's H160 to see what it takes.
+   * Rejects with the contract's reason when it would fail.
+   */
+  quoteTokenTransfer(from: string, token: string, to: string, amount: bigint): Promise<CallQuote>
   /** What an EVM address holds of a token, read again on every finalized block. */
   subscribeTokenBalance(
     token: string,

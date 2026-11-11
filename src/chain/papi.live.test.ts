@@ -1198,4 +1198,30 @@ describe.runIf(REVIVE)('the EVM layer under pallet-revive', () => {
     const held = await repository.discoverTokens(await api.apis.ReviveApi.address(alice.address))
     expect(held.map(({ token }) => token.address.toLowerCase())).toContain(balancesErc20)
   })
+
+  it('sends a token from a Numen account through Revive.call', { timeout: 200_000 }, async () => {
+    const { balancesErc20, symbol } = await repository.facts()
+    const to = strangerH160()
+    const quote = await repository.quoteTokenTransfer(alice.address, balancesErc20, to, 2n * UNIT)
+    expect(quote.limits.refTime).toBeGreaterThan(0n)
+
+    await send({
+      kind: 'sendToken',
+      token: { address: balancesErc20, symbol, decimals: 18 },
+      to,
+      amount: 2n * UNIT,
+      limits: quote.limits,
+    })
+
+    const landed = await api.query.System.Account.getValue(reviveAccount(to), { at: 'best' })
+    expect(landed.data.free).toBeGreaterThanOrEqual(2n * UNIT)
+  })
+
+  it('refuses a token transfer the contract would revert, with its reason', { timeout: 60_000 }, async () => {
+    const { balancesErc20 } = await repository.facts()
+    const all = (await api.query.System.Account.getValue(alice.address, { at: 'best' })).data.free
+    await expect(
+      repository.quoteTokenTransfer(alice.address, balancesErc20, strangerH160(), all * 2n),
+    ).rejects.toThrow(/ERC20|refused/)
+  })
 })

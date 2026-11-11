@@ -50,6 +50,7 @@ import {
   type ChainFacts,
   type ChainHead,
   type CallArg,
+  type CallQuote,
   type ChainRepository,
   type Delegation,
   type EvmLayer,
@@ -131,6 +132,9 @@ function seedTokenBalance(token: string, holder: string, decimals: number): bigi
 }
 
 const FEE = 6_400_000_000_000_000n
+
+/** What a token contract holds back for a balance slot it has to start. */
+const TOKEN_DEPOSIT = 2_000_000_000_000_000n
 
 /**
  * Milliseconds of block time, measured against the runtime with
@@ -741,6 +745,8 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
   let height = NOW
   const balances = new Map<string, AccountBalance>()
   const listeners = new Map<string, Set<(balance: AccountBalance) => void>>()
+  const tokenHeld = new Map<string, bigint>()
+  const tokenListeners = new Map<string, Set<(balance: bigint) => void>>()
   const delegated = new Map<string, Delegation>()
   let nonce = 0
   const proxies = new Map<string, Proxy[]>()
@@ -930,6 +936,27 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
     settle(address, vesting.schedules)
   }
 
+  const tokenKey = (token: string, holder: string) => `${token}:${holder.toLowerCase()}`
+
+  const readTokenBalance = (token: string, holder: string): bigint => {
+    const decimals = CONTRACTS.find((entry) => entry.address === token)?.decimals ?? 0
+    return tokenHeld.get(tokenKey(token, holder)) ?? seedTokenBalance(token, holder, decimals)
+  }
+
+  const writeTokenBalance = (token: string, holder: string, balance: bigint) => {
+    const key = tokenKey(token, holder)
+    tokenHeld.set(key, balance)
+    for (const notify of tokenListeners.get(key) ?? []) notify(balance)
+  }
+
+  const quoteToken = (from: string, token: string, to: string, amount: bigint): CallQuote => {
+    if (evm === 'frontier') throw new Error('Only MetaMask moves tokens on this chain')
+    const held = readTokenBalance(token, reviveAddress(from))
+    if (amount > held) throw new Error('ERC20InsufficientBalance')
+    const deposit = readTokenBalance(token, to) === 0n ? TOKEN_DEPOSIT : 0n
+    return { limits: { refTime: 1_200_000_000n, proofSize: 90_000n, deposit }, deposit }
+  }
+
   /**
    * What a call does to the invented chain, with none of the walk it takes to
    * get there. batch_all is atomic on a real chain. This is not one, so a call
@@ -943,6 +970,17 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
         if (from.transferable < operation.amount + FEE) throw new Error('Token: FundsUnavailable')
         write(account.address, from.free - operation.amount - FEE)
         write(operation.to, read(operation.to).free + operation.amount)
+        return
+      }
+      case 'sendToken': {
+        const { token, to, amount, limits } = operation
+        const { deposit } = quoteToken(account.address, token.address, to, amount)
+        if (deposit > limits.deposit) throw new Error('Revive: StorageDepositLimitExhausted')
+        if (from.transferable < FEE + deposit) throw new Error('Token: FundsUnavailable')
+        write(account.address, from.free - FEE - deposit)
+        const source = reviveAddress(account.address)
+        writeTokenBalance(token.address, source, readTokenBalance(token.address, source) - amount)
+        writeTokenBalance(token.address, to, readTokenBalance(token.address, to) + amount)
         return
       }
       case 'transferAll': {
@@ -1679,15 +1717,22 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
 
     async discoverTokens(holder: string): Promise<Holding[]> {
       return CONTRACTS.flatMap((token) => {
-        const balance = seedTokenBalance(token.address, holder, token.decimals)
+        const balance = readTokenBalance(token.address, holder)
         return balance > 0n ? [{ token: { ...token, icon: null }, balance }] : []
       })
     },
 
+    async quoteTokenTransfer(from, token, to, amount): Promise<CallQuote> {
+      return quoteToken(from, token, to, amount)
+    },
+
     subscribeTokenBalance(token, holder, onBalance): Unsubscribe {
-      const decimals = CONTRACTS.find((entry) => entry.address === token)?.decimals ?? 0
-      onBalance(seedTokenBalance(token, holder, decimals))
-      return () => {}
+      const key = tokenKey(token, holder)
+      const set = tokenListeners.get(key) ?? new Set()
+      tokenListeners.set(key, set)
+      set.add(onBalance)
+      onBalance(readTokenBalance(token, holder))
+      return () => set.delete(onBalance)
     },
 
     async estimateFee() {
@@ -1713,6 +1758,7 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
       globalThis.removeEventListener?.('numen-mock-upgrade', upgrade)
       runtimeListeners.clear()
       listeners.clear()
+      tokenListeners.clear()
       delegated.clear()
       proxies.clear()
       seedIdentities()

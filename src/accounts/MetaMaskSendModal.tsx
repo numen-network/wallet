@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import logo from '@/assets/logo.svg'
 import { useChain } from '@/chain/provider'
 import { useBalances, useEvmAccount, useFacts } from '@/chain/queries'
-import { totalOf, type Holding, type Token } from '@/chain/types'
+import { totalOf, type Holding } from '@/chain/types'
 import {
   evmAccounts,
   metaMask,
@@ -12,26 +11,16 @@ import {
   withdrawToSubstrate,
 } from '@/evm/metamask'
 import { cn } from '@/lib/cn'
-import { isEvmAddress, publicKeyOf, shorten } from '@/lib/address'
+import { publicKeyOf, shorten } from '@/lib/address'
 import { amountProblem, formatAmount, parseAmount } from '@/lib/balance'
-import { Field, INSIDE } from '@/ui/Field'
 import { LEDE, Modal } from '@/ui/Modal'
-import { Select } from '@/ui/Select'
 import { FieldError, NOTE } from '@/components/ui/field'
 import { toast, toastProblem } from '@/ui/Toast'
 import { AddressField } from './AddressField'
 import { AmountField } from './AmountField'
-import { TokenMark } from './TokenMark'
-import { tokenAmount, useHoldings } from './tokens'
+import { COIN, TokenField, tokenReaches, TokenRecipientField } from './TokenFields'
+import { useHoldings } from './tokens'
 import type { Account } from './types'
-
-/** The Token box's value for the coin, which no contract address can clash with. */
-const COIN = 'coin'
-
-/** Sized to the tick's column, so every row reads from the same left edge. */
-const mark = (token: Pick<Token, 'icon'>) => <TokenMark token={token} className="size-3.5" />
-
-const COIN_MARK = mark({ icon: logo })
 
 const NONE: Holding[] = []
 
@@ -84,16 +73,7 @@ export function MetaMaskSendModal({
   // two ends can name the same place. Sending there costs gas and moves nothing
   const itself = mirror === to
   const target = recipient.trim()
-  const same = (address: string | null) => address?.toLowerCase() === source.toLowerCase()
-  // A token sent to its own contract lands in a balance no key can move
-  const lost = token !== undefined && target.toLowerCase() === token.token.address
-  // Only an H160 can hold a token, so no Numen address is offered
-  const others = accounts.flatMap((account) =>
-    account.evmAddress && !same(account.evmAddress)
-      ? [{ address: account.evmAddress, name: account.name }]
-      : [],
-  )
-  const ready = token ? isEvmAddress(target) && !same(target) && !lost : to !== '' && !itself
+  const ready = token ? tokenReaches(source, token.token.address, target) : to !== '' && !itself
   // The signature comes from MetaMask, so an address it has not been let into
   // is one nothing here can spend from
   const signable = held.some((entry) => entry.toLowerCase() === source.toLowerCase())
@@ -177,49 +157,21 @@ export function MetaMaskSendModal({
         </p>
       )}
 
-      <Field label="Token" aside={token && `holds ${tokenAmount(token)} ${token.token.symbol}`}>
-        <Select
-          value={token ? picked : COIN}
-          onValueChange={setPicked}
-          options={[
-            {
-              value: COIN,
-              label: facts?.symbol ?? '',
-              icon: COIN_MARK,
-              detail: formatAmount(there, { precision: 4 }),
-            },
-            ...holdings.map((holding) => ({
-              value: holding.token.address,
-              label: `${holding.token.symbol}, ${holding.token.name}`,
-              icon: mark(holding.token),
-              detail: tokenAmount(holding),
-            })),
-          ]}
-          label="Token"
-          className={INSIDE}
-        >
-          {token ? mark(token.token) : COIN_MARK}
-        </Select>
-      </Field>
+      <TokenField
+        holdings={holdings}
+        picked={picked}
+        onPick={setPicked}
+        coin={{ symbol: facts?.symbol ?? '', held: formatAmount(there, { precision: 4 }) }}
+      />
 
       {token ? (
-        <>
-          <AddressField
-            label="To"
-            value={recipient}
-            onChange={setRecipient}
-            accounts={others}
-            evm
-          />
-          {same(target) && (
-            <p className="mt-1.5 text-[12.5px] text-destructive">That is the address sending it</p>
-          )}
-          {lost && (
-            <p className="mt-1.5 text-[12.5px] text-destructive">
-              That is the token's own contract. Anything sent there is gone for good
-            </p>
-          )}
-        </>
+        <TokenRecipientField
+          source={source}
+          token={token.token.address}
+          accounts={accounts}
+          value={recipient}
+          onChange={setRecipient}
+        />
       ) : (
         <>
           <AddressField label="Into" value={to} onChange={setTo} accounts={accounts} readOnly />

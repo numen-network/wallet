@@ -27,7 +27,10 @@ import {
   NAME_CALL,
   readBalance,
   readToken,
+  readTransferred,
+  revertReason,
   SYMBOL_CALL,
+  transferCall,
 } from '@/evm/erc20'
 import {
   frontierAccount,
@@ -94,6 +97,7 @@ import {
   type ReadCall,
   type Timepoint,
   type Token,
+  type CallQuote,
   type TrackVoting,
   type TxProgress,
   type Unsubscribe,
@@ -1000,6 +1004,14 @@ export function createPapiRepository(network: Network): ChainRepository {
         })
       case 'claim':
         return claimTx(operation.h160.toLowerCase())
+      case 'sendToken':
+        return api.tx.Revive.call({
+          dest: operation.token.address,
+          value: 0n,
+          weight_limit: { ref_time: operation.limits.refTime, proof_size: operation.limits.proofSize },
+          storage_deposit_limit: operation.limits.deposit,
+          data: hexToU8a(transferCall(operation.to, operation.amount)),
+        })
       case 'transferAll':
         return api.tx.Balances.transfer_all({
           dest: Enum('Id', operation.to),
@@ -1292,6 +1304,35 @@ export function createPapiRepository(network: Network): ChainRepository {
       const h160 = reviveAddress(address)
       // Only an H160 that leads back to the account is one worth sending to
       return (await reviveOwner(h160)) === address ? h160 : null
+    },
+
+    async quoteTokenTransfer(from, token, to, amount): Promise<CallQuote> {
+      if ((await layer) === 'frontier') throw new Error('Only MetaMask moves tokens on this chain')
+      const run = await revive.apis.ReviveApi.call(
+        from,
+        token,
+        0n,
+        undefined,
+        undefined,
+        hexToU8a(transferCall(to, amount)),
+        BEST,
+      )
+      if (!run.result.success) throw new Error(dispatchMessage(run.result.value))
+      const { flags, data } = run.result.value
+      // Bit zero flags a revert
+      if (flags & 1) throw new Error(revertReason(data))
+      if (!readTransferred(data)) throw new Error('The token contract refused the transfer')
+
+      const charged = (deposit: typeof run.storage_deposit) =>
+        deposit.type === 'Charge' ? deposit.value : 0n
+      return {
+        limits: {
+          refTime: run.weight_required.ref_time,
+          proofSize: run.weight_required.proof_size,
+          deposit: charged(run.max_storage_deposit),
+        },
+        deposit: charged(run.storage_deposit),
+      }
     },
 
     async claimable(h160: string): Promise<bigint> {

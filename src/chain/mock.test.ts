@@ -123,6 +123,40 @@ describe('tokens on the mock chain', () => {
   })
 })
 
+describe('token transfers from a Numen account on the mock chain', () => {
+  const MUSD = '0x5fbdb2315678afecb367f032d93f642f64180aa3'
+  /** Holds neither of the mock's tokens. */
+  const BARE = '0x5a1e7f3c9b2d4e6f8a0b1c2d3e4f5a6b7c8d0009'
+  const token = { address: MUSD, symbol: 'mUSD', decimals: 6 }
+
+  const held = (chain: ReturnType<typeof createMockRepository>, holder: string) =>
+    new Promise<bigint>((resolve) => chain.subscribeTokenBalance(MUSD, holder, resolve)())
+
+  it('moves the token and charges a deposit for the balance it starts', async () => {
+    const chain = createMockRepository('revive')
+    const source = reviveAddress(A)
+    const before = await held(chain, source)
+    const quote = await chain.quoteTokenTransfer(A, MUSD, BARE, 1n)
+    expect(quote.deposit).toBeGreaterThan(0n)
+
+    const operation: Operation = { kind: 'sendToken', token, to: BARE, amount: 1n, limits: quote.limits }
+    const sent = chain.submit(granter, operation)
+    await vi.advanceTimersByTimeAsync(750)
+    await sent
+
+    expect(await held(chain, source)).toBe(before - 1n)
+    expect(await held(chain, BARE)).toBe(1n)
+    expect((await chain.quoteTokenTransfer(A, MUSD, BARE, 1n)).deposit).toBe(0n)
+  })
+
+  it('refuses more than the H160 holds, and refuses it all under Frontier', async () => {
+    const chain = createMockRepository('revive')
+    const all = await held(chain, reviveAddress(A))
+    await expect(chain.quoteTokenTransfer(A, MUSD, BARE, all + 1n)).rejects.toThrow()
+    await expect(createMockRepository().quoteTokenTransfer(A, MUSD, BARE, 1n)).rejects.toThrow()
+  })
+})
+
 describe('the EVM layer on the mock chain', () => {
   const H160 = '0x1234567890abcdef1234567890abcdef12345678'
 

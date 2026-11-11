@@ -28,6 +28,23 @@ group('a call read out argument by argument', () => {
     })
   })
 
+  it('writes a token amount in the token, to every decimal it has', () => {
+    const operation: Operation = {
+      kind: 'sendToken',
+      token: { address: `0x${'ab'.repeat(20)}`, symbol: 'mUSD', decimals: 6 },
+      to: '0x5a1e7f3c9b2d4e6f8a0b1c2d3e4f5a6b7c8d0009',
+      amount: 1_500_001n,
+      limits: { refTime: 1n, proofSize: 1n, deposit: 0n },
+    }
+    expect(said(operation)).toEqual({
+      title: 'Send mUSD',
+      fields: [
+        { name: 'amount', value: '1.500001 mUSD' },
+        { name: 'to', value: '0x5a1e…0009' },
+      ],
+    })
+  })
+
   it('has nothing to write out for a call that carries nothing', () => {
     expect(said({ kind: 'vest' })).toEqual({ title: 'Release what has vested', fields: [] })
   })
