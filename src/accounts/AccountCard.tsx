@@ -212,12 +212,23 @@ function AddressRow({
   )
 }
 
+function UnmappedEvm({ symbol }: { symbol: string }) {
+  return (
+    <div className="mt-px flex items-center gap-1.5 text-muted-foreground">
+      <Badge variant="muted">EVM</Badge>
+      <Tip text={`Activates once this account first receives ${symbol} at its Numen address`}>
+        <span className="text-[12.5px]">activates on first deposit</span>
+      </Tip>
+    </div>
+  )
+}
+
 function CardBody({
   account,
   balance,
   open,
 }: CardProps) {
-  const { network } = useChain()
+  const { network, evm } = useChain()
   const symbol = useSymbol()
   const { data: standing } = useStanding(account.address)
   const { data: registrars } = useRegistrars()
@@ -387,8 +398,10 @@ function CardBody({
           >
             {standing && <IdentityMark standing={standing} />}
           </AddressRow>
-          {evmAddress && (
+          {evmAddress ? (
             <AddressRow kind="EVM" label="EVM" full={evmAddress} short={shorten(evmAddress)} />
+          ) : (
+            evmAddress === null && evm === 'revive' && <UnmappedEvm symbol={symbol} />
           )}
         </div>
 

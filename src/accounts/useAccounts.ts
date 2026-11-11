@@ -181,9 +181,10 @@ export function useAccounts() {
 
 /**
  * The H160 an account answers to. An EVM account has its own, and a Numen
- * account has one once the chain maps it back.
+ * account has one once the chain maps it back. Undefined until the chain
+ * answers.
  */
-export function useEvmAddressOf(account: Account): string | null {
+export function useEvmAddressOf(account: Account): string | null | undefined {
   const { data: mapped } = useEvmAddress(account.evmAddress ? null : account.address)
-  return account.evmAddress ?? mapped ?? null
+  return account.evmAddress ?? mapped
 }

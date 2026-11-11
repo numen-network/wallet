@@ -123,7 +123,8 @@ test('gives a Numen account the H160 that reaches it, once the chain has seen it
 
   await expect(card(page, 'Bridge').getByText('0x1234…5678')).toBeVisible()
   await expect(card(page, 'Vault').getByText('0x484d…f816')).toBeVisible()
-  await expect(card(page, 'Spare').getByText('EVM')).toHaveCount(0)
+  await expect(card(page, 'Spare').getByText('activates on first deposit')).toBeVisible()
+  await expect(card(page, 'Spare').getByText(/0x/)).toHaveCount(0)
 
   await card(page, 'Vault').getByRole('button', { name: 'Receive' }).click()
   const dialog = page.getByRole('dialog')
