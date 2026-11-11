@@ -103,6 +103,7 @@ export function AddressField<T extends Pickable>({
   aside,
   className = WIDE,
   evm = false,
+  verbatim = false,
   placeholder = evm ? '0x…' : 'nu… or 0x…',
   labelled = true,
   readOnly = false,
@@ -121,6 +122,12 @@ export function AddressField<T extends Pickable>({
    * and shows the H160 instead of the Numen account it maps onto.
    */
   evm?: boolean
+  /**
+   * Hands an H160 on as typed, for a caller that decides what it stands for.
+   * The watch form is one. Only the H160 tells an address MetaMask holds from
+   * the Numen account it spends from.
+   */
+  verbatim?: boolean
   placeholder?: string
   /** Off in a table, where the column heading has already said it once. */
   labelled?: boolean
@@ -139,7 +146,7 @@ export function AddressField<T extends Pickable>({
   const shown = (address: string, account: string | null | undefined) =>
     evm ? shorten(address) : shorten(account ?? '')
   // An H160 typed into a Numen box goes out as the account the chain says it spends from
-  const typedTakes = evm || !isEvmAddress(typed.trim()) ? typed : typedAccount
+  const typedTakes = evm || verbatim || !isEvmAddress(typed.trim()) ? typed : typedAccount
   const known = accounts.find((entry) => entry.address === value || entry.address === resolved)
   // A list whose only entry is what is already there is not a choice
   const choices = accounts.filter((entry) => entry.address !== value)

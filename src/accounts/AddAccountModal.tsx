@@ -360,7 +360,7 @@ export function AddAccountModal({ connectExtension, onClose }: AddAccountModalPr
           {nameField}
           {/* Nothing to offer, since an account this wallet already holds is
               not one worth watching */}
-          <AddressField label="Address" value={address} onChange={setAddress} accounts={[]} />
+          <AddressField label="Address" value={address} onChange={setAddress} accounts={[]} verbatim />
           <GroupField value={groupId} onChange={setGroupId} />
         </>
       )}

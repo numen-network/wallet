@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { expectAddress, pickAddress } from './address'
+import { expectAddress, fillAddress, pickAddress } from './address'
 
 /** The suite runs on a Frontier mock and again on a pallet-revive one. */
 const onRevive = () => test.info().project.name === 'revive'
@@ -173,6 +173,20 @@ test('asks MetaMask for the call that brings funds back', async ({ page }) => {
   expect(sent!.params[0]!.data).toBe(
     `0x040cf020${VAULT_KEY}${'0de0b6b3a7640000'.padStart(64, '0')}`,
   )
+})
+
+test('sends from an H160 added as a watched account', async ({ page }) => {
+  await withMetaMask(page)
+  await page.getByRole('button', { name: 'Add account' }).first().click()
+  const adding = page.getByRole('dialog')
+  await adding.getByRole('radio', { name: 'Watch only' }).check()
+  await adding.getByLabel('Name').fill('Typed')
+  await fillAddress(page, adding, 'Address', EVM)
+  await adding.getByRole('button', { name: 'Add', exact: true }).click()
+
+  await card(page, 'Typed').getByRole('button', { name: 'Send' }).click()
+  await expectAddress(page.getByRole('dialog'), 'From', '0x1234…5678')
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Ask MetaMask' })).toBeVisible()
 })
 
 test('refuses to bring a balance into the very address holding it', async ({ page }) => {
