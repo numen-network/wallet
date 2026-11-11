@@ -57,7 +57,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
   const voter = useVoter(accounts, address)
   const account = voter.account
   const balance = balances[account.address]
-  const held = balance ? totalOf(balance) : 0n
+  const votable = balance ? totalOf(balance) : 0n
 
   const ballotFor = (planck: bigint): Ballot =>
     side === 'abstain' ? { kind: 'abstain', amount: planck } : { kind: side, conviction, amount: planck }
@@ -66,7 +66,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
     const problem = amountProblem(amount)
     if (problem) return call.refuse(problem)
     const planck = parseAmount(amount)
-    if (planck > held) return call.refuse('Enter an amount within what this account holds')
+    if (planck > votable) return call.refuse('Enter an amount within what this account holds')
 
     return call.run(
       voter.submit({ kind: 'vote', poll: referendum.index, ballot: ballotFor(planck) }, call.password),
@@ -78,10 +78,9 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
       title={`Vote on referendum ${referendum.index}`}
       submitLabel="Sign and send"
       busy={call.busy}
-      footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
-      operation={voter.wrap({ kind: 'vote', poll: referendum.index, ballot: ballotFor(held) })}
+      operation={voter.wrap({ kind: 'vote', poll: referendum.index, ballot: ballotFor(votable) })}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}
@@ -93,7 +92,12 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
         as the conviction says, counted from the day the referendum ends.
       </p>
 
-      <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
+      <VoterField
+        accounts={accounts}
+        voter={voter}
+        onChange={setAddress}
+        aside={`${formatAmount(votable, { precision: 4 })} ${symbol} to vote`}
+      />
 
       <FieldSet className="mt-3.5">
         <FieldLegend>Vote</FieldLegend>
@@ -116,7 +120,7 @@ export function VoteModal({ referendum, accounts, balances, onClose }: VoteProps
         <ConvictionField value={conviction} onChange={setConviction} />
       )}
 
-      <AmountField label="Amount" value={amount} onChange={setAmount} />
+      <AmountField label="Amount" value={amount} onChange={setAmount} max={votable} />
     </CallModal>
   )
 }
@@ -217,7 +221,7 @@ export function VoteManyModal({
   const voter = useVoter(accounts, address)
   const account = voter.account
   const balance = balances[account.address]
-  const held = balance ? totalOf(balance) : 0n
+  const votable = balance ? totalOf(balance) : 0n
   const chosen = referenda.filter((referendum) => sides[referendum.index])
 
   const ballotFor = (planck: bigint, side: Side): Ballot =>
@@ -238,7 +242,7 @@ export function VoteManyModal({
     const problem = amountProblem(amount)
     if (problem) return call.refuse(problem)
     const planck = parseAmount(amount)
-    if (planck > held) return call.refuse('Enter an amount within what this account holds')
+    if (planck > votable) return call.refuse('Enter an amount within what this account holds')
 
     return call.run(voter.submit(batched(callsFor(planck)), call.password))
   }
@@ -249,10 +253,9 @@ export function VoteManyModal({
       submitLabel="Sign and send"
       busy={call.busy}
       width={640}
-      footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held, and the same amount rides every one of these`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
-      operation={chosen.length > 0 ? voter.wrap(batched(callsFor(held))) : null}
+      operation={chosen.length > 0 ? voter.wrap(batched(callsFor(votable))) : null}
       password={call.password}
       onPassword={call.setPassword}
       error={call.error}
@@ -265,7 +268,12 @@ export function VoteManyModal({
         conviction says, counted from the day each referendum ends.
       </p>
 
-      <VoterField accounts={accounts} voter={voter} onChange={setAddress} />
+      <VoterField
+        accounts={accounts}
+        voter={voter}
+        onChange={setAddress}
+        aside={`${formatAmount(votable, { precision: 4 })} ${symbol} to vote`}
+      />
 
       <ItemGroup variant="outline" className="mt-3.5">
         {referenda.map((referendum, index) => {
@@ -303,7 +311,7 @@ export function VoteManyModal({
       <div className="mt-3.5 grid grid-cols-2 gap-x-3.5 gap-y-2.5 *:mt-0 max-[560px]:grid-cols-1">
         <ConvictionField value={conviction} onChange={setConviction} />
 
-        <AmountField label="Amount" value={amount} onChange={setAmount} />
+        <AmountField label="Amount" value={amount} onChange={setAmount} max={votable} />
       </div>
     </CallModal>
   )

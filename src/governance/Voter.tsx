@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { AddressField } from '@/accounts/AddressField'
 import { SignerField, useSigning } from '@/accounts/Authorize'
 import { canSend, signersFor, type Account } from '@/accounts/types'
@@ -33,11 +34,13 @@ export function VoterField({
   voter,
   onChange,
   label = 'Voting as',
+  aside,
 }: {
   accounts: Voters
   voter: Voter
   onChange: (address: string) => void
   label?: string
+  aside?: ReactNode
 }) {
   return (
     <>
@@ -46,6 +49,7 @@ export function VoterField({
         value={voter.account.address}
         onChange={onChange}
         accounts={accounts}
+        aside={aside}
         readOnly
       />
       <SignerField

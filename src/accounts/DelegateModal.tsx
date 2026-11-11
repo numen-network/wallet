@@ -306,7 +306,6 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
       busy={call.busy}
       disabled={terms.tracks.length > 0 && (!parts || lockable === undefined)}
       aside={tabs}
-      footNote={`${formatAmount(held, { precision: 2 })} ${symbol} held`}
       from={voter.signer.address}
       needsPassword={voter.needsPassword}
       operation={parts && parts.length > 0 ? parts.map(voter.wrap) : null}
@@ -316,13 +315,23 @@ function DelegateOne({ delegators, accounts, balances, from, onClose, tabs, term
       onClose={onClose}
       onSubmit={form}
     >
-      <VoterField label="Delegating as" accounts={delegators} voter={voter} onChange={setAddress} />
+      <VoterField
+        label="Delegating as"
+        accounts={delegators}
+        voter={voter}
+        onChange={setAddress}
+        aside={
+          lockable === undefined
+            ? 'Estimating…'
+            : `${formatAmount(lockable, { precision: 4 })} ${symbol} to delegate`
+        }
+      />
       <TermsFields
         terms={terms}
         setTerms={setTerms}
         others={accounts.filter((entry) => entry !== voter.account)}
       />
-      <AmountField label="Amount" value={amount} onChange={setAmount} />
+      <AmountField label="Amount" value={amount} onChange={setAmount} max={lockable} />
     </CallPage>
   )
 }
