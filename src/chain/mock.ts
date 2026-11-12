@@ -54,7 +54,6 @@ import {
   type ChainRepository,
   type Delegation,
   type EvmLayer,
-  type Holding,
   type Operation,
   type Pending,
   type Proxy,
@@ -112,12 +111,75 @@ const TOKENS: Token[] = [
   },
 ]
 
-/** On chain but off the list, so there is something for an import to find. */
+/** On chain but off the list, enough of them to make a list of every token scroll. */
 const UNLISTED: Token[] = [
   {
     address: '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0',
     name: 'Mock Gold',
     symbol: 'mGLD',
+    decimals: 18,
+    icon: null,
+  },
+  {
+    address: '0x01c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee01',
+    name: 'Mock Silver',
+    symbol: 'mSLV',
+    decimals: 18,
+    icon: null,
+  },
+  {
+    address: '0x02c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee02',
+    name: 'Mock Copper',
+    symbol: 'mCPR',
+    decimals: 18,
+    icon: null,
+  },
+  {
+    address: '0x03c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee03',
+    name: 'Mock Iron',
+    symbol: 'mIRN',
+    decimals: 8,
+    icon: null,
+  },
+  {
+    address: '0x04c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee04',
+    name: 'Mock Tin',
+    symbol: 'mTIN',
+    decimals: 6,
+    icon: null,
+  },
+  {
+    address: '0x05c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee05',
+    name: 'Mock Zinc',
+    symbol: 'mZNC',
+    decimals: 18,
+    icon: null,
+  },
+  {
+    address: '0x06c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee06',
+    name: 'Mock Lead',
+    symbol: 'mLED',
+    decimals: 2,
+    icon: null,
+  },
+  {
+    address: '0x07c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee07',
+    name: 'Mock Nickel',
+    symbol: 'mNKL',
+    decimals: 18,
+    icon: null,
+  },
+  {
+    address: '0x08c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee08',
+    name: 'Mock Cobalt',
+    symbol: 'mCBT',
+    decimals: 9,
+    icon: null,
+  },
+  {
+    address: '0x09c0ffeec0ffeec0ffeec0ffeec0ffeec0ffee09',
+    name: 'Mock Lithium',
+    symbol: 'mLTH',
     decimals: 18,
     icon: null,
   },
@@ -1715,11 +1777,8 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
       return { ...token, icon: null }
     },
 
-    async discoverTokens(holder: string): Promise<Holding[]> {
-      return CONTRACTS.flatMap((token) => {
-        const balance = readTokenBalance(token.address, holder)
-        return balance > 0n ? [{ token: { ...token, icon: null }, balance }] : []
-      })
+    async allTokens(): Promise<Token[]> {
+      return CONTRACTS.map((token) => ({ ...token, icon: null }))
     },
 
     async quoteTokenTransfer(from, token, to, amount): Promise<CallQuote> {

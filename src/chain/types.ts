@@ -606,8 +606,8 @@ export interface ChainRepository {
   tokens(): Promise<Token[]>
   /** One contract as it describes itself. Rejects when it isn't an ERC20. */
   token(address: string): Promise<Token>
-  /** What an EVM address holds across every contract on chain, empty ones left out. */
-  discoverTokens(holder: string): Promise<Holding[]>
+  /** Every contract on chain that describes itself as an ERC20. */
+  allTokens(): Promise<Token[]>
   /**
    * Dry runs a token transfer from this account's H160 to see what it takes.
    * Rejects with the contract's reason when it would fail.

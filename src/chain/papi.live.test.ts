@@ -1195,8 +1195,8 @@ describe.runIf(REVIVE)('the EVM layer under pallet-revive', () => {
 
   it('finds the coin facade among the contracts and reads it over eth_call', { timeout: 60_000 }, async () => {
     const { balancesErc20 } = await repository.facts()
-    const held = await repository.discoverTokens(await api.apis.ReviveApi.address(alice.address))
-    expect(held.map(({ token }) => token.address.toLowerCase())).toContain(balancesErc20)
+    const all = await repository.allTokens()
+    expect(all.map((token) => token.address.toLowerCase())).toContain(balancesErc20)
   })
 
   it('sends a token from a Numen account through Revive.call', { timeout: 200_000 }, async () => {

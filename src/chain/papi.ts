@@ -89,7 +89,6 @@ import {
   type ChainHead,
   type ChainRepository,
   type EvmLayer,
-  type Holding,
   type Operation,
   type Pending,
   type Proxy,
@@ -1804,23 +1803,15 @@ export function createPapiRepository(network: Network): ChainRepository {
     token: describe,
 
     /**
-     * Asks every contract on chain for the holder's balance, so the cost grows
-     * with the contract count. Fine for tens, an indexer's job at thousands.
+     * Asks every contract on chain to describe itself, so the cost grows with
+     * the contract count. Fine for tens, an indexer's job at thousands.
      */
-    async discoverTokens(holder: string): Promise<Holding[]> {
+    async allTokens(): Promise<Token[]> {
       const contracts = await allContracts()
-      const held = await Promise.all(
-        contracts.map(async (address) => {
-          const answer = await ethCall(address, balanceOfCall(holder), 'latest').catch(() => null)
-          // A contract without balanceOf reverts or answers with something other than one word
-          if (answer?.length !== 66) return []
-          const balance = readBalance(answer)
-          if (balance === 0n) return []
-          const token = await describe(address).catch(() => null)
-          return token ? [{ token, balance }] : []
-        }),
+      const tokens = await Promise.all(
+        contracts.map((address) => describe(address).catch(() => null)),
       )
-      return held.flat()
+      return tokens.filter((token) => token !== null)
     },
 
     /**

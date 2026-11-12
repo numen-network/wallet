@@ -274,51 +274,87 @@ test('says so when an EVM address holds none of the tokens', async ({ page }) =>
 /** On the mock chain but off its list, so it only shows once imported. */
 const GOLD = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0'
 
-test('imports a token the account holds that the wallet does not list', async ({ page }) => {
+test('turns on a token the wallet does not list and keeps it for every account', async ({ page }) => {
   await withMetaMask(page)
-  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+  await watching(page, [
+    { address: MIRROR, evmAddress: EVM, name: 'Mirror' },
+    { address: BARE_MIRROR, evmAddress: BARE, name: 'Bare' },
+  ])
 
   const dialog = await tokenBalances(page, 'Mirror')
   await expect(dialog.getByText('Mock Gold')).toHaveCount(0)
-  await dialog.getByRole('button', { name: 'Import token' }).click()
-  await dialog.getByRole('button', { name: 'Import mGLD' }).click()
-  await expect(dialog.getByRole('button', { name: 'Import mGLD' })).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Manage tokens' }).click()
+  await dialog.getByRole('switch', { name: 'Show mGLD' }).click()
+  await expect(dialog.getByRole('switch', { name: 'Show mGLD' })).toBeChecked()
   await dialog.getByRole('button', { name: 'Done' }).click()
 
   await expect(dialog.getByText('Mock Gold')).toBeVisible()
   await expect(dialog.getByText('Imported')).toBeVisible()
 
   await page.reload()
+  await expect((await tokenBalances(page, 'Bare')).getByText('Mock Gold')).toBeVisible()
+  await page.keyboard.press('Escape')
+
   const again = await tokenBalances(page, 'Mirror')
-  await expect(again.getByText('Mock Gold')).toBeVisible()
-  await again.getByRole('button', { name: 'Remove mGLD' }).click()
+  await again.getByRole('button', { name: 'Manage tokens' }).click()
+  await again.getByRole('switch', { name: 'Show mGLD' }).click()
+  await again.getByRole('button', { name: 'Done' }).click()
+  await expect(again.getByText('Mock Dollar')).toBeVisible()
   await expect(again.getByText('Mock Gold')).toHaveCount(0)
 })
 
-test('imports a pasted contract and refuses what is no new token', async ({ page }) => {
+test('lists every token on chain and narrows it by search and by what is on', async ({ page }) => {
   await withMetaMask(page)
   await watching(page, [{ address: BARE_MIRROR, evmAddress: BARE, name: 'Bare' }])
 
   const dialog = await tokenBalances(page, 'Bare')
-  await dialog.getByRole('button', { name: 'Import token' }).click()
-  const box = dialog.getByPlaceholder('0x…')
-  const importIt = dialog.getByRole('button', { name: 'Import', exact: true })
+  await dialog.getByRole('button', { name: 'Manage tokens' }).click()
+  const rows = dialog.getByRole('listitem')
+  const box = dialog.getByPlaceholder('Symbol, name or 0x address')
 
-  await box.fill('0x12')
-  await expect(dialog.getByText('Enter a 0x contract address')).toBeVisible()
-  await box.fill(`0x${'ab'.repeat(20)}`)
-  await expect(dialog.getByText('No ERC20 at this address')).toBeVisible()
-  await box.fill(MUSD)
-  await expect(dialog.getByText('Already in the list')).toBeVisible()
-  await expect(importIt).toBeDisabled()
+  await expect(rows).toHaveCount(12)
+  await expect(rows.filter({ hasText: 'mUSD' }).getByText('Listed')).toBeVisible()
+  await expect(rows.filter({ hasText: 'mUSD' }).getByRole('switch')).toHaveCount(0)
 
+  await box.fill('gold')
+  await expect(rows).toHaveCount(1)
   await box.fill(GOLD.toUpperCase().replace('0X', '0x'))
-  await expect(dialog.getByText('18 decimals')).toBeVisible()
-  await importIt.click()
-  await expect(box).toHaveValue('')
-  await dialog.getByRole('button', { name: 'Done' }).click()
+  await expect(rows).toHaveText(/mGLD/)
+  await box.fill(`0x${'ab'.repeat(20)}`)
+  await expect(dialog.getByText('No tokens match.')).toBeVisible()
+  await box.fill('')
 
-  await expect(dialog.getByText('Mock Gold')).toBeVisible()
+  await dialog.getByLabel('Turned on only').click()
+  await expect(rows).toHaveCount(2)
+  await expect(rows.filter({ hasText: 'mGLD' })).toHaveCount(0)
+  await dialog.getByLabel('Turned on only').click()
+
+  await dialog.getByRole('switch', { name: 'Show mGLD' }).click()
+  await dialog.getByLabel('Turned on only').click()
+  await expect(rows).toHaveCount(3)
+  await dialog.getByRole('switch', { name: 'Show mGLD' }).click()
+  await expect(rows).toHaveCount(2)
+})
+
+test('scrolls the token list inside the dialog and never sideways', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: BARE_MIRROR, evmAddress: BARE, name: 'Bare' }])
+
+  const dialog = await tokenBalances(page, 'Bare')
+  await dialog.getByRole('button', { name: 'Manage tokens' }).click()
+  const list = dialog.getByRole('list')
+  await expect(dialog.getByRole('listitem')).toHaveCount(12)
+
+  const size = await list.evaluate((el) => ({
+    wide: el.scrollWidth - el.clientWidth,
+    tall: el.scrollHeight - el.clientHeight,
+  }))
+  expect(size.wide).toBe(0)
+  expect(size.tall).toBeGreaterThan(0)
+
+  await dialog.getByRole('listitem').last().scrollIntoViewIfNeeded()
+  await expect(dialog.getByPlaceholder('Symbol, name or 0x address')).toBeInViewport()
+  await expect(dialog.getByText('Only turn on contracts you trust.')).toBeInViewport()
 })
 
 test('treats a token the wallet lists as listed even after an import', async ({ page }) => {
@@ -331,7 +367,6 @@ test('treats a token the wallet lists as listed even after an import', async ({ 
   const dialog = await tokenBalances(page, 'Mirror')
   await expect(dialog.getByText('Mock Dollar')).toBeVisible()
   await expect(dialog.getByText('Imported')).toHaveCount(0)
-  await expect(dialog.getByRole('button', { name: 'Remove mUSD' })).toHaveCount(0)
 })
 
 test("opens Send with the row's token already picked", async ({ page }) => {

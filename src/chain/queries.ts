@@ -87,13 +87,13 @@ export function useToken(address: string | null) {
   })
 }
 
-/** What the holder has across every contract on chain. Read on demand and kept for the session. */
-export function useDiscoveredTokens(holder: string) {
+/** Every ERC20 on chain. Read on demand and kept for the session. */
+export function useAllTokens() {
   const { repository, network } = useChain()
 
   return useQuery({
-    queryKey: ['discoveredTokens', network.id, holder],
-    queryFn: () => repository.discoverTokens(holder),
+    queryKey: ['allTokens', network.id],
+    queryFn: () => repository.allTokens(),
     staleTime: Infinity,
   })
 }

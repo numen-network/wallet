@@ -15,15 +15,15 @@ import {
   ItemSeparator,
   ItemTitle,
 } from '@/components/ui/item'
-import { ExternalLink, Plus, QrCode, Send, X } from 'lucide-react'
+import { ExternalLink, QrCode, Send, Settings2 } from 'lucide-react'
 import type { Holding, Token } from '@/chain/types'
 import { CopyButton } from '@/ui/CopyButton'
 import { ModalFrame, ModalPage } from '@/ui/Modal'
 import { Tip } from '@/ui/Tip'
 import { AddressField } from './AddressField'
-import { ImportTokenPage } from './ImportTokenPage'
+import { ManageTokensPage } from './ManageTokensPage'
 import { TokenMark } from './TokenMark'
-import { tokenAmount, useHoldings, useImported, useImportedStore } from './tokens'
+import { tokenAmount, useHoldings, useImported } from './tokens'
 import type { Account } from './types'
 
 /** What an H160 holds of the tokens the wallet shows. The card it belongs to leaves them out. */
@@ -44,13 +44,12 @@ export function TokenBalancesModal({
   const { network } = useChain()
   const holdings = useHoldings(source)
   const imported = useImported()
-  const remove = useImportedStore((state) => state.remove)
-  const [importing, setImporting] = useState(false)
+  const [managing, setManaging] = useState(false)
 
   return (
     <ModalFrame onClose={onClose}>
-      {importing ? (
-        <ImportTokenPage holder={source} onBack={() => setImporting(false)} onClose={onClose} />
+      {managing ? (
+        <ManageTokensPage onBack={() => setManaging(false)} onClose={onClose} />
       ) : (
         <ModalPage
           title="Token balances"
@@ -58,9 +57,9 @@ export function TokenBalancesModal({
           cancelLabel={null}
           onClose={onClose}
           aside={
-            <Button type="button" variant="outline" size="sm" onClick={() => setImporting(true)}>
-              <Plus />
-              Import token
+            <Button type="button" variant="outline" size="sm" onClick={() => setManaging(true)}>
+              <Settings2 />
+              Manage tokens
             </Button>
           }
         >
@@ -142,19 +141,6 @@ export function TokenBalancesModal({
                             <QrCode />
                           </Button>
                         </Tip>
-                        {added && (
-                          <Tip text={`Remove ${token.symbol} from the list`}>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Remove ${token.symbol}`}
-                              onClick={() => remove(network.id, token.address)}
-                            >
-                              <X />
-                            </Button>
-                          </Tip>
-                        )}
                       </ItemActions>
                     </Item>
                   </Fragment>

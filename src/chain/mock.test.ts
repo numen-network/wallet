@@ -103,16 +103,14 @@ describe('votes in the way of a delegation on the mock chain', () => {
 
 describe('tokens on the mock chain', () => {
   const GOLD = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0'
-  const EVM = '0x1234567890abcdef1234567890abcdef12345678'
 
-  it('finds a contract the list leaves out', async () => {
+  it('finds every contract, the listed ones and the rest', async () => {
     const chain = createMockRepository()
     const listed = (await chain.tokens()).map((token) => token.address)
-    const found = await chain.discoverTokens(EVM)
+    const all = (await chain.allTokens()).map((token) => token.address)
 
     expect(listed).not.toContain(GOLD)
-    expect(found.map((holding) => holding.token.address)).toContain(GOLD)
-    expect(found.every((holding) => holding.balance > 0n)).toBe(true)
+    expect(all).toEqual(expect.arrayContaining([...listed, GOLD]))
   })
 
   it('describes a contract by its address and refuses one that is no token', async () => {
