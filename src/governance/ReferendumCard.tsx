@@ -4,8 +4,6 @@ import { useChain } from '@/chain/provider'
 import {
   approval,
   countdown,
-  STATE_LABELS,
-  STATE_SAYS,
   support,
   thresholds,
   trackLabel,
@@ -14,22 +12,11 @@ import {
   type Track,
 } from '@/chain/governance'
 import { CardMark } from '@/ui/CardMark'
-import { Markdown } from '@/ui/Markdown'
 import { Beneficiary } from './Beneficiary'
 import { formatAmount } from '@/lib/balance'
 import { daySpan, waitFor } from '@/lib/blocks'
-import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { ExternalLink } from 'lucide-react'
-
-/** One colour a state, in the order a referendum passes through them. */
-const TONE: Record<Referendum['state'], BadgeVariant> = {
-  preparing: 'default',
-  queued: 'warn',
-  deciding: 'primary',
-  confirming: 'destructive',
-}
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -136,28 +123,13 @@ export function ReferendumCard({
         <CardMark>#{referendum.index}</CardMark>
         {/* The track names it while its metadata does not, which is all a
             referendum nobody titled has to go by */}
-        <CardTitle>
-          <a
-            href={explorerReferendum(network, referendum.index)}
-            target="_blank"
-            rel="noopener"
-            className="flex items-center gap-1 hover:text-primary"
-          >
-            {referendum.title ?? trackLabel(tracks, referendum.track)}
-            <ExternalLink className="size-3" />
+        <CardTitle>{referendum.title ?? trackLabel(tracks, referendum.track)}</CardTitle>
+        <Button asChild variant="link" size="sm" className="p-0 font-normal">
+          <a href={explorerReferendum(network, referendum.index)} target="_blank" rel="noopener">
+            View on explorer
           </a>
-        </CardTitle>
-        <Badge variant={TONE[referendum.state]}>{STATE_LABELS[referendum.state]}</Badge>
+        </Button>
       </CardHeader>
-
-      {/* What the proposer wrote, which the chain has been carrying all along
-          and nothing here ever showed. The whole of it, since somebody is being
-          asked to vote on it and a card is not worth hiding it for */}
-      {referendum.description && (
-        <CardContent>
-          <Markdown text={referendum.description} />
-        </CardContent>
-      )}
 
       <CardContent>
         {proposal.kind === 'spend' ? (
@@ -185,8 +157,6 @@ export function ReferendumCard({
           <Stat label={clock.label}>{waitFor(clock.blocks, facts.blockSeconds)}</Stat>
         )}
       </CardContent>
-
-      <CardDescription>{STATE_SAYS[referendum.state]}</CardDescription>
 
       {canSign && (
         <CardFooter>

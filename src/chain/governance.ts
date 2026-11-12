@@ -363,13 +363,6 @@ export function lockAfter(lock: ClassLock, lockingPeriod: number, height: number
   return holding.reduce((most, amount) => (amount > most ? amount : most), 0n)
 }
 
-export const STATE_LABELS: Record<ReferendumState, string> = {
-  preparing: 'preparing',
-  queued: 'queued',
-  deciding: 'deciding',
-  confirming: 'confirming',
-}
-
 export interface Thresholds {
   approval: number
   support: number
@@ -404,15 +397,6 @@ export function thresholds(
     approval: fallenTo(track.approvalCurve, ran),
     support: fallenTo(track.supportCurve, ran),
   }
-}
-
-/** What the badge has no room to say. */
-export const STATE_SAYS: Record<ReferendumState, string> = {
-  preparing:
-    'Nothing counts yet. The preparation period has to run out and the decision deposit has to be down.',
-  queued: 'Every deciding slot on this track is taken, so it waits for one to come free.',
-  deciding: 'Votes are counting. It has to be ahead by enough before the period runs out.',
-  confirming: 'It is ahead by enough. Losing that lead before the countdown ends drops it back.',
 }
 
 export interface Countdown {

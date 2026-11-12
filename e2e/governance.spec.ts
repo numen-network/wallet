@@ -73,29 +73,11 @@ const referendum = (page: Page, index: number) =>
     .locator('article')
     .filter({ hasText: `#${index}` })
 
-test('the list shows what each referendum would pay and where it has got to', async ({ page }) => {
+test('the list shows what each referendum would pay', async ({ page }) => {
   await createKey(page)
   await governance(page)
 
   const running = referendum(page, 1)
-  // Every state an Ongoing referendum passes through, since the badge is the
-  // only place the list says where one has got to
-  await expect(referendum(page, 0).getByText('preparing')).toBeVisible()
-  await expect(referendum(page, 2).getByText('queued')).toBeVisible()
-  await expect(running.getByText('deciding')).toBeVisible()
-  await expect(referendum(page, 3).getByText('confirming')).toBeVisible()
-  // A colour apiece, so the badge tells them apart without being read
-  const badge = (index: number, state: string) =>
-    referendum(page, index)
-      .getByText(state)
-      .evaluate((node) => getComputedStyle(node).color)
-  const tones = await Promise.all([
-    badge(0, 'preparing'),
-    badge(2, 'queued'),
-    badge(1, 'deciding'),
-    badge(3, 'confirming'),
-  ])
-  expect(new Set(tones).size).toBe(4)
   // Nothing titled #0, so the track is the best name it has
   await expect(referendum(page, 0).getByText('Small spender')).toBeVisible()
   await expect(running.getByText(/Pay\s*250,000/)).toBeVisible()
@@ -119,10 +101,10 @@ test('the list shows what each referendum would pay and where it has got to', as
   await expect(
     referendum(page, 2).getByRole('link', { name: 'Numen Explorer Team/Payouts' }),
   ).toHaveAttribute('href', /\/account\/nu6mvwk9/)
-  // The title is what leads to the referendum, the number just names it
-  await expect(
-    running.getByRole('link', { name: 'Fund the block explorer for a year' }),
-  ).toHaveAttribute('href', /\/referendum\/1$/)
+  await expect(running.getByRole('link', { name: 'View on explorer' })).toHaveAttribute(
+    'href',
+    /\/referendum\/1$/,
+  )
 })
 
 test('a card says how the vote is going and what happens next', async ({ page }) => {
@@ -135,13 +117,11 @@ test('a card says how the vote is going and what happens next', async ({ page })
   await expect(running.getByText('Approval 82.00%/92.86%')).toBeVisible()
   await expect(running.getByText('Support 21.66%/7.20%')).toBeVisible()
   await expect(running.getByText('Decision ends in about 26 days')).toBeVisible()
-  await expect(running.getByText(/Votes are counting/)).toBeVisible()
 
   // Three days in, and ahead of both curves, which is what confirming means
   await expect(referendum(page, 3).getByText('Approval 97.50%/89.29%')).toBeVisible()
   await expect(referendum(page, 3).getByText('Support 43.33%/5.09%')).toBeVisible()
   await expect(referendum(page, 3).getByText('Passes in about 12 hours')).toBeVisible()
-  await expect(referendum(page, 3).getByText(/ahead by enough/)).toBeVisible()
 
   // Nothing has run for one that is not being decided, so both lines sit where
   // the fall begins
@@ -152,7 +132,6 @@ test('a card says how the vote is going and what happens next', async ({ page })
   // both count down to the timeout that ends an undecided referendum
   await expect(referendum(page, 0).getByText('Called off in about 14 days')).toBeVisible()
   await expect(referendum(page, 2).getByText('Called off in about 14 days')).toBeVisible()
-  await expect(referendum(page, 2).getByText(/slot on this track is taken/)).toBeVisible()
 })
 
 test('the list is read nearest a decision first, or newest first', async ({ page }) => {
@@ -332,7 +311,7 @@ test('a referendum with no decision deposit offers to place one', async ({ page 
   await governance(page)
 
   const waiting = referendum(page, 0)
-  await expect(waiting.getByText('preparing')).toBeVisible()
+  await expect(waiting.getByText(/Called off in/)).toBeVisible()
   await waiting.getByRole('button', { name: 'Place decision deposit' }).click()
 
   const dialog = page.getByRole('dialog')
@@ -345,7 +324,7 @@ test('a referendum with no decision deposit offers to place one', async ({ page 
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
 
   await expect(page.getByText('Decision deposit placed')).toBeVisible()
-  await expect(waiting.getByText('deciding')).toBeVisible()
+  await expect(waiting.getByText(/Decision ends in/)).toBeVisible()
 })
 
 test('proposing needs an identity a registrar has checked', async ({ page }) => {
