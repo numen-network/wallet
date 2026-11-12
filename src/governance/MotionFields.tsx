@@ -1,6 +1,6 @@
 import { AddressField } from '@/accounts/AddressField'
 import { RegistrarField } from '@/accounts/RegistrarField'
-import { SORTS, trackLabel, type Motion } from '@/chain/governance'
+import { newestFirst, trackLabel, type Motion } from '@/chain/governance'
 import { suffixProblem, type Registrar, type UsernameAuthority } from '@/chain/identity'
 import { useReferenda, useTracks } from '@/chain/queries'
 import { resolveAddress, shorten } from '@/lib/address'
@@ -20,7 +20,7 @@ export const missing = (problem: string): Reading => ({ motion: null, problem })
 export function PollField({ value, onChange }: { value: string; onChange: (poll: string) => void }) {
   const { data: referenda } = useReferenda()
   const { data: tracks } = useTracks()
-  const options = [...(referenda ?? [])].sort(SORTS.newest).map((referendum) => ({
+  const options = [...(referenda ?? [])].sort(newestFirst).map((referendum) => ({
     value: String(referendum.index),
     label: `#${referendum.index} ${referendum.title ?? trackLabel(tracks, referendum.track)}`,
   }))

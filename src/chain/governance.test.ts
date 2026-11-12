@@ -8,6 +8,7 @@ import {
   hasRefund,
   lockAfter,
   metadataDump,
+  newestFirst,
   originOf,
   readMeta,
   readVoteByte,
@@ -16,7 +17,6 @@ import {
   remarkBytes,
   refundsSubmission,
   shutsTooSoon,
-  SORTS,
   spendState,
   support,
   thresholds,
@@ -28,7 +28,6 @@ import {
   type CastVote,
   type ClassLock,
   type Referendum,
-  type ReferendumState,
   type Settled,
   type Spend,
   type Track,
@@ -120,28 +119,9 @@ describe('the clock a running referendum is on', () => {
 })
 
 describe('the order the running list is read in', () => {
-  const poll = (index: number, state: ReferendumState) => ({ index, state }) as Referendum
-  const indexes = (list: Referendum[], sort: keyof typeof SORTS) =>
-    [...list].sort(SORTS[sort]).map((referendum) => referendum.index)
-
-  const list = [
-    poll(0, 'preparing'),
-    poll(1, 'deciding'),
-    poll(2, 'queued'),
-    poll(3, 'confirming'),
-    poll(4, 'deciding'),
-  ]
-
-  it('puts the one nearest a decision at the top', () => {
-    expect(indexes(list, 'state')).toEqual([3, 4, 1, 2, 0])
-  })
-
-  it('falls back to the newest inside a state', () => {
-    expect(indexes([poll(1, 'deciding'), poll(7, 'deciding')], 'state')).toEqual([7, 1])
-  })
-
-  it('counts down by index when that is what was asked for', () => {
-    expect(indexes(list, 'newest')).toEqual([4, 3, 2, 1, 0])
+  it('counts down by index', () => {
+    const list = [0, 1, 2, 3, 4].map((index) => ({ index }) as Referendum)
+    expect([...list].sort(newestFirst).map((referendum) => referendum.index)).toEqual([4, 3, 2, 1, 0])
   })
 })
 

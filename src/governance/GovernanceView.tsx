@@ -1,13 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Account } from '@/accounts/types'
 import {
+  newestFirst,
   spendState,
-  SORT_LABELS,
-  SORTS,
   type Held,
   type NotedPreimage,
   type Referendum,
-  type Sort,
   type Spend,
 } from '@/chain/governance'
 import { explorerGovernance } from '@/chain/config'
@@ -28,7 +26,6 @@ import { cn } from '@/lib/cn'
 import { Empty } from '@/components/ui/empty'
 import { ArrowUpRight, Coins, Plus, LockOpen, Vote } from 'lucide-react'
 import { FormScope, useDialog } from '@/ui/reopen'
-import { Select } from '@/ui/Select'
 import { SHELL } from '@/ui/shell'
 import { TabBar, TabPanel, Tabs, type TabOption } from '@/ui/Tabs'
 import { Tip } from '@/ui/Tip'
@@ -77,8 +74,6 @@ const TABS: readonly TabOption<Tab>[] = [
   { id: 'deposits', label: 'Deposits to return' },
 ]
 
-const SORT_OPTIONS = Object.entries(SORT_LABELS).map(([value, label]) => ({ value, label }))
-
 /**
  * Nothing on this page belongs to one account, which is why the account doing
  * the signing is picked inside each dialog rather than carried in from a card.
@@ -107,7 +102,6 @@ export function GovernanceView({
   const { data: issuance } = useActiveIssuance()
   const head = useHead()
   const [tab, setTab] = useState<Tab>('referenda')
-  const [sort, setSort] = useState<Sort>('state')
   const dialog = useDialog<Modal>()
   const { modal, close, open: setModal } = dialog
 
@@ -122,7 +116,7 @@ export function GovernanceView({
 
   const signers = voters(accounts)
   const canSign = signers !== null
-  const running = [...(referenda ?? [])].sort(SORTS[sort])
+  const running = [...(referenda ?? [])].sort(newestFirst)
   const board = bounties ?? []
   // A spend already paid leaves a record behind that clears itself, and there
   // is nothing anybody can do about one whose window has shut
@@ -167,15 +161,6 @@ export function GovernanceView({
     <Tabs value={tab} onChange={setTab}>
       <section className={cn(SHELL, 'flex flex-wrap items-center gap-3 pt-6 pb-1.5')}>
         <TabBar options={TABS.map((option) => ({ ...option, count: counts[option.id] }))} />
-        {tab === 'referenda' && (
-          <Select
-            value={sort}
-            onValueChange={(value) => setSort(value as Sort)}
-            options={SORT_OPTIONS}
-            label="Sort"
-            variant="pill"
-          />
-        )}
         <div className="ml-auto flex flex-wrap gap-2 max-[560px]:ml-0">
           {pill('Referendum', <Plus />, { kind: 'propose' })}
           {pill(

@@ -428,29 +428,7 @@ export function countdown(
   return { label: 'Decision ends in', blocks: deciding.since + track.decisionPeriod - height }
 }
 
-/** How near a referendum is to being settled, confirming being one tick away. */
-const URGENCY: Record<ReferendumState, number> = {
-  confirming: 0,
-  deciding: 1,
-  queued: 2,
-  preparing: 3,
-}
-
-const newest = (one: Referendum, other: Referendum) => other.index - one.index
-
-/** The order the running list may be read in. Nothing else decides it. */
-export const SORTS = {
-  state: (one: Referendum, other: Referendum) =>
-    URGENCY[one.state] - URGENCY[other.state] || newest(one, other),
-  newest,
-}
-
-export type Sort = keyof typeof SORTS
-
-export const SORT_LABELS: Record<Sort, string> = {
-  state: 'By state',
-  newest: 'Newest first',
-}
+export const newestFirst = (one: Referendum, other: Referendum) => other.index - one.index
 
 /** The chain pads a track name to a fixed width and writes it in snake case. */
 export function readableTrack(name: string): string {

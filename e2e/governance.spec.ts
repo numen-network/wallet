@@ -134,27 +134,13 @@ test('a card says how the vote is going and what happens next', async ({ page })
   await expect(referendum(page, 2).getByText('Called off in about 14 days')).toBeVisible()
 })
 
-test('the list is read nearest a decision first, or newest first', async ({ page }) => {
+test('the list is read newest first', async ({ page }) => {
   await createKey(page)
   await governance(page)
 
-  const order = async () =>
-    (
-      await page
-        .getByRole('region', { name: 'Running referenda' })
-        .locator('article')
-        .allTextContents()
-    ).map((card) => card.match(/#(\d+)/)?.[1])
-
-  // #3 is confirming, #1 deciding, #2 queued, #0 preparing
-  expect(await order()).toEqual(['3', '1', '2', '0'])
-
-  await page.getByRole('combobox', { name: 'Sort' }).click()
-  await page.getByRole('option', { name: 'Newest first' }).click()
-  // Read once the list has gone. While it fades out, Radix keeps the rest of
-  // the page out of the accessibility tree, and a hidden region has no articles
-  await expect(page.getByRole('option')).toHaveCount(0)
-  expect(await order()).toEqual(['3', '2', '1', '0'])
+  await expect(
+    page.getByRole('region', { name: 'Running referenda' }).locator('article [data-slot="card-header"]'),
+  ).toHaveText([/^#3/, /^#2/, /^#1/, /^#0/])
 })
 
 test('each list is a tab, and everything that adds one sits on the tab row', async ({ page }) => {
