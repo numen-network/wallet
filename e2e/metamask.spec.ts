@@ -392,6 +392,38 @@ test("opens Send with the row's token already picked", async ({ page }) => {
   const sent = asked.find((call) => call.method === 'eth_sendTransaction')
   expect(sent!.params[0]!.to).toBe(MUSD)
   expect(sent!.params[0]!.data.endsWith((2_000_000).toString(16).padStart(64, '0'))).toBe(true)
+  await expect(page.getByRole('dialog', { name: 'Token balances' })).toBeVisible()
+})
+
+test('keeps token balances open under a dialog opened from one of its rows', async ({ page }) => {
+  await withMetaMask(page)
+  await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
+  const balances = page.getByRole('dialog', { name: 'Token balances' })
+  // A mark on the node itself, which a dialog opened afresh would not carry
+  const kept = page.locator('[data-kept]')
+
+  await tokenBalances(page, 'Mirror')
+  await balances.evaluate((node) => node.setAttribute('data-kept', ''))
+
+  await balances.getByRole('button', { name: 'Send mUSD' }).click()
+  await expect(page.getByRole('dialog').getByRole('combobox', { name: 'Token' })).toBeVisible()
+  await expect(kept).toHaveCount(1)
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click()
+  await expect(balances).toBeVisible()
+  await expect(kept).toHaveCount(1)
+
+  await balances.getByRole('button', { name: 'Receive mUSD' }).click()
+  await expect(page.getByRole('dialog', { name: 'Receive mUSD' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(balances).toBeVisible()
+  await expect(kept).toHaveCount(1)
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await card(page, 'Mirror').getByRole('button', { name: 'Receive' }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
 test('opens Receive with only the EVM address for a token', async ({ page }) => {
@@ -454,9 +486,13 @@ test('sends a token from a Numen account, signed like any other call', async ({ 
   await dialog.getByRole('button', { name: 'Sign and send' }).click()
   await expect(page.getByText('Token transfer confirmed')).toBeVisible()
 
-  const after = await tokenBalances(page, 'Alice')
+  // The list stayed open under the Send dialog, so the new balance shows in it
   await expect(
-    after.getByRole('listitem').filter({ hasText: 'mUSD' }).locator('.font-mono.font-semibold'),
+    page
+      .getByRole('dialog', { name: 'Token balances' })
+      .getByRole('listitem')
+      .filter({ hasText: 'mUSD' })
+      .locator('.font-mono.font-semibold'),
   ).not.toHaveText(before ?? '')
 })
 

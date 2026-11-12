@@ -5,7 +5,7 @@ import { EndpointModal } from '@/chain/EndpointModal'
 import { useChain } from '@/chain/provider'
 import { useBalances, useFacts, useHead, useReach } from '@/chain/queries'
 import { quality, type Quality } from '@/chain/reach'
-import { lockedOf, totalOf, type Token } from '@/chain/types'
+import { lockedOf, totalOf } from '@/chain/types'
 import { addToMetaMask, metaMask, refusalMessage, wasRejected } from '@/evm/metamask'
 import { isEvmAddress } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
@@ -61,7 +61,6 @@ import { VestingModal } from '@/accounts/VestingModal'
 import { MetaMaskSendModal } from '@/accounts/MetaMaskSendModal'
 import { TokenBalancesModal } from '@/accounts/TokenBalancesModal'
 import { TokenSendModal } from '@/accounts/TokenSendModal'
-import type { Holding } from '@/chain/types'
 import { ReceiveModal } from '@/accounts/ReceiveModal'
 import { JudgeModal, SetFeeModal } from '@/accounts/JudgeModal'
 import { SendModal } from '@/accounts/SendModal'
@@ -81,7 +80,7 @@ type Modal =
   | { kind: 'multisig' }
   | { kind: 'proxied' }
   | { kind: 'send'; address: string }
-  | { kind: 'receive'; address: string; token?: Token }
+  | { kind: 'receive'; address: string }
   | { kind: 'renameAccount'; address: string }
   | { kind: 'changePassword'; address: string }
   | { kind: 'backup'; address: string }
@@ -101,10 +100,9 @@ type Modal =
   | { kind: 'judge'; address: string }
   | { kind: 'setFee'; address: string }
   | { kind: 'sign'; address?: string }
-  | { kind: 'metaMaskSend'; address: string; holding?: Holding }
+  | { kind: 'metaMaskSend'; address: string }
   | { kind: 'validator'; address: string }
   | { kind: 'tokenBalances'; address: string }
-  | { kind: 'tokenSend'; address: string; holding: Holding }
   | { kind: 'endpoint' }
   | { kind: 'forget'; address: string }
   | { kind: 'newGroup' }
@@ -553,43 +551,38 @@ export function App() {
         )}
 
         {modal?.kind === 'metaMaskSend' && selected?.evmAddress && (
-          <MetaMaskSendModal
-            source={selected.evmAddress}
-            accounts={accounts}
-            initial={modal.holding}
-            onClose={close}
-          />
+          <MetaMaskSendModal source={selected.evmAddress} accounts={accounts} onClose={close} />
         )}
 
         {modal?.kind === 'tokenBalances' && selected && selectedEvm && (
           <TokenBalancesModal
             account={selected}
             source={selectedEvm}
-            onSend={(holding) =>
-              setModal({
-                kind: selected.evmAddress ? 'metaMaskSend' : 'tokenSend',
-                address: selected.address,
-                holding,
-              })
+            send={(holding, onBack) =>
+              selected.evmAddress ? (
+                <MetaMaskSendModal
+                  source={selected.evmAddress}
+                  accounts={accounts}
+                  initial={holding}
+                  onClose={onBack}
+                />
+              ) : (
+                <TokenSendModal
+                  account={selected}
+                  source={selectedEvm}
+                  accounts={accounts}
+                  signers={signers}
+                  initial={holding}
+                  onClose={onBack}
+                />
+              )
             }
-            onReceive={(token) => setModal({ kind: 'receive', address: selected.address, token })}
-            onClose={close}
-          />
-        )}
-
-        {modal?.kind === 'tokenSend' && selected && selectedEvm && (
-          <TokenSendModal
-            account={selected}
-            source={selectedEvm}
-            accounts={accounts}
-            signers={signers}
-            initial={modal.holding}
             onClose={close}
           />
         )}
 
         {modal?.kind === 'receive' && selected && (
-          <ReceiveModal account={selected} token={modal.token} onClose={close} />
+          <ReceiveModal account={selected} onClose={close} />
         )}
 
         {modal?.kind === 'renameAccount' && selected && (
