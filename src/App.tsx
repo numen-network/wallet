@@ -75,36 +75,14 @@ import { signersFor, type Account } from '@/accounts/types'
 import type { CardAction } from '@/accounts/AccountCard'
 
 type Modal =
+  | { kind: CardAction; address: string }
+  | { kind: 'delegate'; to: string }
+  | { kind: 'sign' }
   | { kind: 'add' }
   | { kind: 'fromJson' }
   | { kind: 'multisig' }
   | { kind: 'proxied' }
-  | { kind: 'send'; address: string }
-  | { kind: 'receive'; address: string }
-  | { kind: 'renameAccount'; address: string }
-  | { kind: 'changePassword'; address: string }
-  | { kind: 'backup'; address: string }
-  | { kind: 'identity'; address: string }
-  | { kind: 'judgement'; address: string }
-  | { kind: 'clearIdentity'; address: string }
-  | { kind: 'quitSub'; address: string }
-  | { kind: 'derive'; address: string }
-  | { kind: 'delegate'; address?: string; to?: string }
-  | { kind: 'undelegate'; address: string }
-  | { kind: 'addProxy'; address: string }
-  | { kind: 'removeProxy'; address: string }
-  | { kind: 'unlock'; address: string }
-  | { kind: 'pending'; address: string }
-  | { kind: 'subs'; address: string }
-  | { kind: 'vesting'; address: string }
-  | { kind: 'judge'; address: string }
-  | { kind: 'setFee'; address: string }
-  | { kind: 'sign'; address?: string }
-  | { kind: 'metaMaskSend'; address: string }
-  | { kind: 'validator'; address: string }
-  | { kind: 'tokenBalances'; address: string }
   | { kind: 'endpoint' }
-  | { kind: 'forget'; address: string }
   | { kind: 'newGroup' }
   | { kind: 'renameGroup'; id: string }
   | { kind: 'deleteGroup'; id: string }
@@ -301,8 +279,7 @@ export function App() {
     { total: 0n, transferable: 0n, locked: 0n },
   )
 
-  const selected =
-    modal && 'address' in modal && modal.address ? byAddress.get(modal.address) : undefined
+  const selected = modal && 'address' in modal ? byAddress.get(modal.address) : undefined
   const signers = selected ? signersFor(selected, accounts) : []
   // What holds the selected account's tokens, its own H160 or the one the chain maps to it
   const selectedEvm = useEvmAddressOf(selected)
@@ -520,7 +497,11 @@ export function App() {
         )}
 
         {modal?.kind === 'sign' && (
-          <SignModal accounts={accounts} initial={modal.address} onClose={close} />
+          <SignModal
+            accounts={accounts}
+            initial={'address' in modal ? modal.address : undefined}
+            onClose={close}
+          />
         )}
 
         {modal?.kind === 'vesting' && selected && (
@@ -637,8 +618,8 @@ export function App() {
             delegators={delegators}
             accounts={accounts}
             balances={balances}
-            from={modal.address ?? delegators[0].address}
-            to={modal.to ?? ''}
+            from={'address' in modal ? modal.address : delegators[0].address}
+            to={'to' in modal ? modal.to : ''}
             onClose={close}
           />
         )}
