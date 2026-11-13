@@ -26,6 +26,7 @@ export const SETTLED: Record<Operation['kind'], string> = {
   transfer: 'Transfer confirmed',
   transferAll: 'Transfer confirmed',
   claim: 'EVM balance claimed',
+  claimFallback: 'Funds claimed',
   sendToken: 'Token transfer confirmed',
   delegate: 'Votes delegated',
   undelegate: 'Delegation ended',
@@ -125,6 +126,8 @@ export function describe(
       }
     case 'claim':
       return { title: 'Claim an EVM balance', fields: row({ for: who(operation.h160) }) }
+    case 'claimFallback':
+      return { title: 'Claim from the EVM address', fields: row({ to: who(operation.to) }) }
     case 'sendToken': {
       const { token } = operation
       return {

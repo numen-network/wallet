@@ -33,7 +33,13 @@ import { numen } from '@polkadot-api/descriptors'
 import { Binary, createClient, Enum } from 'polkadot-api'
 import { getTxCreator } from 'polkadot-api/tx-creator'
 import { getWsProvider } from 'polkadot-api/ws'
-import { frontierAccount, publicKeyOf, reviveAccount, toNumenAddress } from '@/lib/address'
+import {
+  fallbackAccount,
+  frontierAccount,
+  publicKeyOf,
+  reviveAccount,
+  toNumenAddress,
+} from '@/lib/address'
 import type { WalletAccount } from '@/signing/types'
 import { NETWORKS, SS58_PREFIX, UNIT } from './config'
 import { dumpBytes, metadataDump, remarkBytes, type Motion } from './governance'
@@ -1191,6 +1197,34 @@ describe.runIf(REVIVE)('the EVM layer under pallet-revive', () => {
     const h160 = strangerH160()
     await send({ kind: 'transfer', to: frontierAccount(h160), amount: 1n })
     expect(await repository.claimable(h160)).toBe(0n)
+  })
+
+  it('claims what reached an H160 before its mapping, signed by the account', { timeout: 300_000 }, async () => {
+    const pair = new Keyring({ type: 'sr25519' }).addFromSeed(randomAsU8a(32))
+    const stranger: WalletAccount = {
+      address: toNumenAddress(pair.address),
+      label: 'Stranger',
+      source: 'keystore',
+      signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
+    }
+    // Paid at its H160 before the chain has seen it, so the funds land in the fallback account
+    await send({ kind: 'transfer', to: fallbackAccount(stranger.address), amount: 5n * UNIT })
+    await send({ kind: 'transfer', to: stranger.address, amount: UNIT })
+    expect(await repository.evmAddressOf(stranger.address)).not.toBeNull()
+    expect(await repository.stranded(stranger.address)).toBe(5n * UNIT)
+
+    await new Promise<void>((resolve, reject) => {
+      repository
+        .submit(stranger, { kind: 'claimFallback', to: stranger.address }, (progress) => {
+          if (progress.stage === 'inBlock') resolve()
+        })
+        .catch(reject)
+      setTimeout(() => reject(new Error('The claim never made it into a block')), 90_000)
+    })
+
+    const claimed = await api.query.System.Account.getValue(stranger.address, { at: 'best' })
+    expect(claimed.data.free).toBeGreaterThan(5n * UNIT)
+    expect(await repository.stranded(stranger.address)).toBe(0n)
   })
 
   it('finds the coin facade among the contracts and reads it over eth_call', { timeout: 60_000 }, async () => {

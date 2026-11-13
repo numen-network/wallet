@@ -43,10 +43,19 @@ export function frontierAccount(h160: string): string {
 
 /**
  * The account pallet-revive gives an H160 that no account maps back to, the
- * H160 padded with 0xEE. Only the H160's own key or code can move its funds.
+ * H160 padded with 0xEE. The H160's own key or code moves its funds. So does the
+ * account hashed to that H160, through dispatch_as_fallback_account.
  */
 export function reviveAccount(h160: string): string {
   return encodeAddress(u8aConcat(hexToU8a(h160), REVIVE_PAD), SS58_PREFIX)
+}
+
+/**
+ * Where pallet-revive put what reached this account's H160 before the chain
+ * mapped the H160 back to the account. An account padded with 0xEE is its own.
+ */
+export function fallbackAccount(address: string): string {
+  return reviveAccount(reviveAddress(address))
 }
 
 /**

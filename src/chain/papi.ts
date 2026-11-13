@@ -33,6 +33,7 @@ import {
   transferCall,
 } from '@/evm/erc20'
 import {
+  fallbackAccount,
   frontierAccount,
   palletAccount,
   reviveAccount,
@@ -1003,6 +1004,11 @@ export function createPapiRepository(network: Network): ChainRepository {
         })
       case 'claim':
         return claimTx(operation.h160.toLowerCase())
+      case 'claimFallback':
+        return api.tx.Revive.dispatch_as_fallback_account({
+          call: api.tx.Balances.transfer_all({ dest: Enum('Id', operation.to), keep_alive: false })
+            .decodedCall,
+        })
       case 'sendToken':
         return api.tx.Revive.call({
           dest: operation.token.address,
@@ -1357,6 +1363,14 @@ export function createPapiRepository(network: Network): ChainRepository {
 
     claim(h160, onProgress): Promise<string> {
       return follow(claimTx(h160.toLowerCase()).createSubmitAndWatch(authorized, AUTHORIZED), onProgress)
+    },
+
+    async stranded(address: string): Promise<bigint> {
+      if ((await layer) === 'frontier') return 0n
+      const fallback = fallbackAccount(address)
+      if (fallback === address) return 0n
+      const held = await revive.query.System.Account.getValue(fallback, BEST)
+      return held.data.free
     },
 
     /**

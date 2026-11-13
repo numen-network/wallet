@@ -449,6 +449,9 @@ test('keeps token balances off a Numen account under Frontier', async ({ page })
 
 const PASSWORD = 'correct horse battery'
 
+/** An account the mock chain has never seen, with funds waiting at its H160. */
+const UNSEEN = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
+
 /** Alice, which the mock maps an H160 to, so tokens can sit with her. */
 async function importAlice(page: Page) {
   await page.goto('/')
@@ -590,6 +593,34 @@ test('claims what Frontier left for the address, with nothing for MetaMask to si
 
   const asked = (await calls(page)) as unknown as Array<{ method: string }>
   expect(asked.some((call) => call.method === 'eth_sendTransaction')).toBe(false)
+})
+
+test('claims what reached an H160 before its mapping, signed by the account', async ({ page }) => {
+  test.skip(!onRevive(), 'Frontier has no fallback account to claim from')
+  await importAlice(page)
+
+  const alice = card(page, 'Alice')
+  await expect(alice.getByText('You have tNUMN to claim')).toBeVisible()
+  await alice.getByRole('button', { name: 'Claim' }).click()
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('heading', { name: 'Claim' })).toBeVisible()
+  await expect(dialog.getByText('300 tNUMN')).toBeVisible()
+  await dialog.getByLabel('Account password').fill(PASSWORD)
+  await dialog.getByRole('button', { name: 'Sign and claim' }).click()
+
+  await expect(page.getByText('Funds claimed')).toBeVisible()
+  await expect(alice.getByText('You have tNUMN to claim')).toHaveCount(0)
+})
+
+test('keeps the claim shut for an account the chain has not seen', async ({ page }) => {
+  test.skip(!onRevive(), 'Frontier has no fallback account to claim from')
+  await page.goto('/')
+  await watching(page, [{ address: UNSEEN, evmAddress: null, name: 'Unseen' }])
+
+  const unseen = card(page, 'Unseen')
+  await expect(unseen.getByText('You have tNUMN to claim')).toBeVisible()
+  await expect(unseen.getByRole('button', { name: 'Claim' })).toBeDisabled()
 })
 
 test('offers no claim while the chain runs Frontier', async ({ page }) => {

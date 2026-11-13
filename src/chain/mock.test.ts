@@ -185,6 +185,28 @@ describe('the EVM layer on the mock chain', () => {
     await expect(chain.claim(H160)).rejects.toThrow()
   })
 
+  it('moves what reached an H160 before its mapping with one signed claim', async () => {
+    const chain = createMockRepository('revive')
+    const free = () =>
+      new Promise<bigint>((resolve) => chain.subscribeBalance(A, (balance) => resolve(balance.free))())
+    const waiting = await chain.stranded(A)
+    expect(waiting).toBeGreaterThan(0n)
+    const before = await free()
+
+    const sent = chain.submit(granter, { kind: 'claimFallback', to: A })
+    await vi.advanceTimersByTimeAsync(750)
+    await sent
+
+    const fee = await chain.estimateFee(A, { kind: 'claimFallback', to: A })
+    expect(await chain.stranded(A)).toBe(0n)
+    expect((await free()) - before).toBe(waiting - fee)
+  })
+
+  it('holds nothing back under Frontier, nor for an account padded with 0xEE', async () => {
+    expect(await createMockRepository().stranded(A)).toBe(0n)
+    expect(await createMockRepository('revive').stranded(reviveAccount(H160))).toBe(0n)
+  })
+
   it('tells whoever listens once the runtime moves to pallet-revive', async () => {
     const chain = createMockRepository()
     const seen: string[] = []

@@ -1,7 +1,13 @@
 import { stringToU8a } from '@polkadot/util'
 import { encodeMultiAddress } from '@polkadot/util-crypto'
 import wtmr from '@/assets/tokens/wtmr.svg'
-import { frontierAccount, palletAccount, reviveAccount, reviveAddress } from '@/lib/address'
+import {
+  fallbackAccount,
+  frontierAccount,
+  palletAccount,
+  reviveAccount,
+  reviveAddress,
+} from '@/lib/address'
 import { replaceBigInt, reviveBigInt } from '@/lib/json'
 import { DECIMALS, SS58_PREFIX, UNIT } from './config'
 import {
@@ -312,6 +318,15 @@ const LEFT_BEHIND: [string, bigint][] = [
 
 /** An account the chain has never seen, so no H160 leads back to it yet. */
 const UNSEEN = 'nu3oNksEGXV3Tsr4sBeRUpcfA5zYp4VvZ7t9uKVPMAe2UCo98'
+
+/**
+ * What reached an account's H160 before the chain mapped it, one account that
+ * can claim it and one that has to exist first.
+ */
+const STRANDED: [string, bigint][] = [
+  [ALICE, 300n * UNIT],
+  [UNSEEN, 12n * UNIT],
+]
 
 const ALICE_KEYS: SessionKeys = {
   grandpa: '0x88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee',
@@ -795,6 +810,7 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
   let evm = start
   const runtimeListeners = new Set<(evm: EvmLayer) => void>()
   const leftBehind = new Map(LEFT_BEHIND)
+  const stranded = new Map(STRANDED)
   /** H160s pallet-revive maps back to an account, filled in as accounts are looked at. */
   const mapped = new Map([ALICE, BOB].map((address) => [reviveAddress(address), address]))
   // Nothing here has a runtime to upgrade, so the suites set one off by hand
@@ -1043,6 +1059,15 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
         const source = reviveAddress(account.address)
         writeTokenBalance(token.address, source, readTokenBalance(token.address, source) - amount)
         writeTokenBalance(token.address, to, readTokenBalance(token.address, to) + amount)
+        return
+      }
+      case 'claimFallback': {
+        const amount = evm === 'revive' ? stranded.get(account.address) : undefined
+        if (!amount) throw new Error('Token: FundsUnavailable')
+        if (from.transferable < FEE) throw new Error('Token: FundsUnavailable')
+        stranded.delete(account.address)
+        write(account.address, from.free - FEE)
+        write(operation.to, read(operation.to).free + amount)
         return
       }
       case 'transferAll': {
@@ -1602,6 +1627,11 @@ export function createMockRepository(start: EvmLayer = 'frontier'): ChainReposit
         const owner = reviveAccount(address)
         write(owner, read(owner).free + amount - FEE)
       })
+    },
+
+    async stranded(address: string): Promise<bigint> {
+      if (evm === 'frontier' || fallbackAccount(address) === address) return 0n
+      return stranded.get(address) ?? 0n
     },
 
     subscribeBalance(address, onBalance): Unsubscribe {

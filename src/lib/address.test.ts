@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { hexToU8a, stringToU8a, u8aConcat, u8aToHex } from '@polkadot/util'
 import { blake2AsU8a, cryptoWaitReady, decodeAddress, keccakAsU8a } from '@polkadot/util-crypto'
 import {
+  fallbackAccount,
   frontierAccount,
   isEvmAddress,
   isSubstrateAddress,
@@ -93,6 +94,18 @@ describe('reviveAddress', () => {
 
   it('hands a padded account its own H160 back', () => {
     expect(reviveAddress(reviveAccount(H160))).toBe(H160)
+  })
+})
+
+describe('fallbackAccount', () => {
+  it("pads the account's H160 with 0xEE", () => {
+    expect(u8aToHex(decodeAddress(fallbackAccount(ALICE_NUMEN)))).toBe(
+      `${ALICE_H160}${'ee'.repeat(12)}`,
+    )
+  })
+
+  it('leaves an account padded with 0xEE as its own', () => {
+    expect(fallbackAccount(H160_REVIVE)).toBe(H160_REVIVE)
   })
 })
 

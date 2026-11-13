@@ -166,6 +166,18 @@ export function useClaimable(h160: string | null) {
   })
 }
 
+/** What reached an account's H160 before the chain mapped it, zero where nothing did. */
+export function useStranded(address: string | null) {
+  const { repository, network, evm } = useChain()
+
+  return useQuery({
+    queryKey: ['stranded', network.id, evm, address],
+    queryFn: () => repository.stranded(address ?? ''),
+    enabled: address !== null && evm === 'revive',
+    staleTime: 10_000,
+  })
+}
+
 /**
  * How the link is holding up, sampled rather than watched. Nothing on chain
  * changes it, so a poll on a slow clock says as much as a subscription would.
@@ -198,6 +210,7 @@ export function useHead(): ChainHead | null {
  */
 export const CACHES = [
   'claimable',
+  'stranded',
   'proxies',
   'identity',
   'subs',

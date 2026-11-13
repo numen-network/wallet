@@ -49,6 +49,7 @@ import { DelegateModal, UndelegateModal } from '@/accounts/DelegateModal'
 import { DeriveModal } from '@/accounts/DeriveModal'
 import { ClearIdentityModal, IdentityModal } from '@/accounts/IdentityModal'
 import { JudgementModal } from '@/accounts/JudgementModal'
+import { ClaimFallbackModal } from '@/accounts/ClaimFallbackModal'
 import { AddProxyModal, RemoveProxyModal } from '@/accounts/ProxyModal'
 import { ForgetModal } from '@/accounts/ForgetModal'
 import { MultisigModal } from '@/accounts/MultisigModal'
@@ -599,6 +600,10 @@ export function App() {
             signers={signers}
             onClose={close}
           />
+        )}
+
+        {modal?.kind === 'claimFallback' && selected && (
+          <ClaimFallbackModal account={selected} signers={signers} onClose={close} />
         )}
 
         {modal?.kind === 'clearIdentity' && selected && (

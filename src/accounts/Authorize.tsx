@@ -360,6 +360,7 @@ export function SignerField({
 /** What a settled call leaves out of date, since the next screen would read it. */
 const STALE: Partial<Record<Operation['kind'], Cache[]>> = {
   claim: ['claimable'],
+  claimFallback: ['stranded'],
   delegate: ['voting'],
   undelegate: ['voting'],
   addProxy: ['proxies'],

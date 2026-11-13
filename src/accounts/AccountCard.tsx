@@ -5,7 +5,7 @@ import type { AccountBalance } from '@/chain/types'
 import { lockedOf, totalOf, ZERO_BALANCE } from '@/chain/types'
 import { backing, labelOf, pendingWith, seatOf, type Standing } from '@/chain/identity'
 import { IdentityVerdict } from './IdentityVerdict'
-import { useClaimable, useRegistrars, useStanding, useSymbol } from '@/chain/queries'
+import { useClaimable, useRegistrars, useStanding, useStranded, useSymbol } from '@/chain/queries'
 import { shorten } from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { useChain } from '@/chain/provider'
@@ -78,6 +78,7 @@ export type CardAction =
   | 'metaMaskSend'
   | 'validator'
   | 'tokenBalances'
+  | 'claimFallback'
 
 interface CardProps {
   account: Account
@@ -168,6 +169,37 @@ function FrontierClaim({ account, h160 }: { account: Account; h160: string }) {
       tip={`${amount} ${symbol} from before the EVM upgrade`}
       disabled={claiming}
       onClaim={send}
+    />
+  )
+}
+
+/**
+ * What reached this account's H160 before the chain mapped it. Claiming is a
+ * call the account signs, so the button opens a dialog rather than sending.
+ */
+function StrandedClaim({
+  account,
+  mapped,
+  onClaim,
+}: {
+  account: Account
+  mapped: boolean
+  onClaim: () => void
+}) {
+  const symbol = useSymbol()
+  const { data: stranded = 0n } = useStranded(account.address)
+  if (stranded === 0n) return null
+
+  const reason = !canSend(account)
+    ? CANNOT_SEND[account.source]
+    : `Needs ${symbol} at the Numen address for the fee`
+
+  return (
+    <ClaimNotice
+      text={`You have ${symbol} to claim`}
+      disabled={!mapped || !canSend(account)}
+      reason={reason}
+      onClaim={onClaim}
     />
   )
 }
@@ -412,7 +444,17 @@ function CardBody({
       </CardHeader>
 
       <CardContent className="mt-auto pt-1">
-        {account.evmAddress && <FrontierClaim account={account} h160={account.evmAddress} />}
+        {account.evmAddress ? (
+          <FrontierClaim account={account} h160={account.evmAddress} />
+        ) : (
+          evm === 'revive' && (
+            <StrandedClaim
+              account={account}
+              mapped={evmAddress !== null}
+              onClaim={ask('claimFallback')}
+            />
+          )
+        )}
         {/* What the account holds, to the planck. The split under it is rounded
             for reading, and says so */}
         <div

@@ -175,6 +175,8 @@ export type Operation =
   | { kind: 'transfer'; to: string; amount: bigint }
   /** What Frontier left for an H160, moved to the account pallet-revive gives it. */
   | { kind: 'claim'; h160: string }
+  /** What reached the signer's H160 before the chain mapped it, moved to `to`. */
+  | { kind: 'claimFallback'; to: string }
   /** Sends the lot and lets the account be reaped, so there is no amount. */
   | { kind: 'transferAll'; to: string }
   /** An ERC20 transfer the account's own H160 makes, capped at what a dry run of it took. */
@@ -545,6 +547,8 @@ export interface ChainRepository {
   claimable(h160: string): Promise<bigint>
   /** Moves what Frontier left for an H160. Nobody signs it, and the fee comes out of what moves. */
   claim(h160: string, onProgress?: (progress: TxProgress) => void): Promise<string>
+  /** What reached this account's H160 before the chain mapped it, still unclaimed. */
+  stranded(address: string): Promise<bigint>
   subscribeBalance(address: string, onBalance: (balance: AccountBalance) => void): Unsubscribe
   estimateFee(from: string, operation: Operation): Promise<bigint>
   /**
