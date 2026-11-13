@@ -38,6 +38,7 @@ import {
   Trash2,
   LockOpen,
 } from 'lucide-react'
+import { ClaimNotice } from '@/ui/ClaimNotice'
 import { Identicon } from '@/ui/Identicon'
 import { Menu, type MenuSection } from '@/ui/Menu'
 import { Tip } from '@/ui/Tip'
@@ -139,7 +140,8 @@ function IdentityMark({ standing }: { standing: Standing }) {
  * What Frontier left at the account it hashed this H160 to, and the claim that
  * brings it over. Nobody signs a claim, so the button sends it there and then.
  */
-function Unclaimed({ account, h160 }: { account: Account; h160: string }) {
+function FrontierClaim({ account, h160 }: { account: Account; h160: string }) {
+  const symbol = useSymbol()
   const { data: left = 0n, dataUpdatedAt } = useClaimable(h160)
   const claim = useClaim()
   // A claim this tab sent after the reading above is still on its way
@@ -154,20 +156,19 @@ function Unclaimed({ account, h160 }: { account: Account; h160: string }) {
   )
   if (left === 0n) return null
 
+  const amount = formatAmount(left, { precision: 2, compact: true })
   const send = () =>
     claim(account, h160).catch((problem: unknown) =>
       toastProblem(problem instanceof Error ? problem.message : String(problem)),
     )
 
   return (
-    <span className="flex items-center gap-1.5">
-      <Tip text="What this address held before the EVM upgrade">
-        <span>unclaimed {formatAmount(left, { precision: 2, compact: true })}</span>
-      </Tip>
-      <Button type="button" variant="soft" size="xs" data-nodrag disabled={claiming} onClick={send}>
-        Claim
-      </Button>
-    </span>
+    <ClaimNotice
+      text={`You have Frontier ${symbol} to claim`}
+      tip={`${amount} ${symbol} from before the EVM upgrade`}
+      disabled={claiming}
+      onClaim={send}
+    />
   )
 }
 
@@ -411,6 +412,7 @@ function CardBody({
       </CardHeader>
 
       <CardContent className="mt-auto pt-1">
+        {account.evmAddress && <FrontierClaim account={account} h160={account.evmAddress} />}
         {/* What the account holds, to the planck. The split under it is rounded
             for reading, and says so */}
         <div
@@ -423,7 +425,6 @@ function CardBody({
         <div data-nodrag className={cn('mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground', PICKABLE)}>
           <span>transferable {formatAmount(holdings.transferable, { precision: 2, compact: true })}</span>
           <span>locked {formatAmount(lockedOf(holdings), { precision: 2, compact: true })}</span>
-          {account.evmAddress && <Unclaimed account={account} h160={account.evmAddress} />}
         </div>
       </CardContent>
 

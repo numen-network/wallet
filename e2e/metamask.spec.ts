@@ -582,7 +582,8 @@ test('claims what Frontier left for the address, with nothing for MetaMask to si
   await watching(page, [{ address: MIRROR, evmAddress: EVM, name: 'Mirror' }])
 
   const mirror = card(page, 'Mirror')
-  await expect(mirror.getByText('unclaimed ≈39.38K')).toBeVisible()
+  await mirror.getByText('You have Frontier tNUMN to claim').hover()
+  await expect(page.getByRole('tooltip')).toHaveText('≈39.38K tNUMN from before the EVM upgrade')
   await mirror.getByRole('button', { name: 'Claim' }).click()
   await expect(page.getByText('EVM balance claimed')).toBeVisible()
   await expect(mirror.getByRole('button', { name: 'Claim' })).toHaveCount(0)
