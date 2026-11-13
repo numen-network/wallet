@@ -71,7 +71,7 @@ import { GovernanceView } from '@/governance/GovernanceView'
 import { voters } from '@/governance/Voter'
 import { isSystemGroup, UNGROUPED_ID } from '@/accounts/layout'
 import { useAccountsStore } from '@/accounts/store'
-import { useAccounts, useEvmAddressOf } from '@/accounts/useAccounts'
+import { useAccounts, useShownEvmAddress } from '@/accounts/useAccounts'
 import { signersFor, type Account } from '@/accounts/types'
 import type { CardAction } from '@/accounts/AccountCard'
 
@@ -283,7 +283,7 @@ export function App() {
   const selected = modal && 'address' in modal ? byAddress.get(modal.address) : undefined
   const signers = selected ? signersFor(selected, accounts) : []
   // What holds the selected account's tokens, its own H160 or the one the chain maps to it
-  const selectedEvm = useEvmAddressOf(selected)
+  const selectedEvm = useShownEvmAddress(selected).address
   const targetGroup =
     modal && 'id' in modal ? store.layout.groups.find((group) => group.id === modal.id) : undefined
 

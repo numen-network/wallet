@@ -46,7 +46,7 @@ import { toastProblem } from '@/ui/Toast'
 import { useClaim } from './Authorize'
 import { useSessionStore } from './session'
 import { canSend, signsAlone, type Account } from './types'
-import { useEvmAddressOf, useShownEvmAddress } from './useAccounts'
+import { useShownEvmAddress } from './useAccounts'
 
 /**
  * Which dialog a card asks the page to open. A card knows its own account, so
@@ -270,8 +270,7 @@ function CardBody({
   // call MetaMask signs rather than one the wallet sends
   const viaMetaMask = account.evmAddress !== null
   const shut = !viaMetaMask && !canSend(account)
-  const evmAddress = useEvmAddressOf(account)
-  const { address: shownEvm } = useShownEvmAddress(account)
+  const { address: shownEvm, mapped } = useShownEvmAddress(account)
   // Which registrar this account is, if the chain lists it as one
   const seat = seatOf(registrars ?? [], account.address)
 
@@ -438,7 +437,7 @@ function CardBody({
           evm === 'revive' && (
             <StrandedClaim
               account={account}
-              mapped={evmAddress !== null}
+              mapped={mapped}
               onClaim={ask('claimFallback')}
             />
           )
@@ -475,7 +474,7 @@ function CardBody({
         <Button type="button" variant="outline" data-nodrag onClick={ask('receive')}>
           Receive
         </Button>
-        {evmAddress && (
+        {shownEvm && (
           <Button type="button" variant="outline" data-nodrag onClick={ask('tokenBalances')}>
             Tokens
           </Button>

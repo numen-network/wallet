@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { expectAddress, fillAddress } from './address'
 
 /**
@@ -138,6 +138,21 @@ test('gives a Numen account its H160, and marks one the chain has not seen', asy
   await card(page, 'Spare').getByRole('button', { name: 'Receive' }).click()
   await expect(dialog.getByText(SPARE_EVM)).toBeVisible()
   await expect(dialog.getByText('Not activated')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Done' }).click()
+
+  // Tokens sit at the H160 whether or not the chain has mapped it yet
+  await card(page, 'Spare').getByRole('button', { name: 'Tokens' }).click()
+  const balances = page.getByRole('dialog', { name: 'Token balances' })
+  await expect(balances).toBeVisible()
+
+  // The H160 is still Spare's, so the face is too, not the fallback account's
+  const face = (scope: Locator) =>
+    scope
+      .locator('.ui--IdentityIcon path')
+      .evaluateAll((shapes) => shapes.map((shape) => shape.getAttribute('fill')))
+  const spare = await face(card(page, 'Spare'))
+  expect(spare.length).toBeGreaterThan(0)
+  expect(await face(balances)).toEqual(spare)
 })
 
 test('watch only accounts cannot send', async ({ page }) => {

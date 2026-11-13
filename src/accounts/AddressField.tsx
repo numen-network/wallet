@@ -1,8 +1,16 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { useChain } from '@/chain/provider'
 import { useBalances, useEvmAccount, useStanding, useSymbol } from '@/chain/queries'
 import { labelOf } from '@/chain/identity'
 import { cn } from '@/lib/cn'
-import { isEvmAddress, resolveAddress, shorten } from '@/lib/address'
+import {
+  fallbackAccount,
+  isEvmAddress,
+  isSubstrateAddress,
+  resolveAddress,
+  reviveAddress,
+  shorten,
+} from '@/lib/address'
 import { formatAmount } from '@/lib/balance'
 import { NOTE } from '@/components/ui/field'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -25,14 +33,34 @@ export interface Pickable {
 const WIDE = 'w-full'
 
 /**
- * The account an address names. An H160's comes from the chain, so it stays
- * undefined until the chain answers. Null is input that names no account.
+ * The wallet's own Numen accounts by the H160 pallet-revive derives for them.
+ * Until the chain maps that H160 back, it names the fallback account instead,
+ * which is not the account the H160 belongs to.
+ */
+function useOwnH160s(): Map<string, string> {
+  const { evm } = useChain()
+  const groups = useAccountsStore((state) => state.layout.groups)
+  return useMemo(() => {
+    if (evm !== 'revive') return new Map()
+    const numen = groups
+      .flatMap((group) => group.accounts)
+      .filter((address) => isSubstrateAddress(address) && fallbackAccount(address) !== address)
+    return new Map(numen.map((address) => [reviveAddress(address), address]))
+  }, [evm, groups])
+}
+
+/**
+ * The account an address names. An H160 of the wallet's own is answered here.
+ * Any other comes from the chain and stays undefined until it answers. Null is
+ * input that names no account.
  */
 function useAccountOf(input: string): string | null | undefined {
+  const owners = useOwnH160s()
   const trimmed = input.trim()
-  const h160 = isEvmAddress(trimmed) ? trimmed : null
-  const { data } = useEvmAccount(h160)
-  return h160 ? data : resolveAddress(trimmed)
+  const h160 = isEvmAddress(trimmed) ? trimmed.toLowerCase() : null
+  const own = h160 ? owners.get(h160) : undefined
+  const { data } = useEvmAccount(own ? null : h160)
+  return h160 ? (own ?? data) : resolveAddress(trimmed)
 }
 
 /** An EVM address has a face too, the one its Numen account wears. */

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useChain } from '@/chain/provider'
-import { useEvmAddress, useEvmAddresses } from '@/chain/queries'
+import { useEvmAddress } from '@/chain/queries'
 import { isSubstrateAddress, reviveAddress, toNumenAddress } from '@/lib/address'
 import { availableBackends } from '@/signing'
 import type { WalletAccount } from '@/signing/types'
@@ -185,7 +185,7 @@ export function useAccounts() {
  * account has one once the chain maps it back. Undefined until the chain
  * answers.
  */
-export function useEvmAddressOf(account: Account | undefined): string | null | undefined {
+function useEvmAddressOf(account: Account | undefined): string | null | undefined {
   const { data: mapped } = useEvmAddress(!account || account.evmAddress ? null : account.address)
   return account?.evmAddress ?? mapped
 }
@@ -209,11 +209,9 @@ export function useShownEvmAddress(account: Account | undefined): {
 
 /** Every account here that a token can be sent to, under the H160 that reaches it. */
 export function useEvmRecipients(accounts: Account[]): { address: string; name: string }[] {
-  const mapped = useEvmAddresses(
-    accounts.filter((account) => !account.evmAddress).map((account) => account.address),
-  )
+  const { evm } = useChain()
   return accounts.flatMap((account) => {
-    const address = account.evmAddress ?? mapped[account.address]
+    const address = account.evmAddress ?? (evm === 'revive' ? reviveAddress(account.address) : null)
     return address ? [{ address, name: account.name }] : []
   })
 }
