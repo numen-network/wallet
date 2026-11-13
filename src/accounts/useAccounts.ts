@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useChain } from '@/chain/provider'
 import { useEvmAddress, useEvmAddresses } from '@/chain/queries'
-import { isSubstrateAddress, toNumenAddress } from '@/lib/address'
+import { isSubstrateAddress, reviveAddress, toNumenAddress } from '@/lib/address'
 import { availableBackends } from '@/signing'
 import type { WalletAccount } from '@/signing/types'
 import type { VaultKey } from '@/signing/vault'
@@ -187,6 +188,23 @@ export function useAccounts() {
 export function useEvmAddressOf(account: Account | undefined): string | null | undefined {
   const { data: mapped } = useEvmAddress(!account || account.evmAddress ? null : account.address)
   return account?.evmAddress ?? mapped
+}
+
+/**
+ * The H160 to show for an account. pallet-revive derives one for a Numen
+ * account before the chain maps it back. What reaches it meanwhile waits for a
+ * claim, so it comes with `mapped` false.
+ */
+export function useShownEvmAddress(account: Account | undefined): {
+  address: string | null | undefined
+  mapped: boolean
+} {
+  const { evm } = useChain()
+  const address = useEvmAddressOf(account)
+  if (account && address === null && evm === 'revive') {
+    return { address: reviveAddress(account.address), mapped: false }
+  }
+  return { address, mapped: true }
 }
 
 /** Every account here that a token can be sent to, under the H160 that reaches it. */

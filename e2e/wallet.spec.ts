@@ -17,6 +17,9 @@ const BRIDGE_REVIVE = 'nu347WpTCXVBp91rqygK1XLhSGitvqc2xfSwTD8YAPqyaNtuu'
 /** The H160 pallet-revive gives VAULT. */
 const VAULT_EVM = '0x484de3fc9343f31600ae1f3e13d633cb48cbf816'
 
+/** The H160 pallet-revive derives for SPARE, which the mock chain has never seen. */
+const SPARE_EVM = '0x2c53fc945bed8aab1e8da3f22ecca96cd45f8c57'
+
 /** The suite runs on a Frontier mock and again on a pallet-revive one. */
 const onRevive = () => test.info().project.name === 'revive'
 
@@ -117,19 +120,24 @@ test('shows the EVM row only for an account that has one', async ({ page }) => {
   await expect(card(page, 'Vault').getByText('EVM')).toHaveCount(0)
 })
 
-test('gives a Numen account the H160 that reaches it, once the chain has seen it', async ({ page }) => {
+test('gives a Numen account its H160, and marks one the chain has not seen', async ({ page }) => {
   test.skip(!onRevive(), 'Frontier maps no Numen account to an H160')
   await open(page)
 
   await expect(card(page, 'Bridge').getByText('0x1234…5678')).toBeVisible()
   await expect(card(page, 'Vault').getByText('0x484d…f816')).toBeVisible()
-  await expect(card(page, 'Spare').getByText('activates on first deposit')).toBeVisible()
-  await expect(card(page, 'Spare').getByText(/0x/)).toHaveCount(0)
+  await expect(card(page, 'Spare').getByText('0x2c53…8c57')).toBeVisible()
 
   await card(page, 'Vault').getByRole('button', { name: 'Receive' }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText(VAULT)).toBeVisible()
   await expect(dialog.getByText(VAULT_EVM)).toBeVisible()
+  await expect(dialog.getByText('Not activated')).toHaveCount(0)
+  await dialog.getByRole('button', { name: 'Done' }).click()
+
+  await card(page, 'Spare').getByRole('button', { name: 'Receive' }).click()
+  await expect(dialog.getByText(SPARE_EVM)).toBeVisible()
+  await expect(dialog.getByText('Not activated')).toBeVisible()
 })
 
 test('watch only accounts cannot send', async ({ page }) => {

@@ -46,7 +46,7 @@ import { toastProblem } from '@/ui/Toast'
 import { useClaim } from './Authorize'
 import { useSessionStore } from './session'
 import { canSend, signsAlone, type Account } from './types'
-import { useEvmAddressOf } from './useAccounts'
+import { useEvmAddressOf, useShownEvmAddress } from './useAccounts'
 
 /**
  * Which dialog a card asks the page to open. A card knows its own account, so
@@ -245,17 +245,6 @@ function AddressRow({
   )
 }
 
-function UnmappedEvm({ symbol }: { symbol: string }) {
-  return (
-    <div className="mt-px flex items-center gap-1.5 text-muted-foreground">
-      <Badge variant="muted">EVM</Badge>
-      <Tip text={`Activates once this account first receives ${symbol} at its Numen address`}>
-        <span className="text-[12.5px]">activates on first deposit</span>
-      </Tip>
-    </div>
-  )
-}
-
 function CardBody({
   account,
   balance,
@@ -282,6 +271,7 @@ function CardBody({
   const viaMetaMask = account.evmAddress !== null
   const shut = !viaMetaMask && !canSend(account)
   const evmAddress = useEvmAddressOf(account)
+  const { address: shownEvm } = useShownEvmAddress(account)
   // Which registrar this account is, if the chain lists it as one
   const seat = seatOf(registrars ?? [], account.address)
 
@@ -431,10 +421,8 @@ function CardBody({
           >
             {standing && <IdentityMark standing={standing} />}
           </AddressRow>
-          {evmAddress ? (
-            <AddressRow kind="EVM" label="EVM" full={evmAddress} short={shorten(evmAddress)} />
-          ) : (
-            evmAddress === null && evm === 'revive' && <UnmappedEvm symbol={symbol} />
+          {shownEvm && (
+            <AddressRow kind="EVM" label="EVM" full={shownEvm} short={shorten(shownEvm)} />
           )}
         </div>
 

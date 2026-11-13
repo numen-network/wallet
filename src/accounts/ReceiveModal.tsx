@@ -8,9 +8,17 @@ import { Qr, QR_SIZE } from '@/ui/Qr'
 import { copyText } from '@/ui/clipboard'
 import type { Token } from '@/chain/types'
 import type { Account } from './types'
-import { useEvmAddressOf } from './useAccounts'
+import { useShownEvmAddress } from './useAccounts'
 
-function AddressBlock({ kind, address }: { kind: string; address: string }) {
+function AddressBlock({
+  kind,
+  address,
+  warning,
+}: {
+  kind: string
+  address: string
+  warning?: string | undefined
+}) {
   // Covering a code is for whoever is looking over your shoulder right now, so
   // it lasts as long as the dialog does and every account opens showing both
   const [hidden, setHidden] = useState(false)
@@ -50,6 +58,7 @@ function AddressBlock({ kind, address }: { kind: string; address: string }) {
       >
         {hidden ? 'Show QR code' : 'Hide QR code'}
       </Button>
+      {warning && <p className="text-[12.5px] text-destructive">{warning}</p>}
     </div>
   )
 }
@@ -64,7 +73,7 @@ export function ReceiveModal({
   token?: Token | undefined
   onClose: () => void
 }) {
-  const evmAddress = useEvmAddressOf(account)
+  const evm = useShownEvmAddress(account)
 
   return (
     <Modal
@@ -79,7 +88,13 @@ export function ReceiveModal({
 
         <div className="flex flex-wrap justify-center gap-3.5 self-stretch">
           {!token && <AddressBlock kind="Numen" address={account.address} />}
-          {evmAddress && <AddressBlock kind="EVM" address={evmAddress} />}
+          {evm.address && (
+            <AddressBlock
+              kind="EVM"
+              address={evm.address}
+              warning={evm.mapped ? undefined : 'Not activated'}
+            />
+          )}
         </div>
       </div>
     </Modal>
