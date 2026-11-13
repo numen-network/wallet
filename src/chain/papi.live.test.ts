@@ -9,9 +9,9 @@
  * one also takes `--eth-rpc <url>` with eth-rpc from the same release beside it.
  * The suite reads the runtime version and runs the half that matches it.
  *
- * A dev chain has no registrar until prime adds one, and no account clears the
- * identity standard until a registrar has judged it. On --dev prime is Alice,
- * who signs everything here anyway, so the suite sets that up for itself.
+ * No account clears the identity standard until a registrar has judged it.
+ * The --dev genesis seats Alice as registrar 0, and she signs everything here
+ * anyway, so the suite judges its own identities.
  *
  * The dev preset seeds several GRANDPA authorities and one node holds one key,
  * so nothing ever finalizes. Submit resolves at finality, which leaves a watch
@@ -96,11 +96,7 @@ const send = (operation: Operation) =>
   })
 
 /** Calls the wallet has no business making, which prime makes here instead. */
-const asPrime = (
-  tx:
-    | ReturnType<typeof api.tx.Identity.add_registrar>
-    | ReturnType<typeof api.tx.Validator.set_stake_exempt>,
-) =>
+const asPrime = (tx: ReturnType<typeof api.tx.Validator.set_stake_exempt>) =>
   new Promise<void>((resolve, reject) => {
     const sub = tx.createSubmitAndWatch(alice.signer).subscribe({
       next(event) {
@@ -137,9 +133,11 @@ beforeAll(async () => {
     signer: getTxCreator(pair.publicKey, 'Sr25519', (input) => pair.sign(input)),
   }
 
-  if ((await repository.registrars()).length === 0) {
-    await asPrime(api.tx.Identity.add_registrar({ account: Enum('Id', alice.address) }))
-  }
+  const [seat] = await repository.registrars()
+  expect(seat, 'genesis seats Alice as registrar 0').toMatchObject({
+    index: 0,
+    account: alice.address,
+  })
 }, 200_000)
 
 describe('identity', () => {
